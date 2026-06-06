@@ -1,5 +1,6 @@
 import streamlit as st
-from google import genai
+import requests
+import json
 
 # API Anahtarın
 API_KEY = "AIzaSyCZXEoUCgJCQN9dGJ1A-w4l_xbV1tqb_yY"
@@ -28,15 +29,23 @@ if prompt := st.chat_input("Reis bir şey de..."):
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
-        client = genai.Client(api_key=API_KEY)
+        # HTTP isteği ile doğrudan API'ye bağlanıyoruz (SDK yok, kafa karışıklığı yok)
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
+        headers = {'Content-Type': 'application/json'}
+        data = {
+            "contents": [{"parts": [{"text": prompt}]}]
+        }
         
-        # Tam yoluyla modeli çağırıyoruz
         try:
-            response = client.models.generate_content(
-                model="gemini-1.5-flash", 
-                contents=prompt
-            )
-            st.markdown(response.text)
-            st.session_state.messages.append({"role": "assistant", "content": response.text})
+            response = requests.post(url, headers=headers, json=data)
+            response_json = response.json()
+            
+            if response.status_code == 200:
+                answer = response_json['candidates'][0]['content']['parts'][0]['text']
+                st.markdown(answer)
+                st.session_state.messages.append({"role": "assistant", "content": answer})
+            else:
+                st.error(f"Hata Kodu {response.status_code}: {response_json}")
+                
         except Exception as e:
-            st.error(f"Hata detayı: {e}")
+            st.error(f"Bağlantı Hatası: {e}")
