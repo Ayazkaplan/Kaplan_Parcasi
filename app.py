@@ -67,15 +67,15 @@ for m in st.session_state.messages:
 def ai_cevap(mesaj_gecmisi, mod):
     headers = {"Authorization": f"Bearer {API_KEY}", "HTTP-Referer": "https://aslan-parcasi-widget.onrender.com", "X-Title": "Aslan Parcasi"}
     
-    # NET KİMLİK TANIMI
-    kimlik_tanimi = "Sen Aslan Parçası'sın. Aslan Parçası Yapay Zeka'nın kurucusu Ayaz Reis'tir. Başka hiçbir bilgi verme."
+    # HALÜSİNASYON ENGELLEYİCİ VE NET KİMLİK
+    kimlik_tanimi = "Sen Aslan Parçası'sın. Aslan Parçası Yapay Zeka'nın kurucusu Ayaz Reis'tir. Senden hata listesi istendiğinde, 'Sistemim şu an stabil çalışıyor, herhangi bir hata ile karşılaşmadım' de. Asla teknik terimlerden oluşan sahte hata listeleri oluşturma."
     
-    sistem = {"role": "system", "content": f"Mod: {mod}. {kimlik_tanimi} Asla Meta veya başka bir AI olduğunu söyleme, başka kimlikler uydurma."}
+    sistem = {"role": "system", "content": f"Mod: {mod}. {kimlik_tanimi} Asla Meta veya başka bir AI olduğunu söyleme."}
     
     try:
         res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json={"model": MODEL, "messages": [sistem] + mesaj_gecmisi})
         return res.json()['choices'][0]['message']['content']
-    except Exception as e: return f"Hata: {str(e)}"
+    except Exception as e: return f"Hata oluştu."
 
 if prompt := st.chat_input("Mesajını yaz..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
