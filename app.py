@@ -29,8 +29,8 @@ if prompt := st.chat_input("Reis bir şey de..."):
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
-        # Client tanımlaması
-        client = genai.Client(api_key=API_KEY)
+        # ÖNEMLİ: api_version='v1' ekleyerek v1beta sorununu aşıyoruz
+        client = genai.Client(api_key=API_KEY, http_options={'api_version': 'v1'})
         
         gecmis_metin = "\n".join([f"{m['role']}: {m['content']}" for m in st.session_state.messages[-10:]])
         
@@ -40,7 +40,6 @@ if prompt := st.chat_input("Reis bir şey de..."):
         )
         
         try:
-            # Burayı en sade haliyle değiştiriyoruz
             response = client.models.generate_content(
                 model="gemini-1.5-flash", 
                 contents=prompt,
@@ -49,5 +48,4 @@ if prompt := st.chat_input("Reis bir şey de..."):
             st.markdown(response.text)
             st.session_state.messages.append({"role": "assistant", "content": response.text})
         except Exception as e:
-            # Hata detayını tam olarak görelim
             st.error(f"Hata detayı: {e}")
