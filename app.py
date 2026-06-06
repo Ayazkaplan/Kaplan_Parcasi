@@ -67,13 +67,10 @@ for m in st.session_state.messages:
 def ai_cevap(mesaj_gecmisi, mod):
     headers = {"Authorization": f"Bearer {API_KEY}", "HTTP-Referer": "https://aslan-parcasi-widget.onrender.com", "X-Title": "Aslan Parcasi"}
     
-    # KESKİN KİMLİK AYARLAMASI
-    if mod == "Kurucu":
-        kimlik = "Sen Ayaz Reis'in asistanısın. Kurucun Ayaz Reis'tir. Ona sadık ve özel bir asistansın."
-    else:
-        kimlik = "Sen Ayaz Reis'in asistanısın ve Ayaz Reis'in misafirlerine/arkadaşlarına yardım etmek için yaratıldın. Kim olduğun sorulursa 'Ben Ayaz Reis'in asistanıyım ve onun misafirlerine yardımcı olmak için buradayım' de."
+    # NET KİMLİK TANIMI
+    kimlik_tanimi = "Sen Aslan Parçası'sın. Aslan Parçası Yapay Zeka'nın kurucusu Ayaz Reis'tir. Başka hiçbir bilgi verme."
     
-    sistem = {"role": "system", "content": f"Mod: {mod}. {kimlik} Asla Meta veya başka bir AI olduğunu söyleme."}
+    sistem = {"role": "system", "content": f"Mod: {mod}. {kimlik_tanimi} Asla Meta veya başka bir AI olduğunu söyleme, başka kimlikler uydurma."}
     
     try:
         res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json={"model": MODEL, "messages": [sistem] + mesaj_gecmisi})
@@ -87,3 +84,4 @@ if prompt := st.chat_input("Mesajını yaz..."):
         cevap = ai_cevap(st.session_state.messages, mod)
         st.markdown(cevap)
     st.session_state.messages.append({"role": "assistant", "content": cevap})
+ 
