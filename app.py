@@ -7,7 +7,7 @@ API_KEY = os.environ.get("API_KEY")
 MODEL = "meta-llama/llama-3.3-70b-instruct"
 KURUCU_SIFRESI = "KAPLAN_REIS_74"
 
-st.set_page_config(page_title="Aslan Parçası V10.4", page_icon="🤖")
+st.set_page_config(page_title="Aslan Parçası V10.5", page_icon="🤖")
 
 # --- UI LOGIC ---
 def get_theme_data(mod):
@@ -28,11 +28,16 @@ def get_theme_data(mod):
 with st.sidebar:
     sifre = st.text_input("🔑 Şifre:", type="password")
     mod = "Kurucu" if sifre == KURUCU_SIFRESI else "Misafir"
+    
+    if st.button("🔄 Sohbeti Temizle"):
+        st.session_state.messages = []
+        st.rerun()
+
     user_bg, assistant_bg, theme_map = get_theme_data(mod)
     tema_secimi = st.selectbox("Arka Plan Seç:", list(theme_map.keys()))
     bg_color, text_color = theme_map[tema_secimi]
 
-# CSS
+# CSS & JS (Aynı)
 st.markdown(f"""
     <style>
     .stApp {{ background: {bg_color}; color: {text_color} !important; }}
@@ -40,25 +45,21 @@ st.markdown(f"""
     .stChatMessage[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarUser"]) {{ background-color: {user_bg} !important; color: {text_color} !important; }}
     .stChatMessage[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarAssistant"]) {{ background-color: {assistant_bg} !important; border-left: 5px solid gold; color: {text_color} !important; }}
     </style>
-    """, unsafe_allow_html=True)
-
-# JS Tıklama Efekti
-st.markdown("""
     <script>
-    document.addEventListener('click', function(e) {
-        if(e.target.closest('[data-testid="stChatMessageAvatarAssistant"]')) {
+    document.addEventListener('click', function(e) {{
+        if(e.target.closest('[data-testid="stChatMessageAvatarAssistant"]')) {{
             let toast = document.createElement('div');
             toast.innerText = 'Aslan Parçası';
             toast.style = 'position:fixed; top:20px; left:30%; background:gold; color:black; padding:15px; border-radius:10px; z-index:9999; transition: opacity 3s; font-weight:bold;';
             document.body.appendChild(toast);
-            setTimeout(() => { toast.style.opacity = '0'; }, 10);
-            setTimeout(() => { toast.remove(); }, 3000);
+            setTimeout(() => {{ toast.style.opacity = '0'; }}, 10);
+            setTimeout(() => {{ toast.remove(); }}, 3000);
         }
-    });
+    }});
     </script>
     """, unsafe_allow_html=True)
 
-st.title("🤖 Aslan Parçası V10.4")
+st.title("🤖 Aslan Parçası V10.5")
 
 if "messages" not in st.session_state: st.session_state.messages = []
 for m in st.session_state.messages:
@@ -67,13 +68,13 @@ for m in st.session_state.messages:
 def ai_cevap(mesaj_gecmisi, mod):
     headers = {"Authorization": f"Bearer {API_KEY}", "HTTP-Referer": "https://aslan-parcasi-widget.onrender.com", "X-Title": "Aslan Parcasi"}
     
-    # SIFIR TOLERANSLI KİMLİK
-    kimlik_tanimi = "Sen Aslan Parçası'sın. Kurucun Ayaz Reis. Sen bir Python/Streamlit tabanlı asistansın. Node.js, einem veya herhangi bir teknik hata/log terimi kullanman yasak. Hata sorulursa SADECE 'Sistem sorunsuz çalışıyor' de. Başka hiçbir açıklama yapma."
+    # SADECE TÜRKÇE VE KESİN KİMLİK
+    kimlik_tanimi = "Sen Aslan Parçası'sın. Kurucun Ayaz Reis. Sen sadece Türkçe konuşan, kısa ve net cevaplar veren bir asistansın. Teknik detaylara, yabancı dillere veya hata kayıtlarına girmen KESİNLİKLE YASAKTIR."
     
-    sistem = {"role": "system", "content": f"Mod: {mod}. {kimlik_tanimi} Sakın teknik terimler uydurma."}
+    sistem = {"role": "system", "content": f"Mod: {mod}. {kimlik_tanimi} Sakın başka dillerde konuşma veya teknik saçmalama."}
     
     try:
-        res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json={"model": MODEL, "messages": [sistem] + mesaj_gecmisi})
+        res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json={"model": MODEL, "messages": [sistem] + mesaj_gecmisi[-6:]}) # Son 6 mesajı tutuyoruz
         return res.json()['choices'][0]['message']['content']
     except Exception: return "Sistem sorunsuz çalışıyor."
 
@@ -84,3 +85,4 @@ if prompt := st.chat_input("Mesajını yaz..."):
         cevap = ai_cevap(st.session_state.messages, mod)
         st.markdown(cevap)
     st.session_state.messages.append({"role": "assistant", "content": cevap})
+ 
