@@ -2,82 +2,89 @@ import streamlit as st
 import requests
 import os
 
-# Render'dan API anahtarını alıyoruz
+# Ayarlar
 API_KEY = os.environ.get("API_KEY")
 MODEL = "meta-llama/llama-3.3-70b-instruct"
 KURUCU_SIFRESI = "KAPLAN_REIS_74"
 
 st.set_page_config(page_title="Aslan Parçası V9.4", page_icon="🤖")
 
-# --- CSS TASARIM ---
-st.markdown("""
+# --- UI LOGIC (Dinamik Renkler ve Tema) ---
+def get_theme_data(mod, theme_name):
+    if mod == "Kurucu":
+        user_bg = "rgba(10, 40, 10, 0.6)"
+        assistant_bg = "rgba(20, 20, 20, 0.8)"
+        themes = {
+            "Aslan İni": "linear-gradient(to bottom, #1a1a00, #000000)",
+            "Kraliyet": "linear-gradient(to bottom, #2c0000, #000000)",
+            "Teknoloji": "linear-gradient(to bottom, #001a33, #000000)",
+            "Orman Derinliği": "linear-gradient(to bottom, #003300, #000000)",
+            "Uzay": "linear-gradient(to bottom, #1a0033, #000000)"
+        }
+    else:
+        user_bg = "rgba(200, 230, 255, 0.2)"
+        assistant_bg = "rgba(144, 238, 144, 0.7)"
+        themes = {
+            "Gün Işığı": "#f0f2f6",
+            "Huzur": "#e0f7fa"
+        }
+    return user_bg, assistant_bg, themes.get(theme_name, "#0e1117")
+
+# Sidebar ve Tema Seçimi
+with st.sidebar:
+    sifre = st.text_input("🔑 Şifre:", type="password")
+    mod = "Kurucu" if sifre == KURUCU_SIFRESI else "Misafir"
+    
+    # Tema Seçeneklerini Al
+    _, _, theme_map = get_theme_data(mod, "")
+    tema_secimi = st.selectbox("Arka Plan Seç:", list(theme_map.keys()))
+    user_bg, assistant_bg, bg_color = get_theme_data(mod, tema_secimi)
+
+# CSS Uygulama
+st.markdown(f"""
     <style>
-    /* Kullanıcı mesajlarını sarı/turuncu tonlarında */
-    .stChatMessage[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarUser"]) {
-        background-color: #333300; 
-        color: #FFD700;
-    }
-    /* Asistan mesajlarını koyu ve asil bir tonda */
-    .stChatMessage[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarAssistant"]) {
-        background-color: #1a1a1a;
-        color: white;
-        border-left: 5px solid #FFD700;
-    }
+    .stApp {{ background: {bg_color}; }}
+    .stChatMessage[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarUser"]) {{ background-color: {user_bg} !important; border-radius: 10px; }}
+    .stChatMessage[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarAssistant"]) {{ background-color: {assistant_bg} !important; border-radius: 10px; border-left: 5px solid gold; }}
     </style>
+    """, unsafe_allow_html=True)
+
+# JS Tıklama Efekti (Aslan Parçası Yazısı)
+st.markdown("""
+    <script>
+    document.addEventListener('click', function(e) {
+        if(e.target.innerText.includes('🤖')) {
+            let toast = document.createElement('div');
+            toast.innerText = 'Aslan Parçası';
+            toast.style = 'position:fixed; top:20px; left:40%; background:gold; color:black; padding:15px; border-radius:10px; z-index:9999; transition: opacity 3s; font-weight:bold;';
+            document.body.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; }, 10);
+            setTimeout(() => { toast.remove(); }, 3000);
+        }
+    });
+    </script>
     """, unsafe_allow_html=True)
 
 st.title("🤖 Aslan Parçası V9.4")
 
-with st.sidebar:
-    sifre = st.text_input("🔑 Şifre (Kurucuysan gir):", type="password")
-    mod = "Kurucu" if sifre == KURUCU_SIFRESI else "Misafir"
-    st.write(f"Mod: **{mod}**")
-
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
+# Hafıza Yönetimi
+if "messages" not in st.session_state: st.session_state.messages = []
+for m in st.session_state.messages:
+    with st.chat_message(m["role"]): st.markdown(m["content"])
 
 def ai_cevap(mesaj_gecmisi, mod):
-    if not API_KEY:
-        return "Hata: API anahtarı tanımlanmadı."
-        
-    headers = {
-        "Authorization": f"Bearer {API_KEY}",
-        "HTTP-Referer": "https://aslan-parcasi-widget.onrender.com",
-        "X-Title": "Aslan Parcasi",
-    }
-    
-    # Sert ve net talimatlar
-    sistem_talimati = {
-        "role": "system", 
-        "content": f"Sen Ayaz Reis'in asistanısın. Kullanıcı Ayaz Reis'tir. Mod: {mod}. Sadece düzgün, profesyonel ve hatasız Türkçe konuş. Başka dillerden karakter kullanma. Teknik detaylara boğulma, net ve kısa cevap ver."
-    }
-    
-    tum_mesajlar = [sistem_talimati] + mesaj_gecmisi
-    
-    payload = {
-        "model": MODEL,
-        "messages": tum_mesajlar
-    }
+    headers = {"Authorization": f"Bearer {API_KEY}", "HTTP-Referer": "https://aslan-parcasi-widget.onrender.com", "X-Title": "Aslan Parcasi"}
+    sistem = {"role": "system", "content": f"Sen Ayaz Reis'in asistanısın. Kullanıcı Ayaz Reis'tir. Mod: {mod}. Profesyonel ve net cevap ver."}
     try:
-        response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=payload)
-        data = response.json()
-        if 'choices' in data:
-            return data['choices'][0]['message']['content'].strip()
-        else:
-            return "Bir hata oluştu."
-    except Exception as e:
-        return f"Bağlantı hatası: {str(e)}"
+        res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json={"model": MODEL, "messages": [sistem] + mesaj_gecmisi})
+        return res.json()['choices'][0]['message']['content']
+    except: return "Hata oluştu."
 
 if prompt := st.chat_input("Mesajını yaz..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.markdown(prompt)
-
+    with st.chat_message("user"): st.markdown(prompt)
     with st.chat_message("assistant"):
         cevap = ai_cevap(st.session_state.messages, mod)
         st.markdown(cevap)
     st.session_state.messages.append({"role": "assistant", "content": cevap})
+ 
