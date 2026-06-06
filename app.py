@@ -2,50 +2,46 @@ import streamlit as st
 import requests
 import os
 
-# Ayarlar
 API_KEY = os.environ.get("API_KEY")
 MODEL = "meta-llama/llama-3.3-70b-instruct"
 KURUCU_SIFRESI = "KAPLAN_REIS_74"
 
-# Başlık ve versiyon güncellendi!
-st.set_page_config(page_title="Aslan Parçası V10.0", page_icon="🤖")
+st.set_page_config(page_title="Aslan Parçası V10.1", page_icon="🤖")
 
-# --- UI LOGIC ---
 def get_theme_data(mod):
     if mod == "Kurucu":
         user_bg = "rgba(10, 40, 10, 0.6)"
         assistant_bg = "rgba(20, 20, 20, 0.8)"
         themes = {
-            "Aslan İni": "linear-gradient(to bottom, #1a1a00, #000000)",
-            "Kraliyet": "linear-gradient(to bottom, #2c0000, #000000)",
-            "Teknoloji": "linear-gradient(to bottom, #001a33, #000000)",
-            "Orman Derinliği": "linear-gradient(to bottom, #003300, #000000)",
-            "Uzay": "linear-gradient(to bottom, #1a0033, #000000)"
+            "Aslan İni": ("linear-gradient(to bottom, #1a1a00, #000000)", "white"),
+            "Kraliyet": ("linear-gradient(to bottom, #2c0000, #000000)", "white"),
+            "Teknoloji": ("linear-gradient(to bottom, #001a33, #000000)", "white"),
+            "Orman Derinliği": ("linear-gradient(to bottom, #003300, #000000)", "white"),
+            "Uzay": ("linear-gradient(to bottom, #1a0033, #000000)", "white")
         }
     else:
         user_bg = "rgba(200, 230, 255, 0.2)"
         assistant_bg = "rgba(144, 238, 144, 0.7)"
         themes = {
-            "Gün Işığı": "#f0f2f6",
-            "Huzur": "#e0f7fa"
+            "Gün Işığı": ("#f0f2f6", "black"),
+            "Huzur": ("#e0f7fa", "black")
         }
     return user_bg, assistant_bg, themes
 
-# Sidebar ve Tema
 with st.sidebar:
     sifre = st.text_input("🔑 Şifre:", type="password")
     mod = "Kurucu" if sifre == KURUCU_SIFRESI else "Misafir"
-    
     user_bg, assistant_bg, theme_map = get_theme_data(mod)
     tema_secimi = st.selectbox("Arka Plan Seç:", list(theme_map.keys()))
-    bg_color = theme_map[tema_secimi]
+    bg_color, text_color = theme_map[tema_secimi]
 
-# CSS Uygulama
+# CSS: Hem arka planı hem de ana yazı rengini dinamik yaptık
 st.markdown(f"""
     <style>
-    .stApp {{ background: {bg_color}; }}
-    .stChatMessage[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarUser"]) {{ background-color: {user_bg} !important; border-radius: 10px; }}
-    .stChatMessage[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarAssistant"]) {{ background-color: {assistant_bg} !important; border-radius: 10px; border-left: 5px solid gold; }}
+    .stApp {{ background: {bg_color}; color: {text_color} !important; }}
+    .stMarkdown, .stText, h1 {{ color: {text_color} !important; }}
+    .stChatMessage[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarUser"]) {{ background-color: {user_bg} !important; border-radius: 10px; color: {text_color} !important; }}
+    .stChatMessage[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarAssistant"]) {{ background-color: {assistant_bg} !important; border-radius: 10px; border-left: 5px solid gold; color: black !important; }}
     </style>
     """, unsafe_allow_html=True)
 
@@ -65,10 +61,8 @@ st.markdown("""
     </script>
     """, unsafe_allow_html=True)
 
-# Başlık güncellendi!
-st.title("🤖 Aslan Parçası V10.0")
+st.title("🤖 Aslan Parçası V10.1")
 
-# Hafıza
 if "messages" not in st.session_state: st.session_state.messages = []
 for m in st.session_state.messages:
     with st.chat_message(m["role"]): st.markdown(m["content"])
