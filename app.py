@@ -1,8 +1,8 @@
 import streamlit as st
 import requests
 
-# API Anahtarın
-API_KEY = "AIzaSyCZXEoUCgJCQN9dGJ1A-w4l_xbV1tqb_yY"
+# Yeni ve sana özel API Anahtarın
+API_KEY = "AQ.Ab8RN6JrjlEf6PIN9W3qxKTo9HfFzNkUywwL7tqXaa4BRWjJvw"
 
 st.set_page_config(page_title="ASLAN PARÇASI", layout="centered")
 
@@ -28,8 +28,10 @@ if prompt := st.chat_input("Reis bir şey de..."):
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
-        # URL'yi v1beta yerine v1 yaptık
-        url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={API_KEY}"
+        # Model ismini v1beta URL'i ile sabitliyoruz
+        model = "gemini-1.5-flash"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={API_KEY}"
+        
         headers = {'Content-Type': 'application/json'}
         data = {"contents": [{"parts": [{"text": prompt}]}]}
         
@@ -42,6 +44,6 @@ if prompt := st.chat_input("Reis bir şey de..."):
                 st.markdown(answer)
                 st.session_state.messages.append({"role": "assistant", "content": answer})
             else:
-                st.error(f"Hata Kodu {response.status_code}: {response_json}")
+                st.error(f"Hata: {response_json}")
         except Exception as e:
             st.error(f"Bağlantı Hatası: {e}")
