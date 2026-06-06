@@ -28,18 +28,16 @@ if prompt := st.chat_input("Reis bir şey de..."):
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
-        # API versiyonunu v1 olarak zorluyoruz
-        client = genai.Client(api_key=API_KEY, http_options={'api_version': 'v1'})
+        # http_options kaldırıldı, kütüphanenin kendi karar vermesine izin veriyoruz
+        client = genai.Client(api_key=API_KEY)
         
-        # Geçmiş hafızayı hazırlıyoruz
         gecmis_metin = "\n".join([f"{m['role']}: {m['content']}" for m in st.session_state.messages[-10:]])
-        
-        # Talimatı doğrudan prompt'un başına ekliyoruz, böylece config karmaşasını pas geçiyoruz
         tam_prompt = f"Sen bir Aslan Parçası'sın, delikanlıca cevap ver. Geçmiş sohbet:\n{gecmis_metin}\n\nKullanıcı: {prompt}"
         
         try:
+            # En garanti model ismi
             response = client.models.generate_content(
-                model="gemini-1.5-flash", 
+                model="gemini-1.5-flash-latest", 
                 contents=tam_prompt
             )
             st.markdown(response.text)
