@@ -28,17 +28,13 @@ if prompt := st.chat_input("Reis bir şey de..."):
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
-        # http_options kaldırıldı, kütüphanenin kendi karar vermesine izin veriyoruz
         client = genai.Client(api_key=API_KEY)
         
-        gecmis_metin = "\n".join([f"{m['role']}: {m['content']}" for m in st.session_state.messages[-10:]])
-        tam_prompt = f"Sen bir Aslan Parçası'sın, delikanlıca cevap ver. Geçmiş sohbet:\n{gecmis_metin}\n\nKullanıcı: {prompt}"
-        
+        # Tam yoluyla modeli çağırıyoruz
         try:
-            # En garanti model ismi
             response = client.models.generate_content(
-                model="gemini-1.5-flash-latest", 
-                contents=tam_prompt
+                model="gemini-1.5-flash", 
+                contents=prompt
             )
             st.markdown(response.text)
             st.session_state.messages.append({"role": "assistant", "content": response.text})
