@@ -35,7 +35,7 @@ with st.sidebar:
     tema_secimi = st.selectbox("Arka Plan Seç:", list(theme_map.keys()))
     bg_color, text_color = theme_map[tema_secimi]
 
-# CSS - METİN RENGİ ZORLAMASI (Süslü parantezleri escape ettik: {{ ve }})
+# CSS & JS - GÜNCEL EFEKT
 st.markdown(f"""
     <style>
     .stApp {{ background: {bg_color}; color: {text_color} !important; }}
@@ -69,18 +69,19 @@ st.markdown(f"""
         font-weight: bold !important;
     }}
     </style>
-    """, unsafe_allow_html=True)
 
-# JS KODUNU AYRI BİR MARKDOWN BLOĞUNDA VE ESCAPE EDEREK EKLEDİK
-st.markdown("""
     <script>
     document.addEventListener('click', function(e) {
-        if(e.target.closest('[data-testid="stChatMessageAvatarAssistant"]')) {
+        let assistantMessage = e.target.closest('[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarAssistant"])');
+        if (assistantMessage) {
             let toast = document.createElement('div');
             toast.innerText = 'Aslan Parçası';
-            toast.style = 'position:fixed; top:20px; left:30%; background:gold; color:black; padding:15px; border-radius:10px; z-index:9999; transition: opacity 3s; font-weight:bold; box-shadow: 0px 4px 10px rgba(0,0,0,0.3);';
+            toast.style = 'position:fixed; top:20px; left:50%; transform:translateX(-50%); background:gold; color:black; padding:15px; border-radius:10px; z-index:99999; font-weight:bold; box-shadow: 0px 4px 10px rgba(0,0,0,0.3);';
             document.body.appendChild(toast);
-            setTimeout(function() { toast.style.opacity = '0'; }, 10);
+            setTimeout(function() { 
+                toast.style.transition = 'opacity 1s';
+                toast.style.opacity = '0'; 
+            }, 2000);
             setTimeout(function() { toast.remove(); }, 3000);
         }
     });
