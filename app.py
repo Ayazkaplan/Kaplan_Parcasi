@@ -1,21 +1,27 @@
 import streamlit as st
-import requests
+from google import genai
 
-API_KEY = "AIzaSyCZXEoUCgJCQN9dGJ1A-w4l_xbV1tqb_yY"
+# Anahtar kodun içinde yazmaz, Streamlit arka planından güvenle çekilir.
+# Bu yüzden anahtarın kara listeye girmez.
+API_KEY = st.secrets["GOOGLE_API_KEY"]
 
-st.title("🤖 ASLAN PARÇASI - TANIYICI")
+st.title("🤖 ASLAN PARÇASI V8.9")
 
-if st.button("Sistem Modellerini Listele"):
-    # Doğrudan model listesini çekiyoruz, isim tahmin etmiyoruz
-    url = f"https://generativelanguage.googleapis.com/v1beta/models?key={API_KEY}"
+if prompt := st.chat_input("Reis bir şey de..."):
+    with st.chat_message("user"):
+        st.markdown(prompt)
     
-    response = requests.get(url)
-    if response.status_code == 200:
-        models = response.json().get('models', [])
-        st.write("### Erişebildiğin Modeller:")
-        for m in models:
-            st.write(f"**Model Adı:** `{m['name']}`")
-            st.write(f"Desteklenen metodlar: {m.get('supportedMethods', [])}")
-            st.divider()
-    else:
-        st.error(f"Hata: {response.status_code} - {response.text}")
+    with st.chat_message("assistant"):
+        try:
+            # Client'ı doğrudan gizli anahtarla başlatıyoruz
+            client = genai.Client(api_key=API_KEY)
+            
+            # Modeli çağırıyoruz
+            response = client.models.generate_content(
+                model="gemini-1.5-flash",
+                contents=prompt
+            )
+            
+            st.markdown(response.text)
+        except Exception as e:
+            st.error(f"Sistem Hatası: {e}")
