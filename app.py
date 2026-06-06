@@ -1,20 +1,14 @@
 import streamlit as st
 import google.generativeai as genai
-import json
+from google.oauth2 import service_account
 
-# Streamlit'ten anahtarı çek
+# Secrets'tan anahtarı çek
 api_key = st.secrets["GOOGLE_API_KEY"]
 
-# Service Account anahtarları JSON formatındadır veya string olarak doğrudan client'a verilir.
-# Eğer API_KEY değişkenin uzun bir JSON string'i ise:
-try:
-    # Eğer anahtarın JSON formatındaysa burayı kullan
-    info = json.loads(api_key)
-    genai.configure(credentials=info)
-except:
-    # Eğer sadece o AQ... ile başlayan string ise bunu kullan
-    # Bu yöntem çoğu modern Google Cloud servisinde çalışır
-    genai.configure(api_key=api_key)
+# Google'ın Service Account yetkilendirmesi için anahtarı yapılandır
+# Not: Eğer AQ anahtarın doğrudan bir JSON içeriği değilse, 
+# doğrudan API Key olarak yapılandırmayı deniyoruz:
+genai.configure(api_key=api_key)
 
 model = genai.GenerativeModel('gemini-1.5-flash')
 
@@ -27,4 +21,5 @@ if prompt := st.chat_input("Reis bir şey de..."):
             response = model.generate_content(prompt)
             st.markdown(response.text)
         except Exception as e:
-            st.error(f"Hata: {e}")
+            # Buradaki hata detayını not al, hala hata veriyorsa başka bir yol deneyeceğiz
+            st.error(f"Sistem Hatası: {e}")
