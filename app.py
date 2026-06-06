@@ -2,7 +2,7 @@ import streamlit as st
 from google import genai
 from google.genai import types
 
-# Tek ve çalışan API anahtarın
+# API Anahtarın
 API_KEY = "AIzaSyCZXEoUCgJCQN9dGJ1A-w4l_xbV1tqb_yY"
 
 st.set_page_config(page_title="ASLAN PARÇASI", layout="centered")
@@ -32,7 +32,7 @@ if prompt := st.chat_input("Reis bir şey de..."):
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
-        # Çalışan anahtar ile client oluştur
+        # Client oluşturma
         client = genai.Client(api_key=API_KEY)
         
         # Geçmiş hafızayı al
@@ -44,6 +44,7 @@ if prompt := st.chat_input("Reis bir şey de..."):
         )
         
         try:
+            # Model ismini doğrudan 'gemini-1.5-flash' olarak kullanıyoruz
             response = client.models.generate_content(
                 model="gemini-1.5-flash", 
                 contents=prompt,
