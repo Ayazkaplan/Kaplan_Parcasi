@@ -68,7 +68,6 @@ for m in st.session_state.messages:
 def ai_cevap(mesaj_gecmisi, mod):
     headers = {"Authorization": f"Bearer {API_KEY}", "HTTP-Referer": "https://aslan-parcasi-widget.onrender.com", "X-Title": "Aslan Parcasi"}
     
-    # SIKI DİL KONTROLÜ
     kimlik = """Sen Aslan Parçası'sın. Kurucun Ayaz Reis.
     TALİMATLARIN:
     1. İletişim dili KESİNLİKLE VE SADECE Türkçe'dir.
@@ -83,12 +82,12 @@ def ai_cevap(mesaj_gecmisi, mod):
         return res.json()['choices'][0]['message']['content']
     except Exception: return "Sistem sorunsuz çalışıyor."
 
-# Chat girişi - Klavye düzeltmesini azaltmak için sade tutuldu
-if prompt := st.chat_input("Mesajını yaz..."):
+# Metin sapmasını engellemek için doğrudan input alımı
+if prompt := st.chat_input("Mesajını yaz...", key="input_field"):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"): st.markdown(prompt)
     with st.chat_message("assistant"):
         cevap = ai_cevap(st.session_state.messages, mod)
         st.markdown(cevap)
     st.session_state.messages.append({"role": "assistant", "content": cevap})
- 
+    st.rerun()
