@@ -68,7 +68,8 @@ def ai_cevap(mesaj_gecmisi, mod):
 
 st.markdown("<br><br><br>", unsafe_allow_html=True)
 
-st.markdown('<div class="fixed-input-area">', unsafe_action_html=True)
+# DÜZELTİLEN KISIM BURASI
+st.markdown('<div class="fixed-input-area">', unsafe_allow_html=True)
 with st.form(key='chat_form', clear_on_submit=True):
     user_input = st.text_input("", placeholder="Mesajını yaz...")
     submit_button = st.form_submit_button(label='Gönder')
@@ -77,7 +78,7 @@ st.markdown('</div>', unsafe_allow_html=True)
 if submit_button and user_input:
     st.session_state.messages.append({"role": "user", "content": user_input})
     with st.chat_message("user"): st.markdown(user_input)
-    with st.chat_message("assistant", avatar=AVATAR_URL): # Burası yeni logon!
+    with st.chat_message("assistant", avatar=AVATAR_URL):
         cevap = ai_cevap(st.session_state.messages, mod)
         st.markdown(cevap)
     st.session_state.messages.append({"role": "assistant", "content": cevap})
