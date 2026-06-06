@@ -1,6 +1,5 @@
 import streamlit as st
 from google import genai
-from google.genai import types
 
 # API Anahtarın
 API_KEY = "AIzaSyCZXEoUCgJCQN9dGJ1A-w4l_xbV1tqb_yY"
@@ -29,21 +28,19 @@ if prompt := st.chat_input("Reis bir şey de..."):
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
-        # ÖNEMLİ: api_version='v1' ekleyerek v1beta sorununu aşıyoruz
+        # API versiyonunu v1 olarak zorluyoruz
         client = genai.Client(api_key=API_KEY, http_options={'api_version': 'v1'})
         
+        # Geçmiş hafızayı hazırlıyoruz
         gecmis_metin = "\n".join([f"{m['role']}: {m['content']}" for m in st.session_state.messages[-10:]])
         
-        config = types.GenerateContentConfig(
-            system_instruction=f"Geçmiş sohbet:\n{gecmis_metin}\n\nSen bir Aslan Parçası'sın, delikanlıca cevap ver.",
-            temperature=0.7
-        )
+        # Talimatı doğrudan prompt'un başına ekliyoruz, böylece config karmaşasını pas geçiyoruz
+        tam_prompt = f"Sen bir Aslan Parçası'sın, delikanlıca cevap ver. Geçmiş sohbet:\n{gecmis_metin}\n\nKullanıcı: {prompt}"
         
         try:
             response = client.models.generate_content(
                 model="gemini-1.5-flash", 
-                contents=prompt,
-                config=config
+                contents=tam_prompt
             )
             st.markdown(response.text)
             st.session_state.messages.append({"role": "assistant", "content": response.text})
