@@ -35,66 +35,27 @@ with st.sidebar:
     tema_secimi = st.selectbox("Arka Plan Seç:", list(theme_map.keys()))
     bg_color, text_color = theme_map[tema_secimi]
 
-# CSS - METİN RENGİ ZORLAMASI (f-string ile)
 st.markdown(f"""
     <style>
     .stApp {{ background: {bg_color}; color: {text_color} !important; }}
-    
-    .stChatMessage p, .stChatMessage div {{ 
-        color: {'black' if mod == "Misafir" else text_color} !important; 
-        font-weight: 500 !important;
-    }}
-    
-    .stChatMessage[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarUser"]) {{ 
-        background-color: {user_bg} !important; 
-    }}
-    .stChatMessage[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarAssistant"]) {{ 
-        background-color: {assistant_bg} !important; border-left: 5px solid gold; 
-    }}
-    
-    .fixed-input-area {{
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        padding: 10px;
-        background: {bg_color};
-        z-index: 999;
-    }}
-    
-    div.stButton > button, div.stFormSubmitButton > button {{ 
-        color: white !important; 
-        background-color: #444 !important; 
-        border: 2px solid white !important;
-        font-weight: bold !important;
-    }}
+    .stChatMessage p, .stChatMessage div {{ color: {'black' if mod == "Misafir" else text_color} !important; font-weight: 500 !important; }}
+    .stChatMessage[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarUser"]) {{ background-color: {user_bg} !important; }}
+    .stChatMessage[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarAssistant"]) {{ background-color: {assistant_bg} !important; border-left: 5px solid gold; }}
+    .fixed-input-area {{ position: fixed; bottom: 0; left: 0; width: 100%; padding: 10px; background: {bg_color}; z-index: 999; }}
+    div.stButton > button, div.stFormSubmitButton > button {{ color: white !important; background-color: #444 !important; border: 2px solid white !important; font-weight: bold !important; }}
     </style>
     """, unsafe_allow_html=True)
 
-# JS KODU - f-string KULLANMADIK, hata vermeyecek!
+# TIKLAMA OLAYI: Sayfadaki herhangi bir "robot" (🤖) içeren öğeye tıklanırsa çalışır
 st.markdown("""
     <script>
     document.addEventListener('click', function(e) {
-        if (e.target.closest('[data-testid="stChatMessageAvatarAssistant"]')) {
+        if (e.target.innerText.includes('🤖') || e.target.closest('div[data-testid="stChatMessageAvatarAssistant"]')) {
             let toast = document.createElement('div');
             toast.innerText = 'Aslan Parçası';
-            toast.style.position = 'fixed';
-            toast.style.top = '20px';
-            toast.style.left = '50%';
-            toast.style.transform = 'translateX(-50%)';
-            toast.style.backgroundColor = 'gold';
-            toast.style.color = 'black';
-            toast.style.padding = '15px';
-            toast.style.borderRadius = '10px';
-            toast.style.zIndex = '99999';
-            toast.style.fontWeight = 'bold';
-            toast.style.boxShadow = '0px 4px 10px rgba(0,0,0,0.3)';
+            toast.style.cssText = 'position:fixed; top:20px; left:50%; transform:translateX(-50%); background:gold; color:black; padding:15px; border-radius:10px; z-index:99999; font-weight:bold; box-shadow:0px 4px 10px rgba(0,0,0,0.3); transition: opacity 3s;';
             document.body.appendChild(toast);
-            
-            setTimeout(function() { 
-                toast.style.transition = 'opacity 1s';
-                toast.style.opacity = '0'; 
-            }, 2000);
+            setTimeout(function() { toast.style.opacity = '0'; }, 10);
             setTimeout(function() { toast.remove(); }, 3000);
         }
     });
@@ -132,4 +93,3 @@ if submit_button and user_input:
         st.markdown(cevap)
     st.session_state.messages.append({"role": "assistant", "content": cevap})
     st.rerun()
- 
