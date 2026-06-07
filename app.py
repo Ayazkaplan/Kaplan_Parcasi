@@ -1,6 +1,7 @@
 import streamlit as st
 import requests
 import os
+from duckduckgo_search import DDGS
 
 # Ayarlar
 API_KEY = os.environ.get("API_KEY")
@@ -10,7 +11,6 @@ AVATAR_URL = "https://i.imgur.com/3EfO8Ae.jpeg"
 USER_AVATAR = "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
 DOSYA_ADI = "sarki_id.txt"
 MOD_DOSYASI = "mod_id.txt"
-# Modlara özel tema dosyaları
 TEMA_KURUCU = "tema_kurucu.txt"
 TEMA_MISAFIR = "tema_misafir.txt"
 
@@ -26,11 +26,18 @@ def oku(dosya):
 def sil(dosya):
     if os.path.exists(dosya): os.remove(dosya)
 
-st.set_page_config(page_title="Aslan Parçası V14.0", page_icon="🤖")
+# --- WEB ARAMA ---
+def web_ara(sorgu):
+    try:
+        with DDGS() as ddgs:
+            results = list(ddgs.text(sorgu, max_results=3))
+            return "Güncel bilgiler: " + "\n".join([r['body'] for r in results])
+    except: return "İnternete şu an erişemiyorum Reis."
+
+st.set_page_config(page_title="Aslan Parçası V15.0", page_icon="🦁")
 
 # Mod Yönetimi
 is_admin = oku(MOD_DOSYASI) == "Kurucu"
-
 if "messages" not in st.session_state: st.session_state.messages = []
 
 # --- UI LOGIC ---
@@ -56,7 +63,6 @@ def get_theme_data(mod):
     return assistant_box_bg, themes
 
 with st.sidebar:
-    # Şifre girişi
     if not is_admin:
         sifre = st.text_input("🔑 Şifre:", type="password")
         if sifre == KURUCU_SIFRESI:
@@ -71,7 +77,6 @@ with st.sidebar:
     mod = "Kurucu" if is_admin else "Misafir"
     isim = st.selectbox("👤 Kimsin Reis?", ["Ayaz Reis", "Mehmet Reis"]) if mod == "Kurucu" else "Ziyaretçi"
         
-    # --- TEMA SEÇİMİ (MODA ÖZEL) ---
     tema_dosyasi = TEMA_KURUCU if mod == "Kurucu" else TEMA_MISAFIR
     assistant_box_bg, theme_map = get_theme_data(mod)
     
@@ -89,12 +94,11 @@ with st.sidebar:
         st.session_state.messages = []
         st.rerun()
 
-    # --- MÜZİK MOTORU ---
+    # Müzik Motoru
     st.markdown("---")
     st.subheader("🎵 Müzik Motoru")
     kayitli_id = oku(DOSYA_ADI)
     yeni_id = st.text_input("YouTube Video ID'si:", value=kayitli_id)
-    
     if st.button("💾 Kaydet ve Oynat"):
         kaydet(DOSYA_ADI, yeni_id)
         st.rerun()
@@ -103,8 +107,28 @@ with st.sidebar:
         st.rerun()
 
     if kayitli_id:
-        st.link_button("▶️ Hata Alırsan YouTube'da İzle", f"https://www.youtube.com/watch?v={kayitli_id}")
-        st.markdown(f'<iframe width="100%" height="200" src="https://www.youtube.com/embed/{kayitli_id}" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>', unsafe_allow_html=True)
+        st.markdown(f'<iframe width="100%" height="200" src="https://www.youtube.com/embed/{kayitli_id}" frameborder="0" allow="autoplay"></iframe>', unsafe_allow_html=True)
+
+# --- AI CEVAP MOTORU ---
+def ai_cevap(mesaj_gecmisi, mod, isim, kullanici_mesaji):
+    headers = {"Authorization": f"Bearer {API_KEY}", "HTTP-Referer": "https://aslan-parcasi-widget.onrender.com"}
+    
+    # İnternet Tetikleyici
+    ek_bilgi = ""
+    if any(kelime in kullanici_mesaji.lower() for kelime in ["ara", "nedir", "kimdir", "haber", "kaç", "kaçta"]):
+        ek_bilgi = f"\n[İnternet Arama Sonucu]: {web_ara(kullanici_mesaji)}"
+    
+    # Karakter Modu
+    karakter = "Sen çok resmi, sadık, bilge ve otoriter bir asistansın." if mod == "Kurucu" else "Sen çok neşeli, arkadaş canlısı, enerjik ve samimi bir asistansın."
+    
+    talimat = f"{karakter} Kullanıcı: '{isim}'. {ek_bilgi}"
+    sistem = {"role": "system", "content": talimat}
+    
+    try:
+        res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, 
+                           json={"model": MODEL, "messages": [{"role": "system", "content": talimat}] + mesaj_gecmisi[-6:]})
+        return res.json()['choices'][0]['message']['content']
+    except: return "Sistem meşgul, Reis."
 
 # --- STYLE ---
 st.markdown(f"""
@@ -112,31 +136,21 @@ st.markdown(f"""
     .stApp {{ background: {bg_color}; color: {text_color} !important; }}
     .assistant-box {{ background-color: {assistant_box_bg}; padding: 15px; border-radius: 10px; border-left: 5px solid gold; margin-bottom: 10px; color: {text_color}; }}
     .user-box {{ background-color: rgba(128, 128, 128, 0.2); padding: 15px; border-radius: 10px; margin-bottom: 10px; text-align: right; color: {text_color}; }}
-    .aslan-header {{ display: flex; align-items: center; gap: 10px; font-weight: bold; border-bottom: 1px solid gold; padding-bottom: 5px; margin-bottom: 5px; }}
-    .user-header {{ display: flex; align-items: center; justify-content: flex-end; gap: 10px; font-weight: bold; margin-bottom: 8px; }}
+    .aslan-header {{ display: flex; align-items: center; gap: 10px; font-weight: bold; border-bottom: 1px solid gold; padding-bottom: 5px; }}
     </style>
     """, unsafe_allow_html=True)
 
-st.title("🤖 Aslan Parçası V14.0")
+st.title("🤖 Aslan Parçası V15.0")
 
 for m in st.session_state.messages:
     if m["role"] == "assistant":
-        st.markdown(f"""<div class="assistant-box"><div class="aslan-header"><img src="{AVATAR_URL}" width="30" style="border-radius:50%"> Aslan Parçası</div><div>{m['content']}</div></div>""", unsafe_allow_html=True)
+        st.markdown(f"""<div class="assistant-box"><div class="aslan-header"> Aslan Parçası</div><div>{m['content']}</div></div>""", unsafe_allow_html=True)
     else:
-        st.markdown(f"""<div class="user-box"><div class="user-header">{isim} <img src="{USER_AVATAR}" width="30" style="border-radius:50%"></div><div>{m['content']}</div></div>""", unsafe_allow_html=True)
-
-def ai_cevap(mesaj_gecmisi, mod, isim):
-    headers = {"Authorization": f"Bearer {API_KEY}", "HTTP-Referer": "https://aslan-parcasi-widget.onrender.com", "X-Title": "Aslan Parcasi"}
-    talimat = f"Sen Aslan Parçası'sın. Kullanıcı: '{isim}', Mod: '{mod}'."
-    sistem = {"role": "system", "content": talimat}
-    try:
-        res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json={"model": MODEL, "messages": [sistem] + mesaj_gecmisi[-6:]})
-        return res.json()['choices'][0]['message']['content']
-    except Exception: return "Sistem meşgul, Reis."
+        st.markdown(f"""<div class="user-box">{m['content']}</div>""", unsafe_allow_html=True)
 
 user_input = st.chat_input("Mesajını yaz...")
 if user_input:
     st.session_state.messages.append({"role": "user", "content": user_input})
-    cevap = ai_cevap(st.session_state.messages, mod, isim)
+    cevap = ai_cevap(st.session_state.messages, mod, isim, user_input)
     st.session_state.messages.append({"role": "assistant", "content": cevap})
     st.rerun()
