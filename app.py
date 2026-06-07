@@ -37,7 +37,7 @@ with st.sidebar:
     tema_secimi = st.selectbox("Arka Plan Seç:", list(theme_map.keys()))
     bg_color, text_color = theme_map[tema_secimi]
 
-# --- STYLE & TOAST (DÜZELTİLDİ) ---
+# --- STYLE & TOAST ---
 st.markdown(f"""
     <style>
     .stApp {{ background: {bg_color}; color: {text_color} !important; }}
@@ -47,21 +47,22 @@ st.markdown(f"""
     .fixed-input-area {{ position: fixed; bottom: 0; left: 0; width: 100%; padding: 10px; background: {bg_color}; z-index: 999; }}
     div.stButton > button, div.stFormSubmitButton > button {{ color: white !important; background-color: #444 !important; border: 2px solid white !important; font-weight: bold !important; }}
     
-    /* Avatar tıklama menüsünü iptal et */
-    div[data-testid="stChatMessageAvatarAssistant"] img {{ pointer-events: none; }}
-    div[data-testid="stChatMessageAvatarAssistant"] {{ pointer-events: auto; cursor: pointer; }}
+    /* Avatar tıklama ayarı */
+    div[data-testid="stChatMessageAvatarAssistant"] {{ cursor: pointer !important; }}
     </style>
     """, unsafe_allow_html=True)
 
-# JS: Sadece tıklandığında kutu oluştur ve 3 sn sonra yok et
+# JS: Tıklama olayını doğrudan yakalıyoruz
 components.html("""
     <script>
     window.parent.document.addEventListener('click', function(e) {
         let avatarContainer = e.target.closest('div[data-testid="stChatMessageAvatarAssistant"]');
         if (avatarContainer) {
-            // Eğer zaten bir toast varsa önce onu kaldır
-            let oldToast = window.parent.document.getElementById('aslan-toast');
-            if (oldToast) oldToast.remove();
+            e.preventDefault();
+            e.stopPropagation();
+            
+            let existing = window.parent.document.getElementById('aslan-toast');
+            if (existing) existing.remove();
 
             let toast = window.parent.document.createElement('div');
             toast.id = 'aslan-toast';
@@ -80,7 +81,6 @@ st.title("🤖 Aslan Parçası V11.3")
 
 if "messages" not in st.session_state: st.session_state.messages = []
 
-# Mesajlar kısmında "Aslan Parçası" yazısını kaldırdık
 for m in st.session_state.messages:
     avatar = AVATAR_URL if m["role"] == "assistant" else None
     with st.chat_message(m["role"], avatar=avatar):
