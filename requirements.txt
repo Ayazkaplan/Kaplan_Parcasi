@@ -1,4 +1,4 @@
 streamlit
 requests
-duckduckgo-search
-psycopg2-binary
+gspread
+oauth2client
