@@ -4,19 +4,18 @@ import os
 import json
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
-from datetime import datetime
 
 # --- GOOGLE SHEETS BAĞLANTISI ---
 def get_sheet():
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    # Render'daki ortam değişkeninden JSON'u çekiyoruz
+    # Render'daki environment değişkeninden JSON'u çekiyoruz
     creds_dict = json.loads(st.secrets["GCP_JSON"])
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     client = gspread.authorize(creds)
-    # Sheet isminin tam olarak 'AslanParcasiVeri' olduğundan emin ol
+    # Sheet isminin 'AslanParcasiVeri' olduğundan emin ol
     return client.open("AslanParcasiVeri").sheet1
 
-# --- YARDIMCI FONKSİYONLAR (Google Sheets için) ---
+# --- VERİ İŞLEMLERİ ---
 def kayit_et(isim, sifre, rol):
     sheet = get_sheet()
     sheet.append_row([isim, sifre, rol])
@@ -32,11 +31,6 @@ def giris_kontrol(isim, sifre):
         if str(row['İsim']) == isim and str(row['Şifre']) == sifre:
             return row['Rol']
     return None
-
-def tercih_guncelle(isim, tema, sarki_id):
-    # Bu kısım için ikinci bir sekme (tab) kullanmak daha temiz olur
-    # Şimdilik basit tutuyoruz, Sheet'te tercihleri yönetmek biraz daha ileri seviye işlem ister.
-    pass
 
 # --- AYARLAR ---
 API_KEY = os.environ.get("API_KEY")
@@ -91,8 +85,8 @@ if st.sidebar.button("🚪 Çıkış Yap"): st.session_state.logged_in = False; 
 
 st.title("🤖 Aslan Parçası V16.4")
 
-# AI Cevap fonksiyonun aynı kalabilir
-def ai_cevap(mesaj_gecmisi, mod, kullanici_mesaji):
+# AI Fonksiyonu
+def ai_cevap(mesaj_gecmisi, mod):
     headers = {"Authorization": f"Bearer {API_KEY}"}
     karakter = "Sen neşeli ve sadıksın." if mod == "Kurucu" else "Sen ciddi ve otoritersin."
     try:
@@ -108,7 +102,6 @@ user_input = st.text_area("Mesajını yaz:")
 if st.button("🚀 Gönder"):
     if user_input:
         st.session_state.messages.append({"role": "user", "content": user_input})
-        cevap = ai_cevap(st.session_state.messages, st.session_state.rol, user_input)
+        cevap = ai_cevap(st.session_state.messages, st.session_state.rol)
         st.session_state.messages.append({"role": "assistant", "content": cevap})
         st.rerun()
- 
