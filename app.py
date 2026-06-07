@@ -1,8 +1,31 @@
 import streamlit as st
 import requests
 import os
+import sqlite3
 from duckduckgo_search import DDGS
 from datetime import datetime, timedelta
+
+# --- VERİTABANI KURULUMU ---
+def get_db():
+    conn = sqlite3.connect("aslan_parcasi.db", check_same_thread=False)
+    return conn
+
+def init_db():
+    conn = get_db()
+    cursor = conn.cursor()
+    # Kullanıcılar tablosu
+    cursor.execute('''CREATE TABLE IF NOT EXISTS kullanicilar 
+                      (isim TEXT PRIMARY KEY, rol TEXT, tema TEXT, video_id TEXT, ozel_tag TEXT)''')
+    # Genel Sohbet tablosu
+    cursor.execute('''CREATE TABLE IF NOT EXISTS genel_sohbet 
+                      (id INTEGER PRIMARY KEY AUTOINCREMENT, gonderen TEXT, mesaj TEXT, zaman TIMESTAMP)''')
+    # Loglar tablosu
+    cursor.execute('''CREATE TABLE IF NOT EXISTS loglar 
+                      (id INTEGER PRIMARY KEY AUTOINCREMENT, mesaj TEXT, tip TEXT, zaman TIMESTAMP)''')
+    conn.commit()
+    conn.close()
+
+init_db()
 
 # --- AYARLAR ---
 API_KEY = os.environ.get("API_KEY")
