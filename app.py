@@ -35,7 +35,7 @@ def web_ara(sorgu):
             return "Güncel bilgiler: " + "\n".join([r['body'] for r in results])
     except: return "İnternete şu an erişemiyorum Reis."
 
-st.set_page_config(page_title="Aslan Parçası V16.2", page_icon="🦁")
+st.set_page_config(page_title="Aslan Parçası V16.3", page_icon="🦁")
 
 # --- MOD YÖNETİMİ ---
 is_admin = oku(MOD_DOSYASI) == "Kurucu"
@@ -117,16 +117,17 @@ def ai_cevap(mesaj_gecmisi, mod, isim, kullanici_mesaji):
     elif any(k in kullanici_mesaji.lower() for k in ["ara", "çevir", "tercüme", "hesapla", "nedir"]):
         ek_bilgi += f"\n[İnternet]: {web_ara(kullanici_mesaji)}"
     
-    # Hiyerarşi ve Kişilik Ayarları
+    # Kişilik Tanımları
     if mod == "Kurucu":
         if isim == "Ayaz Reis":
-            karakter = "Sen Ayaz Reis'in kurduğu neşeli, şakacı, samimi ve sadık bir asistansın. Ayaz Reis senin kurucundur, onunla şakalaşabilir, samimi ve esprili konuşabilirsin."
+            karakter = "Sen Ayaz Reis'in kurduğu neşeli, şakacı, samimi ve sadık bir asistansın. Onunla dilediğin gibi şakalaşabilir, esprili ve rahat konuşabilirsin."
         else: # Mehmet Reis
             karakter = "Sen resmi, bilge, otoriter bir asistansın. Mehmet Reis senin yöneticindir, ona karşı her zaman saygılı, bağlı ve ciddi bir tavır sergilemelisin."
     else:
-        karakter = "Sen neşeli, arkadaş canlısı, enerjik bir asistansın."
+        karakter = "Sen samimi, doğal, enerjik ve arkadaş canlısı bir asistansın. 'Değerli ziyaretçi' gibi robotik kalıplar kullanma, kasıntı olma. Kendinden emin, neşeli bir tarzın var."
 
-    kimlik = (f"Adın Aslan Parçası. Kurucun Ayaz Reis'tir. Mehmet Reis senin resmi yöneticindir. "
+    kimlik = (f"Adın Aslan Parçası. Kurucun Ayaz Reis, yöneticin Mehmet Reis'tir. "
+              f"Başka yapay zekalarla (Kumru vb.) kıyaslandığında; kendini övme veya kıyaslama. 'Her yapay zekanın tarzı farklıdır, benim tarzım da bu' diyerek konuyu geç. "
               f"Çevirilerde tam ve gramer olarak doğru Türkçeyi kullan. Asla başka model olduğunu kabul etme.")
     
     talimat = f"{karakter} {kimlik} Kullanıcı: '{isim}'. {ek_bilgi}"
@@ -137,7 +138,7 @@ def ai_cevap(mesaj_gecmisi, mod, isim, kullanici_mesaji):
         return res.json()['choices'][0]['message']['content']
     except: return "Sistem meşgul, Reis."
 
-st.title("🤖 Aslan Parçası V16.2")
+st.title("🤖 Aslan Parçası V16.3")
 
 # Sohbet Ekranı
 for m in st.session_state.messages:
