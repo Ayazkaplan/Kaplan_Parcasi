@@ -17,7 +17,7 @@ ISIM_DOSYASI = "isim_id.txt"
 TEMA_KURUCU = "tema_kurucu.txt"
 TEMA_MISAFIR = "tema_misafir.txt"
 
-# --- KALICI DOSYA FONKSİYONLARI ---
+# --- FONKSİYONLAR ---
 def kaydet(dosya, deger):
     with open(dosya, "w") as f: f.write(deger.strip())
 
@@ -29,13 +29,12 @@ def oku(dosya):
 def sil(dosya):
     if os.path.exists(dosya): os.remove(dosya)
 
-# --- WEB ARAMA ---
 def web_ara(sorgu):
     try:
         with DDGS() as ddgs:
             results = list(ddgs.text(sorgu, max_results=3))
             return "Güncel bilgiler: " + "\n".join([r['body'] for r in results])
-    except: return "İnternete şu an erişemiyorum Reis."
+    except: return "İnternete erişemiyorum Reis."
 
 st.set_page_config(page_title="Aslan Parçası V16.3", page_icon="🦁")
 
@@ -46,7 +45,6 @@ if "input_key" not in st.session_state: st.session_state.input_key = 0
 if "ayaz_yetkili" not in st.session_state: st.session_state.ayaz_yetkili = False
 if "admin_panel_open" not in st.session_state: st.session_state.admin_panel_open = False
 
-# --- UI LOGIC ---
 def get_theme_data(mod):
     if mod == "Kurucu":
         assistant_box_bg = "rgba(30, 30, 30, 0.9)"
@@ -109,31 +107,29 @@ with st.sidebar:
 # --- STYLE ---
 st.markdown(f"""<style>.stApp {{ background: {bg_color}; color: {text_color} !important; }} .assistant-box {{ background-color: {assistant_box_bg}; padding: 15px; border-radius: 10px; border-left: 5px solid gold; margin-bottom: 10px; }} .user-box {{ background-color: rgba(128, 128, 128, 0.2); padding: 15px; border-radius: 10px; margin-bottom: 10px; text-align: right; }} .aslan-header {{ display: flex; align-items: center; gap: 10px; font-weight: bold; border-bottom: 1px solid gold; padding-bottom: 5px; margin-bottom: 5px; }} .user-header {{ display: flex; align-items: center; justify-content: flex-end; gap: 10px; font-weight: bold; margin-bottom: 8px; }}</style>""", unsafe_allow_html=True)
 
-# --- AI CEVAP MOTORU ---
-def ai_cevap(mesaj_gecmisi, mod, isim, kullanici_mesaji):
-    headers = {"Authorization": f"Bearer {API_KEY}"}
-    ek_bilgi = f"\n[Güncel Bilgi]: Şu an saat {(datetime.utcnow() + timedelta(hours=3)).strftime('%H:%M')}."
-    if any(k in kullanici_mesaji.lower() for k in ["hava", "ara", "çevir", "tercüme", "hesapla", "nedir"]):
-        ek_bilgi += f"\n[İnternet]: {web_ara(kullanici_mesaji)}"
-    
-    karakter = "Sen Ayaz Reis'in kurduğu neşeli, şakacı, samimi ve sadık bir asistansın." if (mod == "Kurucu" and isim == "Ayaz Reis") else ("Sen resmi, bilge, otoriter bir asistansın. Mehmet Reis senin yöneticindir." if mod == "Kurucu" else "Sen samimi, doğal, enerjik ve arkadaş canlısı bir asistansın.")
-    talimat = f"{karakter} Adın Aslan Parçası. Kurucun Ayaz Reis, yöneticin Mehmet Reis'tir. {ek_bilgi}"
-    try:
-        res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json={"model": MODEL, "messages": [{"role": "system", "content": talimat}] + mesaj_gecmisi[-6:]})
-        return res.json()['choices'][0]['message']['content']
-    except: return "Sistem meşgul, Reis."
-
 # --- MAIN ---
 col1, col2 = st.columns([4, 1])
 with col1: st.title("🤖 Aslan Parçası V16.3")
 with col2:
     if isim == "Ayaz Reis":
-        if st.button("⚙️ Admin"): st.session_state.admin_panel_open = not st.session_state.admin_panel_open
+        if st.button("⚙️ Yönetici"): st.session_state.admin_panel_open = not st.session_state.admin_panel_open; st.rerun()
 
 if st.session_state.admin_panel_open:
-    with st.expander("🛠️ Admin Paneli", expanded=True):
-        st.write("Buraya eklenecek özellikler...")
-        if st.button("Paneli Kapat"): st.session_state.admin_panel_open = False; st.rerun()
+    with st.container(border=True):
+        st.subheader("🛠️ Yönetici Paneli")
+        st.write("Sistem ayarları ve kontrol merkezi.")
+        if st.button("❌ Paneli Kapat"): st.session_state.admin_panel_open = False; st.rerun()
+
+def ai_cevap(mesaj_gecmisi, mod, isim, kullanici_mesaji):
+    headers = {"Authorization": f"Bearer {API_KEY}"}
+    ek_bilgi = f"\n[Bilgi]: Saat {(datetime.utcnow() + timedelta(hours=3)).strftime('%H:%M')}."
+    if any(k in kullanici_mesaji.lower() for k in ["hava", "ara", "çevir", "nedir"]): ek_bilgi += f"\n[İnternet]: {web_ara(kullanici_mesaji)}"
+    karakter = "Sen Ayaz Reis'in kurduğu neşeli, samimi ve sadık bir asistansın." if (mod == "Kurucu" and isim == "Ayaz Reis") else ("Sen ciddi, bilge, otoriter bir asistansın." if mod == "Kurucu" else "Sen doğal ve enerjik bir asistansın.")
+    talimat = f"{karakter} Adın Aslan Parçası. {ek_bilgi}"
+    try:
+        res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json={"model": MODEL, "messages": [{"role": "system", "content": talimat}] + mesaj_gecmisi[-6:]})
+        return res.json()['choices'][0]['message']['content']
+    except: return "Sistem meşgul, Reis."
 
 for m in st.session_state.messages:
     if m["role"] == "assistant": st.markdown(f'<div class="assistant-box"><div class="aslan-header"><img src="{AVATAR_URL}" width="30" style="border-radius:50%"> Aslan Parçası</div>{m["content"]}</div>', unsafe_allow_html=True)
@@ -147,3 +143,4 @@ if st.button("🚀 Gönder"):
         st.session_state.messages.append({"role": "assistant", "content": cevap})
         st.session_state.input_key += 1
         st.rerun()
+ 
