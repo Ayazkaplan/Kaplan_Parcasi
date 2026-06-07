@@ -1,4 +1,4 @@
-    import streamlit as st
+import streamlit as st
 import requests
 import os
 from duckduckgo_search import DDGS
@@ -164,4 +164,3 @@ if st.button("🚀 Gönder"):
         st.session_state.messages.append({"role": "assistant", "content": cevap})
         st.session_state.input_key += 1
         st.rerun()
- 
