@@ -130,7 +130,6 @@ with st.sidebar:
         st.write(f"Hoş geldin, {st.session_state.current_user}")
         if st.button("Çıkış Yap"): st.session_state.logged_in = False; st.rerun()
         
-        # Orijinal Mod/Admin mantığı devamı
         if not is_admin:
             sifre = st.text_input("🔑 Şifre:", type="password")
             if sifre == KURUCU_SIFRESI: kaydet(MOD_DOSYASI, "Kurucu"); st.rerun()
@@ -140,8 +139,12 @@ with st.sidebar:
             st.success("✅ Kurucu Modu Aktif")
             if st.button("🚪 Çıkış Yap"): sil(MOD_DOSYASI); sil(ISIM_DOSYASI); st.session_state.ayaz_yetkili = False; st.rerun()
             mod = "Kurucu"
+            
+            # --- YENİ MANTIĞA GÖRE KURUCU MOD AYARLARI ---
             kayitli_isim = oku(ISIM_DOSYASI) or "Mehmet Reis"
-            secim = st.selectbox("👤 Kimsin Reis?", ["Mehmet Reis", "Ayaz Reis"], index=["Mehmet Reis", "Ayaz Reis"].index(kayitli_isim))
+            st.write("---")
+            secim = st.radio("👤 Kimsin Reis?", ["Mehmet Reis", "Ayaz Reis"], index=["Mehmet Reis", "Ayaz Reis"].index(kayitli_isim))
+            
             if secim == "Ayaz Reis":
                 if not st.session_state.ayaz_yetkili:
                     gizli_sifre = st.text_input("👑 Ayaz Reis Şifresi:", type="password")
@@ -149,8 +152,10 @@ with st.sidebar:
                         if gizli_sifre == NIHAI_SIFRE: st.session_state.ayaz_yetkili = True; kaydet(ISIM_DOSYASI, "Ayaz Reis"); st.rerun()
                         else: st.error("❌ Hatalı Şifre!")
                     isim = "Mehmet Reis"
-                else: isim = "Ayaz Reis"
-            else: st.session_state.ayaz_yetkili = False; kaydet(ISIM_DOSYASI, "Mehmet Reis"); isim = "Mehmet Reis"
+                else: 
+                    isim = "Ayaz Reis"
+            else: 
+                st.session_state.ayaz_yetkili = False; kaydet(ISIM_DOSYASI, "Mehmet Reis"); isim = "Mehmet Reis"
 
     tema_dosyasi = TEMA_KURUCU if mod == "Kurucu" else TEMA_MISAFIR
     assistant_box_bg, theme_map = get_theme_data(mod)
@@ -190,7 +195,18 @@ def ai_cevap(mesaj_gecmisi, mod, isim, kullanici_mesaji):
     headers = {"Authorization": f"Bearer {API_KEY}"}
     ek_bilgi = f"\n[Bilgi]: Saat {(datetime.utcnow() + timedelta(hours=3)).strftime('%H:%M')}."
     if any(k in kullanici_mesaji.lower() for k in ["hava", "ara", "çevir", "nedir"]): ek_bilgi += f"\n[İnternet]: {web_ara(kullanici_mesaji)}"
-    karakter = "Sen Ayaz Reis'in kurduğu neşeli, samimi ve sadık bir asistansın." if (mod == "Kurucu" and isim == "Ayaz Reis") else ("Sen ciddi, bilge, otoriter bir asistansın." if mod == "Kurucu" else "Sen doğal ve enerjik bir asistansın.")
+    
+    # --- YENİ MANTIĞA GÖRE KARAKTER TANIMLAMA ---
+    if mod == "Kurucu":
+        if isim == "Ayaz Reis":
+            karakter = "Sen Ayaz Reis'sin, sistemin kurucususun. Neşeli, samimi ve sadıksın."
+        elif isim == "Mehmet Reis":
+            karakter = "Sen Mehmet Reis'sin. Ayaz Reis'in yardımcısısın. Ayaz Reis'e tam bağlı ve sadık bir asistansın."
+        else:
+            karakter = "Sen ciddi, bilge, otoriter bir asistansın."
+    else:
+        karakter = "Sen doğal ve enerjik bir asistansın."
+        
     talimat = f"{karakter} Adın Aslan Parçası. {ek_bilgi}"
     try:
         res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json={"model": MODEL, "messages": [{"role": "system", "content": talimat}] + mesaj_gecmisi[-6:]})
