@@ -81,7 +81,7 @@ def giris_yap(isim, sifre):
     return user
 
 # --- MOD YÖNETİMİ ---
-is_admin = oku(MOD_DOSYASI) == "Kurucu"
+is_admin = (oku(MOD_DOSYASI) == "Kurucu")
 if "messages" not in st.session_state: st.session_state.messages = []
 if "input_key" not in st.session_state: st.session_state.input_key = 0
 if "ayaz_yetkili" not in st.session_state: st.session_state.ayaz_yetkili = False
@@ -136,7 +136,7 @@ isim = st.session_state.current_user if not is_admin else (oku(ISIM_DOSYASI) or 
 with st.sidebar:
     if not is_admin:
         st.write(f"Hoş geldin, {st.session_state.current_user}")
-        if st.button("Çıkış Yap"): st.session_state.logged_in = False; st.rerun()
+        if st.button("Çıkış Yap"): st.session_state.logged_in = False; st.session_state.current_user = None; st.rerun()
         sifre = st.text_input("🔑 Yönetici Şifresi:", type="password")
         if sifre == KURUCU_SIFRESI: kaydet(MOD_DOSYASI, "Kurucu"); st.rerun()
     else:
@@ -180,8 +180,9 @@ with col2:
         if st.button("⚙️ Yönetici"): st.session_state.admin_panel_open = not st.session_state.admin_panel_open; st.rerun()
 
 if st.session_state.admin_panel_open:
-    with st.container():
+    with st.container(border=True):
         st.subheader("🛠️ Yönetici Paneli")
+        st.write("Sistem ayarları ve kontrol merkezi.")
         if st.button("❌ Paneli Kapat"): st.session_state.admin_panel_open = False; st.rerun()
 
 def ai_cevap(mesaj_gecmisi, mod, isim, kullanici_mesaji):
