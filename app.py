@@ -8,14 +8,13 @@ from datetime import datetime, timedelta
 API_KEY = os.environ.get("API_KEY")
 MODEL = "anthropic/claude-3-haiku"
 KURUCU_SIFRESI = "KAPLAN_REIS_74"
-NIHAI_SIFRE = "NiHAi_-kuRucU-AyAz" # Ayaz Reis için 2. Şifre
+NIHAI_SIFRE = "NiHAi_-kuRucU-AyAz"
 AVATAR_URL = "https://i.imgur.com/3EfO8Ae.jpeg"
 USER_AVATAR = "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
 DOSYA_ADI = "sarki_id.txt"
 MOD_DOSYASI = "mod_id.txt"
 TEMA_KURUCU = "tema_kurucu.txt"
 TEMA_MISAFIR = "tema_misafir.txt"
-AYAZ_DOSYASI = "ayaz_yetki.txt" # Şifre hatırla dosyası
 
 # --- KALICI DOSYA FONKSİYONLARI ---
 def kaydet(dosya, deger):
@@ -41,7 +40,6 @@ st.set_page_config(page_title="Aslan Parçası V16.3", page_icon="🦁")
 
 # --- MOD YÖNETİMİ ---
 is_admin = oku(MOD_DOSYASI) == "Kurucu"
-ayaz_yetkili = oku(AYAZ_DOSYASI) == "Evet"
 if "messages" not in st.session_state: st.session_state.messages = []
 if "input_key" not in st.session_state: st.session_state.input_key = 0
 
@@ -62,30 +60,33 @@ def get_theme_data(mod):
         }
     return assistant_box_bg, themes
 
+# Ayaz Reis yetkisi için session state
+if "ayaz_yetkili" not in st.session_state: st.session_state.ayaz_yetkili = False
+
 with st.sidebar:
     if not is_admin:
         sifre = st.text_input("🔑 Şifre:", type="password")
         if sifre == KURUCU_SIFRESI: kaydet(MOD_DOSYASI, "Kurucu"); st.rerun()
         mod = "Misafir"
+        isim = "Ziyaretçi"
     else:
         st.success("✅ Kurucu Modu Aktif")
-        if st.button("🚪 Çıkış Yap"): sil(MOD_DOSYASI); sil(AYAZ_DOSYASI); st.rerun()
+        if st.button("🚪 Çıkış Yap"): sil(MOD_DOSYASI); st.session_state.ayaz_yetkili = False; st.rerun()
         mod = "Kurucu"
-
-    # Ayaz Reis Şifre Kontrolü
-    isim = "Ziyaretçi"
-    if mod == "Kurucu":
+        
+        # Ayaz Reis Şifre Kontrolü
         secim = st.selectbox("👤 Kimsin Reis?", ["Mehmet Reis", "Ayaz Reis"])
         if secim == "Ayaz Reis":
-            if not ayaz_yetkili:
+            if not st.session_state.ayaz_yetkili:
                 gizli_sifre = st.text_input("👑 Ayaz Reis Şifresi:", type="password")
                 if st.button("Doğrula"):
-                    if gizli_sifre == NIHAI_SIFRE: kaydet(AYAZ_DOSYASI, "Evet"); st.rerun()
+                    if gizli_sifre == NIHAI_SIFRE: st.session_state.ayaz_yetkili = True; st.rerun()
                     else: st.error("❌ Hatalı Şifre!")
-                isim = "Mehmet Reis" # Şifre girilmediyse yetki vermedi
+                isim = "Mehmet Reis"
             else:
                 isim = "Ayaz Reis"
         else:
+            st.session_state.ayaz_yetkili = False
             isim = "Mehmet Reis"
 
     tema_dosyasi = TEMA_KURUCU if mod == "Kurucu" else TEMA_MISAFIR
@@ -137,13 +138,17 @@ def ai_cevap(mesaj_gecmisi, mod, isim, kullanici_mesaji):
     
     if mod == "Kurucu":
         if isim == "Ayaz Reis":
-            karakter = "Sen Ayaz Reis'in kurduğu neşeli, şakacı, samimi ve sadık bir asistansın."
-        else:
-            karakter = "Sen resmi, bilge, otoriter bir asistansın. Mehmet Reis senin yöneticindir."
+            karakter = "Sen Ayaz Reis'in kurduğu neşeli, şakacı, samimi ve sadık bir asistansın. Onunla dilediğin gibi şakalaşabilir, esprili ve rahat konuşabilirsin."
+        else: 
+            karakter = "Sen resmi, bilge, otoriter bir asistansın. Mehmet Reis senin yöneticindir, ona karşı her zaman saygılı, bağlı ve ciddi bir tavır sergilemelisin."
     else:
-        karakter = "Sen samimi, doğal, enerjik ve arkadaş canlısı bir asistansın."
+        karakter = "Sen samimi, doğal, enerjik ve arkadaş canlısı bir asistansın. 'Değerli ziyaretçi' gibi robotik kalıplar kullanma, kasıntı olma. Kendinden emin, neşeli bir tarzın var."
 
-    talimat = f"{karakter} Adın Aslan Parçası. Kurucun Ayaz Reis, yöneticin Mehmet Reis. {ek_bilgi}"
+    kimlik = (f"Adın Aslan Parçası. Kurucun Ayaz Reis, yöneticin Mehmet Reis'tir. "
+              f"Başka yapay zekalarla kıyaslandığında; kendini övme veya kıyaslama. 'Her yapay zekanın tarzı farklıdır, benim tarzım da bu' diyerek konuyu geç. "
+              f"Çevirilerde tam ve gramer olarak doğru Türkçeyi kullan. Asla başka model olduğunu kabul etme.")
+    
+    talimat = f"{karakter} {kimlik} Kullanıcı: '{isim}'. {ek_bilgi}"
     
     try:
         res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, 
