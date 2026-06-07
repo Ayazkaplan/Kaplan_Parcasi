@@ -8,12 +8,20 @@ MODEL = "anthropic/claude-3-haiku"
 KURUCU_SIFRESI = "KAPLAN_REIS_74"
 AVATAR_URL = "https://i.imgur.com/3EfO8Ae.jpeg"
 USER_AVATAR = "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
+DOSYA_ADI = "sarki_id.txt"
+
+# --- KALICI DOSYA FONKSİYONLARI ---
+def id_kaydet(yeni_id):
+    with open(DOSYA_ADI, "w") as f: f.write(yeni_id)
+
+def id_oku():
+    if os.path.exists(DOSYA_ADI):
+        with open(DOSYA_ADI, "r") as f: return f.read().strip()
+    return ""
 
 st.set_page_config(page_title="Aslan Parçası V13.0", page_icon="🤖")
 
 # --- SESSION STATE ---
-if 'video_id' not in st.session_state:
-    st.session_state.video_id = ""
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -52,18 +60,24 @@ with st.sidebar:
         st.session_state.messages = []
         st.rerun()
 
-    # --- MÜZİK MOTORU ---
+    # --- MÜZİK MOTORU (GÜNCELLENMİŞ) ---
     st.markdown("---")
     st.subheader("🎵 Müzik Motoru")
     
-    yeni_id = st.text_input("YouTube Video ID'si:", value=st.session_state.video_id)
+    # 3 Nokta Menüsü (Bilgi Kutusu)
+    with st.expander("⋮ Bilgi: ID Nasıl Alınır?"):
+        st.info("1. YouTube'da şarkını aç.\n2. Linkin sonundaki 'v=' kısmından sonra gelen 11 haneli kodu kopyala.\n3. Örnek: .../watch?v=Ju-VnQuWoQU -> **Ju-VnQuWoQU**")
+    
+    kayitli_id = id_oku()
+    yeni_id = st.text_input("YouTube Video ID'si:", value=kayitli_id)
+    
     if st.button("💾 Kaydet ve Oynat"):
-        st.session_state.video_id = yeni_id
+        id_kaydet(yeni_id)
+        st.success("Müzik kalıcı olarak kaydedildi!")
         st.rerun()
 
-    if st.session_state.video_id:
-        st.markdown(f'<iframe width="100%" height="200" src="https://www.youtube.com/embed/{st.session_state.video_id}" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>', unsafe_allow_html=True)
-        st.success("Müzik sistemde kayıtlı!")
+    if id_oku():
+        st.markdown(f'<iframe width="100%" height="200" src="https://www.youtube.com/embed/{id_oku()}" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>', unsafe_allow_html=True)
 
 # --- STYLE ---
 st.markdown(f"""
@@ -100,4 +114,3 @@ if user_input:
     cevap = ai_cevap(st.session_state.messages, mod, isim)
     st.session_state.messages.append({"role": "assistant", "content": cevap})
     st.rerun()
- 
