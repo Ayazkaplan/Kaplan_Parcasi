@@ -9,7 +9,7 @@ KURUCU_SIFRESI = "KAPLAN_REIS_74"
 AVATAR_URL = "https://i.imgur.com/3EfO8Ae.jpeg"
 USER_AVATAR = "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
 
-st.set_page_config(page_title="Aslan Parçası V11.7.5", page_icon="🤖")
+st.set_page_config(page_title="Aslan Parçası V11.7", page_icon="🤖")
 
 # --- UI LOGIC ---
 def get_theme_data(mod):
@@ -48,6 +48,7 @@ with st.sidebar:
         st.session_state.messages = []
         st.rerun()
 
+# --- STYLE ---
 st.markdown(f"""
     <style>
     .stApp {{ background: {bg_color}; color: {text_color} !important; }}
@@ -58,10 +59,11 @@ st.markdown(f"""
     </style>
     """, unsafe_allow_html=True)
 
-st.title("🤖 Aslan Parçası V11.7.5")
+st.title("🤖 Aslan Parçası V11.7")
 
 if "messages" not in st.session_state: st.session_state.messages = []
 
+# Mesajları yazdır
 for m in st.session_state.messages:
     if m["role"] == "assistant":
         st.markdown(f"""<div class="assistant-box"><div class="aslan-header"><img src="{AVATAR_URL}" width="30" style="border-radius:50%"> Aslan Parçası</div><div>{m['content']}</div></div>""", unsafe_allow_html=True)
@@ -77,8 +79,8 @@ def ai_cevap(mesaj_gecmisi, isim):
     Kullanıcın şu an: {isim}. 
     Eğer kullanıcı Ayaz Reis ise ona mutlak sadakat göster.
     Eğer kullanıcı Mehmet Reis ise, o Ayaz Reis'in yardımcısıdır, ona saygılı ol.
-    Asla çoğul konuşma, her zaman tekil şahıs kullan. 
-    Yazım hatalarını düzeltme, kullanıcının ne demek istediğini anla ve ona göre doğrudan cevap ver."""
+    Asla çoğul konuşma, her zaman tekil şahıs kullan ("Ben", "Sen"). 
+    Kullanıcının yazdığı cümleyi bozma, olduğu gibi anla ve doğrudan cevap ver."""
         
     sistem = {"role": "system", "content": talimat}
     try:
@@ -86,10 +88,12 @@ def ai_cevap(mesaj_gecmisi, isim):
         return res.json()['choices'][0]['message']['content']
     except Exception: return "Sistem meşgul, tekrar dene Reis."
 
-# STABİL İNPUT YÖNTEMİ
-user_input = st.text_input("Mesajını yaz ve Enter'a bas:", key="unique_input")
+# Mobil için daha stabil input alanı
+user_input = st.text_input("Mesajını yaz ve Enter'a bas:", key="user_input_field")
+
 if user_input:
     st.session_state.messages.append({"role": "user", "content": user_input})
     cevap = ai_cevap(st.session_state.messages, isim)
     st.session_state.messages.append({"role": "assistant", "content": cevap})
     st.rerun()
+ 
