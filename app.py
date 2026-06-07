@@ -1,7 +1,6 @@
 import streamlit as st
 import requests
 import os
-import streamlit.components.v1 as components
 
 # Ayarlar
 API_KEY = os.environ.get("API_KEY")
@@ -37,7 +36,7 @@ with st.sidebar:
     tema_secimi = st.selectbox("Arka Plan Seç:", list(theme_map.keys()))
     bg_color, text_color = theme_map[tema_secimi]
 
-# --- STYLE & TOAST ---
+# --- STYLE & TEKNİK JS ---
 st.markdown(f"""
     <style>
     .stApp {{ background: {bg_color}; color: {text_color} !important; }}
@@ -45,58 +44,45 @@ st.markdown(f"""
     .stChatMessage[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarUser"]) {{ background-color: {user_bg} !important; }}
     .stChatMessage[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarAssistant"]) {{ background-color: {assistant_bg} !important; border-left: 5px solid gold; }}
     .fixed-input-area {{ position: fixed; bottom: 0; left: 0; width: 100%; padding: 10px; background: {bg_color}; z-index: 999; }}
-    div.stButton > button, div.stFormSubmitButton > button {{ color: white !important; background-color: #444 !important; border: 2px solid white !important; font-weight: bold !important; }}
-    
-    /* Avatar tıklama ayarı */
-    div[data-testid="stChatMessageAvatarAssistant"] {{ cursor: pointer !important; }}
+    .aslan-avatar-wrapper {{ cursor: pointer; }}
     </style>
-    """, unsafe_allow_html=True)
-
-# JS: Tıklama olayını doğrudan yakalıyoruz
-components.html("""
     <script>
-    window.parent.document.addEventListener('click', function(e) {
-        let avatarContainer = e.target.closest('div[data-testid="stChatMessageAvatarAssistant"]');
-        if (avatarContainer) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            let existing = window.parent.document.getElementById('aslan-toast');
-            if (existing) existing.remove();
-
-            let toast = window.parent.document.createElement('div');
-            toast.id = 'aslan-toast';
+    document.addEventListener('click', function(e) {{
+        if (e.target.closest('.aslan-avatar-wrapper')) {{
+            let toast = document.createElement('div');
             toast.innerText = 'Aslan Parçası';
             toast.style.cssText = 'position:fixed; top:20%; left:50%; transform:translateX(-50%); background:gold; color:black; padding:15px 30px; border-radius:15px; z-index:999999; font-weight:bold; box-shadow:0px 4px 15px rgba(0,0,0,0.5); opacity:1; transition: opacity 1s ease-out;';
-            window.parent.document.body.appendChild(toast);
-            
-            setTimeout(() => { toast.style.opacity = '0'; }, 2000);
-            setTimeout(() => { toast.remove(); }, 3000);
-        }
-    });
+            document.body.appendChild(toast);
+            setTimeout(() => {{ toast.style.opacity = '0'; }}, 2000);
+            setTimeout(() => {{ toast.remove(); }}, 3000);
+        }}
+    }});
     </script>
-    """, height=0)
+    """, unsafe_allow_html=True)
 
 st.title("🤖 Aslan Parçası V11.3")
 
 if "messages" not in st.session_state: st.session_state.messages = []
 
+# Mesajları yazdırırken avatarı kendi HTML wrapper'ımıza alıyoruz
 for m in st.session_state.messages:
-    avatar = AVATAR_URL if m["role"] == "assistant" else None
-    with st.chat_message(m["role"], avatar=avatar):
-        st.markdown(m["content"])
+    if m["role"] == "assistant":
+        with st.chat_message("assistant"):
+            st.markdown(f'<div class="aslan-avatar-wrapper"><img src="{AVATAR_URL}" width="40" style="border-radius:50%"></div>', unsafe_allow_html=True)
+            st.markdown(m["content"])
+    else:
+        st.chat_message("user").markdown(m["content"])
 
 def ai_cevap(mesaj_gecmisi, mod):
     headers = {"Authorization": f"Bearer {API_KEY}", "HTTP-Referer": "https://aslan-parcasi-widget.onrender.com", "X-Title": "Aslan Parcasi"}
-    kimlik = """Sen Aslan Parçası'sın. Kurucun Ayaz Reis. Sadece düzgün Türkçe konuş, teknik terim kullanma."""
+    kimlik = """Sen Aslan Parçası'sın. Kurucun Ayaz Reis. Sadece düzgün Türkçe konuş."""
     sistem = {"role": "system", "content": f"Mod: {mod}. {kimlik}"}
     try:
         res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json={"model": MODEL, "messages": [sistem] + mesaj_gecmisi[-6:]})
         return res.json()['choices'][0]['message']['content']
-    except Exception: return "Sistem şu an meşgul, birazdan tekrar dene Reis."
+    except Exception: return "Sistem meşgul, tekrar dene Reis."
 
 st.markdown("<br><br><br>", unsafe_allow_html=True)
-
 st.markdown('<div class="fixed-input-area">', unsafe_allow_html=True)
 with st.form(key='chat_form', clear_on_submit=True):
     user_input = st.text_input("", placeholder="Mesajını yaz...")
@@ -106,7 +92,8 @@ st.markdown('</div>', unsafe_allow_html=True)
 if submit_button and user_input:
     st.session_state.messages.append({"role": "user", "content": user_input})
     with st.chat_message("user"): st.markdown(user_input)
-    with st.chat_message("assistant", avatar=AVATAR_URL):
+    with st.chat_message("assistant"):
+        st.markdown(f'<div class="aslan-avatar-wrapper"><img src="{AVATAR_URL}" width="40" style="border-radius:50%"></div>', unsafe_allow_html=True)
         cevap = ai_cevap(st.session_state.messages, mod)
         st.markdown(cevap)
     st.session_state.messages.append({"role": "assistant", "content": cevap})
