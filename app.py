@@ -4,12 +4,13 @@ import os
 
 # Ayarlar
 API_KEY = os.environ.get("API_KEY")
+# Claude 3 Haiku: Stabil ve kurallara en sadık model
 MODEL = "anthropic/claude-3-haiku"
 KURUCU_SIFRESI = "KAPLAN_REIS_74"
 AVATAR_URL = "https://i.imgur.com/3EfO8Ae.jpeg"
 USER_AVATAR = "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
 
-st.set_page_config(page_title="Aslan Parçası V12.9", page_icon="🤖")
+st.set_page_config(page_title="Aslan Parçası V12.5", page_icon="🤖")
 
 # --- UI LOGIC ---
 def get_theme_data(mod):
@@ -61,7 +62,7 @@ st.markdown(f"""
     </style>
     """, unsafe_allow_html=True)
 
-st.title("🤖 Aslan Parçası V12.9")
+st.title("🤖 Aslan Parçası V12.5")
 
 if "messages" not in st.session_state: st.session_state.messages = []
 
@@ -74,32 +75,34 @@ for m in st.session_state.messages:
 
 def ai_cevap(mesaj_gecmisi, mod, isim):
     headers = {"Authorization": f"Bearer {API_KEY}", "HTTP-Referer": "https://aslan-parcasi-widget.onrender.com", "X-Title": "Aslan Parcasi"}
+    
+    # HİYERARŞİ VE KİŞİLİK TANIMLAMASI (SERT KURALLAR)
     talimat = f"""Sen Aslan Parçası'sın. Kesinlikle bir insansın.
     Şu anki kullanıcın: '{isim}'.
+    
     HİYERARŞİ:
     1. AYAZ REIS: Mutlak Kurucundur. Ona her zaman 'Kurucum' veya 'Ayaz Reis' de.
     2. MEHMET REIS: Yardımcın ve Yöneticindir. Ona asla 'Kurucum' deme, 'Yardımcım' veya 'Mehmet Reis' de.
+    
     KURALLAR:
     - HER ZAMAN TEKİL ŞAHIS KONUŞ ("Ben", "Sen"). Asla "Biz/Siz" deme.
     - Yazım hatası yapma, Türkçe dilbilgisine sadık kal.
     - Kendini tanıtma, yapay zeka olduğunu söyleme.
     - Kullanıcının yazdığı her cümleyi olduğu gibi kabul et, düzeltmeye çalışma.
     - Ayaz Reis dışındaki hiç kimseye 'Kurucum' deme."""
+        
     sistem = {"role": "system", "content": talimat}
     try:
         res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json={"model": MODEL, "messages": [sistem] + mesaj_gecmisi[-6:]})
         return res.json()['choices'][0]['message']['content']
     except Exception: return "Sistem meşgul, tekrar dene Reis."
 
-# --- GÜVENLİ INPUT YÖNTEMİ ---
-if 'user_text_input' not in st.session_state: st.session_state.user_text_input = ""
+# Tarayıcı müdahalesini en aza indiren giriş alanı
+user_input = st.text_input("Mesajını yaz ve Enter'a bas...", key="user_input", autocomplete="off")
 
-def process_input():
-    if st.session_state.user_text_input:
-        user_text = st.session_state.user_text_input
-        st.session_state.messages.append({"role": "user", "content": user_text})
-        cevap = ai_cevap(st.session_state.messages, mod, isim)
-        st.session_state.messages.append({"role": "assistant", "content": cevap})
-        st.session_state.user_text_input = "" # Temizle
-
-st.text_input("Mesajını yaz ve Enter'a bas:", key="user_text_input", on_change=process_input)
+if user_input:
+    st.session_state.messages.append({"role": "user", "content": user_input})
+    cevap = ai_cevap(st.session_state.messages, mod, isim)
+    st.session_state.messages.append({"role": "assistant", "content": cevap})
+    st.rerun()
+ 
