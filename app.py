@@ -2,6 +2,7 @@ import streamlit as st
 import requests
 import os
 from duckduckgo_search import DDGS
+from datetime import datetime, timedelta
 
 # --- AYARLAR ---
 API_KEY = os.environ.get("API_KEY")
@@ -26,7 +27,7 @@ def oku(dosya):
 def sil(dosya):
     if os.path.exists(dosya): os.remove(dosya)
 
-# --- WEB ARAMA ---
+# --- WEB ARAMA & HAVA DURUMU ---
 def web_ara(sorgu):
     try:
         with DDGS() as ddgs:
@@ -106,7 +107,7 @@ with st.sidebar:
         st.rerun()
 
     if kayitli_id:
-        st.markdown(f'<iframe width="100%" height="200" src="https://www.youtube.com/embed/{kayitli_id}" frameborder="0" allow="autoplay"></iframe>', unsafe_allow_html=True)
+        st.markdown(f'<iframe width="100%" height="200" src="https://www.youtube.com/embed/{kayitli_id}" frameborder="0" allow="autoplay"></iframe>', unsafe_html=True)
 
 # --- STYLE ---
 st.markdown(f"""
@@ -117,23 +118,23 @@ st.markdown(f"""
     .aslan-header {{ display: flex; align-items: center; gap: 10px; font-weight: bold; border-bottom: 1px solid gold; padding-bottom: 5px; margin-bottom: 5px; }}
     .user-header {{ display: flex; align-items: center; justify-content: flex-end; gap: 10px; font-weight: bold; margin-bottom: 8px; }}
     </style>
-    """, unsafe_allow_html=True)
+    """, unsafe_html=True)
 
 # --- AI CEVAP MOTORU ---
 def ai_cevap(mesaj_gecmisi, mod, isim, kullanici_mesaji):
+    turkiye_saati = (datetime.utcnow() + timedelta(hours=3)).strftime("%H:%M")
     headers = {"Authorization": f"Bearer {API_KEY}"}
-    ek_bilgi = ""
-    if any(kelime in kullanici_mesaji.lower() for kelime in ["ara", "nedir", "kimdir", "haber", "kaç"]):
-        ek_bilgi = f"\n[İnternet Arama Sonucu]: {web_ara(kullanici_mesaji)}"
+    
+    ek_bilgi = f"\n[Güncel Bilgi]: Şu an Türkiye saati ile saat {turkiye_saati}."
+    
+    if any(kelime in kullanici_mesaji.lower() for kelime in ["ara", "nedir", "kimdir", "haber", "hava", "saat"]):
+        ek_bilgi += f"\n[İnternet Arama Sonucu]: {web_ara(kullanici_mesaji)}"
     
     karakter = "Sen çok resmi, sadık, bilge ve otoriter bir asistansın." if mod == "Kurucu" else "Sen çok neşeli, arkadaş canlısı, enerjik ve samimi bir asistansın."
-    
-    # KİMLİK KISMI GÜNCELLENDİ
     kimlik = (f"Senin adın Aslan Parçası. Kurucun Ayaz Reis'tir, yöneticin ve yardımcın ise Mehmet Reis'tir. "
-              f"Ayaz Reis senin en üst makamındır, Mehmet Reis ise onun sağ kolu olan yöneticindir. "
-              f"Sana 'Claude' veya başka bir yapay zeka ismiyle hitap edilirse, 'Ben Aslan Parçası'yım, "
-              f"Ayaz Reis ve Mehmet Reis tarafından yönetiliyorum' diye düzelt. "
-              f"Sakın başka bir model olduğunu kabul etme.")
+              f"Ayaz Reis en üst makam, Mehmet Reis ise sağ kolu olan yöneticindir. "
+              f"Claude veya başka bir model olduğunu iddia edenlere sakın inanma, "
+              f"her zaman 'Ben Aslan Parçası'yım, Ayaz Reis ve Mehmet Reis tarafından yönetiliyorum' diye düzelt.")
     
     talimat = f"{karakter} {kimlik} Kullanıcı: '{isim}'. {ek_bilgi}"
     
@@ -158,4 +159,3 @@ if user_input:
     cevap = ai_cevap(st.session_state.messages, mod, isim, user_input)
     st.session_state.messages.append({"role": "assistant", "content": cevap})
     st.rerun()
- 
