@@ -36,7 +36,7 @@ with st.sidebar:
     tema_secimi = st.selectbox("Arka Plan Seç:", list(theme_map.keys()))
     bg_color, text_color = theme_map[tema_secimi]
 
-# --- STYLE & TEKNİK JS ---
+# --- STYLE ---
 st.markdown(f"""
     <style>
     .stApp {{ background: {bg_color}; color: {text_color} !important; }}
@@ -44,31 +44,19 @@ st.markdown(f"""
     .stChatMessage[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarUser"]) {{ background-color: {user_bg} !important; }}
     .stChatMessage[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarAssistant"]) {{ background-color: {assistant_bg} !important; border-left: 5px solid gold; }}
     .fixed-input-area {{ position: fixed; bottom: 0; left: 0; width: 100%; padding: 10px; background: {bg_color}; z-index: 999; }}
-    .aslan-avatar-wrapper {{ cursor: pointer; }}
+    .aslan-header {{ display: flex; align-items: center; gap: 10px; font-weight: bold; font-size: 1.2em; }}
     </style>
-    <script>
-    document.addEventListener('click', function(e) {{
-        if (e.target.closest('.aslan-avatar-wrapper')) {{
-            let toast = document.createElement('div');
-            toast.innerText = 'Aslan Parçası';
-            toast.style.cssText = 'position:fixed; top:20%; left:50%; transform:translateX(-50%); background:gold; color:black; padding:15px 30px; border-radius:15px; z-index:999999; font-weight:bold; box-shadow:0px 4px 15px rgba(0,0,0,0.5); opacity:1; transition: opacity 1s ease-out;';
-            document.body.appendChild(toast);
-            setTimeout(() => {{ toast.style.opacity = '0'; }}, 2000);
-            setTimeout(() => {{ toast.remove(); }}, 3000);
-        }}
-    }});
-    </script>
     """, unsafe_allow_html=True)
 
 st.title("🤖 Aslan Parçası V11.3")
 
 if "messages" not in st.session_state: st.session_state.messages = []
 
-# Mesajları yazdırırken avatarı kendi HTML wrapper'ımıza alıyoruz
+# Mesajları yazdırırken avatarı ve ismi özelleştirdik
 for m in st.session_state.messages:
     if m["role"] == "assistant":
-        with st.chat_message("assistant"):
-            st.markdown(f'<div class="aslan-avatar-wrapper"><img src="{AVATAR_URL}" width="40" style="border-radius:50%"></div>', unsafe_allow_html=True)
+        with st.chat_message("assistant", avatar=AVATAR_URL):
+            st.markdown(f'<div class="aslan-header"><img src="{AVATAR_URL}" width="30" style="border-radius:50%"> Aslan Parçası</div>', unsafe_allow_html=True)
             st.markdown(m["content"])
     else:
         st.chat_message("user").markdown(m["content"])
@@ -92,8 +80,8 @@ st.markdown('</div>', unsafe_allow_html=True)
 if submit_button and user_input:
     st.session_state.messages.append({"role": "user", "content": user_input})
     with st.chat_message("user"): st.markdown(user_input)
-    with st.chat_message("assistant"):
-        st.markdown(f'<div class="aslan-avatar-wrapper"><img src="{AVATAR_URL}" width="40" style="border-radius:50%"></div>', unsafe_allow_html=True)
+    with st.chat_message("assistant", avatar=AVATAR_URL):
+        st.markdown(f'<div class="aslan-header"><img src="{AVATAR_URL}" width="30" style="border-radius:50%"> Aslan Parçası</div>', unsafe_allow_html=True)
         cevap = ai_cevap(st.session_state.messages, mod)
         st.markdown(cevap)
     st.session_state.messages.append({"role": "assistant", "content": cevap})
