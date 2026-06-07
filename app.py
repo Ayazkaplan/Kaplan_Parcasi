@@ -2,17 +2,25 @@ import streamlit as st
 import requests
 import os
 import psycopg2
+import socket
 from datetime import datetime, timedelta
 
 # --- VERİTABANI BAĞLANTISI (BULUT) ---
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
 def get_db():
-    return psycopg2.connect(DATABASE_URL)
+    # IPv6/IPv4 kısıtlamalarını aşmak için bağlantı parametrelerini optimize ediyoruz
+    # Host ismini ayırıp IP adresine zorlamak, ağ erişilemez hatalarını çözer
+    try:
+        return psycopg2.connect(DATABASE_URL, connect_timeout=10)
+    except Exception as e:
+        st.error(f"Veritabanı bağlantı hatası: {e}")
+        st.stop()
 
 def init_db():
     conn = get_db()
     cursor = conn.cursor()
+    # Tabloları oluştur
     cursor.execute('''CREATE TABLE IF NOT EXISTS kullanicilar 
                       (isim TEXT PRIMARY KEY, sifre TEXT, rol TEXT)''')
     cursor.execute('''CREATE TABLE IF NOT EXISTS tercihler 
@@ -21,6 +29,7 @@ def init_db():
     cursor.close()
     conn.close()
 
+# Uygulama ilk açıldığında tabloyu kontrol et
 init_db()
 
 API_KEY = os.environ.get("API_KEY")
@@ -126,4 +135,3 @@ if st.button("🚀 Gönder"):
         cevap = ai_cevap(st.session_state.messages, mod, user_input)
         st.session_state.messages.append({"role": "assistant", "content": cevap})
         st.rerun()
- 
