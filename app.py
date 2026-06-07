@@ -50,20 +50,20 @@ with st.sidebar:
         st.session_state.messages = []
         st.rerun()
 
-    # --- YOUTUBE MÜZİK MOTORU ---
+    # --- YOUTUBE MÜZİK MOTORU GÜNCEL ---
     st.markdown("---")
     st.subheader("🎵 Müzik Motoru")
     
-    sarki_arama = st.text_input("Şarkı veya Tür Ara:")
+    sarki_arama = st.text_input("Şarkı veya Tür Ara:", key="arama_input")
     if st.button("🔍 Ara"):
-        # Not: Buraya gerçek bir YouTube API bağlayabilirsin, 
-        # şu anki örnekte temel bir yapı kuruyoruz.
-        st.session_state.son_sarki = f"https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" # Örnek Link
-        st.success(f"'{sarki_arama}' için sonuçlar bulundu!")
+        query = sarki_arama.replace(" ", "+")
+        st.session_state.son_sarki_link = f"https://www.youtube.com/results?search_query={query}"
+        st.session_state.son_sarki_isim = sarki_arama
+        st.info(f"'{sarki_arama}' için YouTube araması hazırlandı!")
 
-    if 'son_sarki' in st.session_state:
-        st.audio(st.session_state.son_sarki, format="audio/mpeg")
-        st.caption("Ses seviyesini yanındaki 3 noktadan ayarla Reis.")
+    if 'son_sarki_link' in st.session_state:
+        st.markdown(f"[▶️ {st.session_state.son_sarki_isim} Şarkısını YouTube'da Aç]({st.session_state.son_sarki_link})", unsafe_allow_html=True)
+        st.caption("Not: İstediğin şarkıya tek tıkla ulaşman için seni doğrudan YouTube sonuçlarına yönlendiriyorum Reis.")
 
 # --- STYLE ---
 st.markdown(f"""
@@ -105,3 +105,4 @@ if user_input:
     cevap = ai_cevap(st.session_state.messages, mod, isim)
     st.session_state.messages.append({"role": "assistant", "content": cevap})
     st.rerun()
+ 
