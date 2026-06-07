@@ -9,18 +9,19 @@ KURUCU_SIFRESI = "KAPLAN_REIS_74"
 AVATAR_URL = "https://i.imgur.com/3EfO8Ae.jpeg"
 USER_AVATAR = "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
 DOSYA_ADI = "sarki_id.txt"
+TEMA_DOSYASI = "tema_id.txt"
 
 # --- KALICI DOSYA FONKSİYONLARI ---
-def id_kaydet(yeni_id):
-    with open(DOSYA_ADI, "w") as f: f.write(yeni_id.strip())
+def kaydet(dosya, deger):
+    with open(dosya, "w") as f: f.write(deger.strip())
 
-def id_sil():
-    if os.path.exists(DOSYA_ADI): os.remove(DOSYA_ADI)
-
-def id_oku():
-    if os.path.exists(DOSYA_ADI):
-        with open(DOSYA_ADI, "r") as f: return f.read().strip()
+def oku(dosya):
+    if os.path.exists(dosya):
+        with open(dosya, "r") as f: return f.read().strip()
     return ""
+
+def sil(dosya):
+    if os.path.exists(dosya): os.remove(dosya)
 
 st.set_page_config(page_title="Aslan Parçası V14.0", page_icon="🤖")
 
@@ -53,8 +54,16 @@ with st.sidebar:
     mod = "Kurucu" if sifre == KURUCU_SIFRESI else "Misafir"
     isim = st.selectbox("👤 Kimsin Reis?", ["Ayaz Reis", "Mehmet Reis"]) if mod == "Kurucu" else "Ziyaretçi"
         
+    # --- TEMA SEÇİMİ ---
     assistant_box_bg, theme_map = get_theme_data(mod)
-    tema_secimi = st.selectbox("Arka Plan Seç:", list(theme_map.keys()))
+    kayitli_tema = oku(TEMA_DOSYASI)
+    if kayitli_tema not in theme_map: kayitli_tema = list(theme_map.keys())[0]
+    
+    tema_secimi = st.selectbox("Arka Plan Seç:", list(theme_map.keys()), index=list(theme_map.keys()).index(kayitli_tema))
+    if st.button("💾 Temayı Kaydet"):
+        kaydet(TEMA_DOSYASI, tema_secimi)
+        st.rerun()
+    
     bg_color, text_color = theme_map[tema_secimi]
     
     if st.button("🔄 Sohbeti Temizle"):
@@ -65,29 +74,17 @@ with st.sidebar:
     st.markdown("---")
     st.subheader("🎵 Müzik Motoru")
     
-    with st.expander("⋮ Müzik ID Nedir ve Nasıl Bulunur?"):
-        st.write("""
-        **Video ID, YouTube'daki videonun özel kimlik kodudur.**
-        
-        **Nasıl Bulunur?**
-        1. Videoyu YouTube'da aç.
-        2. 'Paylaş' > 'Bağlantıyı Kopyala' yap.
-        3. Linkin içindeki `v=` veya `/` işaretinden sonra gelen **11 haneli harf/rakam dizisini** kopyala.
-        4. Kutucuğa yapıştır ve 'Kaydet' tuşuna bas.
-        *Not: Hata alırsan 'YouTube'da İzle' butonunu kullan.*
-        """)
-    
-    kayitli_id = id_oku()
+    kayitli_id = oku(DOSYA_ADI)
     yeni_id = st.text_input("YouTube Video ID'si:", value=kayitli_id)
     
     col1, col2 = st.columns(2)
     with col1:
         if st.button("💾 Kaydet ve Oynat"):
-            id_kaydet(yeni_id)
+            kaydet(DOSYA_ADI, yeni_id)
             st.rerun()
     with col2:
         if st.button("🗑️ Sil"):
-            id_sil()
+            sil(DOSYA_ADI)
             st.rerun()
 
     if kayitli_id:
@@ -116,13 +113,11 @@ for m in st.session_state.messages:
 # --- BİLİNÇLİ AI CEVAP MOTORU ---
 def ai_cevap(mesaj_gecmisi, mod, isim):
     headers = {"Authorization": f"Bearer {API_KEY}", "HTTP-Referer": "https://aslan-parcasi-widget.onrender.com", "X-Title": "Aslan Parcasi"}
-    
     talimat = f"""Sen Aslan Parçası'sın. Kendini ve yeteneklerini çok iyi biliyorsun:
-    1. KİMLİK: Sen Ayaz Reis'in kurduğu, Mehmet Reis'in desteklediği güçlü bir yapısın.
-    2. MÜZİK SİSTEMİ: Arayüzünde bir 'Müzik Motoru' var. Kullanıcı oraya YouTube Video ID'si girerek müzik dinleyebilir, şarkıyı kaydedebilir veya silebilir. Hata alırsa YouTube'dan izlemesi gerektiğini biliyorsun.
-    3. ÖZELLEŞTİRME: Kullanıcı senin arka planını ve temasını sidebar'dan değiştirebilir.
-    4. GÖREVİN: Kullanıcıya bu özelliklerini sorulduğunda gururla anlatmak.
-    Kullanıcın şu an: '{isim}'. Modun: '{mod}'."""
+    1. MÜZİK: Arayüzünde bir Müzik Motoru var, ID kaydedip silebilirsin.
+    2. TEMA: Sidebar üzerinden arka planını kalıcı olarak değiştirebilirsin.
+    3. GÖREVİN: Bu özellikleri sorulduğunda anlatmak.
+    Kullanıcın: '{isim}', Mod: '{mod}'."""
     
     sistem = {"role": "system", "content": talimat}
     try:
