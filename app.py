@@ -2,17 +2,21 @@ import streamlit as st
 import requests
 import os
 import psycopg2
-import socket
 from datetime import datetime, timedelta
 
 # --- VERİTABANI BAĞLANTISI (BULUT) ---
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
 def get_db():
-    # IPv6/IPv4 kısıtlamalarını aşmak için bağlantı parametrelerini optimize ediyoruz
-    # Host ismini ayırıp IP adresine zorlamak, ağ erişilemez hatalarını çözer
+    # Transaction modunda (6543 portu) bağlantı için sslmode=require gereklidir.
+    # Bu, "no tenant identifier" hatasını aşmak için en kararlı yöntemdir.
     try:
-        return psycopg2.connect(DATABASE_URL, connect_timeout=10)
+        if not DATABASE_URL:
+            st.error("DATABASE_URL ayarlanmamış!")
+            st.stop()
+        # sslmode=require ekleyerek bağlantıyı güvenli hale getiriyoruz
+        conn_string = DATABASE_URL if "?sslmode=" in DATABASE_URL else f"{DATABASE_URL}?sslmode=require"
+        return psycopg2.connect(conn_string, connect_timeout=10)
     except Exception as e:
         st.error(f"Veritabanı bağlantı hatası: {e}")
         st.stop()
@@ -29,7 +33,7 @@ def init_db():
     cursor.close()
     conn.close()
 
-# Uygulama ilk açıldığında tabloyu kontrol et
+# Uygulama başladığında tabloyu kontrol et
 init_db()
 
 API_KEY = os.environ.get("API_KEY")
@@ -135,3 +139,4 @@ if st.button("🚀 Gönder"):
         cevap = ai_cevap(st.session_state.messages, mod, user_input)
         st.session_state.messages.append({"role": "assistant", "content": cevap})
         st.rerun()
+ 
