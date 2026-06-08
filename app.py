@@ -45,7 +45,7 @@ if not st.session_state.user_logged_in:
     st.title("🦁 Aslan Parçası V16.4")
     email = st.text_input("📧 E-posta:")
     password = st.text_input("🔑 Şifre:", type="password")
-    isim_input = st.text_input("👤 Hesap İsmi:")
+    isim_input = st.text_input("👤 Kayıtlı İsmini Yaz:")
     
     col1, col2 = st.columns(2)
     with col1:
@@ -54,11 +54,14 @@ if not st.session_state.user_logged_in:
                 user = auth.get_user_by_email(email)
                 user_doc = db.collection("users").document(user.uid).get()
                 if user_doc.exists:
-                    # Firestore'daki ismi çekerek güncel tutuyoruz
                     data = user_doc.to_dict()
-                    st.session_state.user_data = {**data, "uid": user.uid}
-                    st.session_state.user_logged_in = True
-                    st.rerun()
+                    # İSİM KONTROLÜ
+                    if data.get("isim") == isim_input:
+                        st.session_state.user_data = {**data, "uid": user.uid}
+                        st.session_state.user_logged_in = True
+                        st.rerun()
+                    else:
+                        st.error("❌ İsim veya bilgiler hatalı!")
             except Exception as e:
                 st.error("❌ Giriş Başarısız!")
     with col2:
@@ -72,7 +75,6 @@ if not st.session_state.user_logged_in:
     st.stop()
 
 # --- ANA EKRAN ---
-# Her sayfayı yenilediğinde güncel veriyi kullan
 is_kurucu = st.session_state.user_data.get('email') == KURUCU_EMAIL
 gorunen_isim = st.session_state.user_data.get('isim')
 rozet = " 🛠️" if is_kurucu else ""
@@ -155,3 +157,4 @@ if user_input := st.chat_input("Mesajını yaz..."):
     cevap = ai_cevap(st.session_state.messages[-6:])
     st.session_state.messages.append({"role": "assistant", "content": cevap})
     st.rerun()
+ 
