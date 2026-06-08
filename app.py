@@ -8,9 +8,13 @@ from datetime import datetime, timedelta
 
 # --- FIREBASE BAŞLATMA ---
 if not firebase_admin._apps:
-    # Render'da "GOOGLE_APPLICATION_CREDENTIALS" ortam değişkenini kullandığını varsayıyorum
-    # Eğer localde çalışıyorsan 'firebase-key.json' dosyasının yerinde olduğundan emin ol.
-    cred = credentials.Certificate("firebase-key.json")
+    # Render'da Secret Files kısmına yüklediğimiz yol
+    cred_path = "/etc/secrets/firebase-key.json"
+    # Localde çalışıyorsan dosyayı klasörde arar
+    if not os.path.exists(cred_path):
+        cred_path = "firebase-key.json"
+    
+    cred = credentials.Certificate(cred_path)
     firebase_admin.initialize_app(cred)
 
 # --- AYARLAR ---
@@ -47,36 +51,33 @@ def web_ara(sorgu):
             return "Güncel bilgiler: " + "\n".join([r['body'] for r in results])
     except: return "İnternete erişemiyorum Reis."
 
-# --- FIREBASE GİRİŞ EKRANI ---
+# --- GİRİŞ EKRANI ---
 if not st.session_state.user_logged_in:
-    st.title("🦁 Aslan Parçası V16.4 - Giriş")
+    st.title("🦁 Aslan Parçası V16.4")
     email = st.text_input("📧 E-posta:")
-    password = st.text_input("🔑 Şifre (Sadece kayıt için):", type="password")
+    password = st.text_input("🔑 Şifre:", type="password")
     
     col1, col2 = st.columns(2)
     with col1:
         if st.button("Giriş Yap"):
             try:
-                # Firebase'de e-posta kontrolü
                 user = auth.get_user_by_email(email)
                 st.session_state.user_logged_in = True
                 kaydet(MOD_DOSYASI, "Kurucu")
                 st.rerun()
-            except:
-                st.error("❌ Kullanıcı bulunamadı!")
+            except: st.error("❌ Kullanıcı bulunamadı!")
     with col2:
         if st.button("Kayıt Ol"):
             try:
                 auth.create_user(email=email, password=password)
-                st.success("✅ Kayıt başarılı! Giriş yapabilirsin.")
-            except Exception as e:
-                st.error(f"❌ Kayıt hatası: {e}")
+                st.success("✅ Kayıt başarılı, giriş yapabilirsin.")
+            except Exception as e: st.error(f"❌ Hata: {e}")
     st.stop()
 
 st.set_page_config(page_title="Aslan Parçası V16.4", page_icon="🦁")
 
 # --- MOD YÖNETİMİ ---
-mod = "Kurucu" # Firebase ile giren herkes şimdilik kurucu modunda
+is_admin = oku(MOD_DOSYASI) == "Kurucu"
 if "messages" not in st.session_state: st.session_state.messages = []
 if "input_key" not in st.session_state: st.session_state.input_key = 0
 if "ayaz_yetkili" not in st.session_state: st.session_state.ayaz_yetkili = False
@@ -87,14 +88,13 @@ def get_theme_data(mod):
     themes = {
         "Aslan İni": ("linear-gradient(to bottom, #1a1a00, #000000)", "white"),
         "Kraliyet": ("linear-gradient(to bottom, #2c0000, #000000)", "white"),
-        "Uzay": ("linear-gradient(to bottom, #1a0033, #000000)", "white")
+        "Orman Derinliği": ("linear-gradient(to bottom, #003300, #000000)", "white")
     }
     return assistant_box_bg, themes
 
 with st.sidebar:
     st.success("✅ Firebase Modu Aktif")
-    if st.button("🚪 Çıkış Yap"): 
-        sil(MOD_DOSYASI); sil(ISIM_DOSYASI); st.session_state.user_logged_in = False; st.rerun()
+    if st.button("🚪 Çıkış Yap"): sil(MOD_DOSYASI); sil(ISIM_DOSYASI); st.session_state.user_logged_in = False; st.rerun()
     
     kayitli_isim = oku(ISIM_DOSYASI) or "Mehmet Reis"
     secim = st.selectbox("👤 Kimsin Reis?", ["Mehmet Reis", "Ayaz Reis"], index=["Mehmet Reis", "Ayaz Reis"].index(kayitli_isim))
@@ -109,20 +109,27 @@ with st.sidebar:
         else: isim = "Ayaz Reis"
     else: st.session_state.ayaz_yetkili = False; kaydet(ISIM_DOSYASI, "Mehmet Reis"); isim = "Mehmet Reis"
 
-    assistant_box_bg, theme_map = get_theme_data(mod)
+    assistant_box_bg, theme_map = get_theme_data("Kurucu")
     tema_secimi = st.selectbox("Arka Plan:", list(theme_map.keys()))
     bg_color, text_color = theme_map[tema_secimi]
     
     if st.button("🔄 Sohbeti Temizle"): st.session_state.messages = []; st.rerun()
+    
+    # Müzik Motoru
+    kayitli_id = oku(DOSYA_ADI)
+    yeni_id = st.text_input("YouTube ID:", value=kayitli_id)
+    if st.button("💾 Kaydet ve Oynat"): kaydet(DOSYA_ADI, yeni_id); st.rerun()
+    if kayitli_id: st.markdown(f'<iframe width="100%" height="200" src="https://www.youtube.com/embed/{kayitli_id}" frameborder="0"></iframe>', unsafe_allow_html=True)
 
-# --- STYLE VE MAIN KISMI AYNI KALDI ---
+# --- STYLE ---
 st.markdown(f"""<style>.stApp {{ background: {bg_color}; color: {text_color} !important; }} .assistant-box {{ background-color: {assistant_box_bg}; padding: 15px; border-radius: 10px; border-left: 5px solid gold; margin-bottom: 10px; }} .user-box {{ background-color: rgba(128, 128, 128, 0.2); padding: 15px; border-radius: 10px; margin-bottom: 10px; text-align: right; }}</style>""", unsafe_allow_html=True)
 
 st.title("🤖 Aslan Parçası V16.4")
 
 def ai_cevap(mesaj_gecmisi, isim, kullanici_mesaji):
     headers = {"Authorization": f"Bearer {API_KEY}"}
-    talimat = f"Sen Aslan Parçası adlı asistansın. {isim} ile konuşuyorsun."
+    talimat = f"Sen Aslan Parçası'sın. {isim} ile konuşuyorsun. Saat: {(datetime.utcnow() + timedelta(hours=3)).strftime('%H:%M')}"
+    if any(k in kullanici_mesaji.lower() for k in ["hava", "ara", "çevir"]): talimat += f" [İnternet]: {web_ara(kullanici_mesaji)}"
     try:
         res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json={"model": MODEL, "messages": [{"role": "system", "content": talimat}] + mesaj_gecmisi[-6:]})
         return res.json()['choices'][0]['message']['content']
