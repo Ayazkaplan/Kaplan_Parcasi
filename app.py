@@ -28,7 +28,6 @@ db = firestore.client()
 API_KEY = os.environ.get("API_KEY")
 MODEL = "anthropic/claude-3-haiku"
 DOSYA_ADI = "sarki_id.txt"
-MOD_DOSYASI = "mod_id.txt"
 
 def kaydet(dosya, deger): 
     with open(dosya, "w") as f: f.write(deger.strip())
@@ -38,7 +37,7 @@ def oku(dosya):
 
 # --- OTURUM YÖNETİMİ ---
 if "user_logged_in" not in st.session_state: st.session_state.user_logged_in = False
-if "user_name" not in st.session_state: st.session_state.user_name = "Mehmet Reis"
+if "user_data" not in st.session_state: st.session_state.user_data = {"isim": "", "email": ""}
 
 def web_ara(sorgu):
     try:
@@ -60,9 +59,10 @@ if not st.session_state.user_logged_in:
             try:
                 user = auth.get_user_by_email(email)
                 user_doc = db.collection("users").document(user.uid).get()
-                st.session_state.user_logged_in = True
-                st.session_state.user_name = user_doc.to_dict().get("isim", "Mehmet Reis") if user_doc.exists else "Mehmet Reis"
-                st.rerun()
+                if user_doc.exists:
+                    st.session_state.user_data = user_doc.to_dict()
+                    st.session_state.user_logged_in = True
+                    st.rerun()
             except Exception as e: st.error("❌ Hata: Giriş yapılamadı.")
     with col2:
         if st.button("Kayıt Ol"):
@@ -70,7 +70,7 @@ if not st.session_state.user_logged_in:
                 try:
                     user = auth.create_user(email=email, password=password)
                     db.collection("users").document(user.uid).set({"isim": isim_input, "email": email})
-                    st.success("✅ Kayıt başarılı!")
+                    st.success("✅ Kayıt başarılı, şimdi giriş yapabilirsin!")
                 except Exception as e: st.error(f"❌ Hata: {e}")
             else: st.warning("⚠️ Lütfen tüm alanları doldur!")
     st.stop()
@@ -79,10 +79,16 @@ if not st.session_state.user_logged_in:
 st.set_page_config(page_title="Aslan Parçası V16.4", page_icon="🦁")
 
 with st.sidebar:
-    st.success(f"✅ Hoş geldin, {st.session_state.user_name}")
-    if st.button("🚪 Çıkış Yap"): 
-        st.session_state.user_logged_in = False; st.rerun()
+    st.markdown("### 👤 Profilim")
+    st.success(f"**İsim:** {st.session_state.user_data.get('isim')}")
+    st.info(f"**E-posta:** {st.session_state.user_data.get('email')}")
     
+    if st.button("🚪 Çıkış Yap"): 
+        st.session_state.user_logged_in = False
+        st.session_state.user_data = {"isim": "", "email": ""}
+        st.rerun()
+    
+    st.divider()
     tema_secimi = st.selectbox("Arka Plan:", ["Aslan İni", "Kraliyet", "Uzay"])
     theme_map = {"Aslan İni": "#1a1a00", "Kraliyet": "#2c0000", "Uzay": "#1a0033"}
     bg_color = theme_map[tema_secimi]
@@ -118,7 +124,6 @@ user_input = st.text_area("Mesajını yaz:", height=100)
 if st.button("🚀 Gönder"):
     if user_input:
         st.session_state.messages.append({"role": "user", "content": user_input})
-        cevap = ai_cevap(st.session_state.messages, st.session_state.user_name, user_input)
+        cevap = ai_cevap(st.session_state.messages, st.session_state.user_data.get('isim'), user_input)
         st.session_state.messages.append({"role": "assistant", "content": cevap})
         st.rerun()
- 
