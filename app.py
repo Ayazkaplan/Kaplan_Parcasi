@@ -5,9 +5,10 @@ import json
 import firebase_admin
 from firebase_admin import credentials, auth, firestore
 from datetime import datetime, timedelta
+import re
 
 # --- AYARLAR ---
-KURUCU_EMAIL = "ayazscma92@gmail.com"  # KENDİ MAİLİNİ BURAYA YAZ!
+KURUCU_EMAIL = "ayazscma92@gmail.com"
 AVATAR_URL = "https://i.imgur.com/3EfO8Ae.jpeg"
 USER_AVATAR = "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
 
@@ -28,21 +29,21 @@ if not firebase_admin._apps:
 
 db = firestore.client()
 
-# --- YARDIMCI AYARLAR ---
-API_KEY = os.environ.get("API_KEY")
-MODEL = "anthropic/claude-3-haiku"
-DOSYA_ADI = "sarki_id.txt"
+# --- YARDIMCI FONKSİYONLAR ---
+def emoji_kontrol(isim):
+    return bool(re.search(r'[^\w\s]', isim))
 
-def kaydet(dosya, deger): 
-    with open(dosya, "w") as f: f.write(deger.strip())
-
-def oku(dosya): 
-    return open(dosya, "r").read().strip() if os.path.exists(dosya) else ""
+def kaydet_video(yeni_id):
+    videos = st.session_state.get("saved_videos", [])
+    if yeni_id and yeni_id not in videos:
+        videos.append(yeni_id)
+        st.session_state.saved_videos = videos
 
 # --- OTURUM YÖNETİMİ ---
 if "user_logged_in" not in st.session_state: st.session_state.user_logged_in = False
-if "user_data" not in st.session_state: st.session_state.user_data = {"isim": "", "email": ""}
+if "user_data" not in st.session_state: st.session_state.user_data = {"isim": "", "email": "", "uid": ""}
 if "messages" not in st.session_state: st.session_state.messages = []
+if "saved_videos" not in st.session_state: st.session_state.saved_videos = []
 
 # --- GİRİŞ VE KAYIT EKRANI ---
 if not st.session_state.user_logged_in:
@@ -50,60 +51,65 @@ if not st.session_state.user_logged_in:
     st.title("🦁 Aslan Parçası V16.4")
     email = st.text_input("📧 E-posta:")
     password = st.text_input("🔑 Şifre:", type="password")
-    isim_input = st.text_input("👤 Profil İsmin:")
+    isim_input = st.text_input("👤 Hesap İsmi:")
     
     col1, col2 = st.columns(2)
     with col1:
         if st.button("Giriş Yap"):
-            if email and password:
-                try:
-                    user = auth.get_user_by_email(email)
-                    user_doc = db.collection("users").document(user.uid).get()
-                    if user_doc.exists:
-                        st.session_state.user_data = user_doc.to_dict()
-                        st.session_state.user_logged_in = True
-                        st.rerun()
-                    else:
-                        st.error("❌ Kullanıcı dökümanı bulunamadı.")
-                except Exception as e:
-                    st.error(f"❌ Giriş başarısız: {e}")
+            try:
+                user = auth.get_user_by_email(email)
+                user_doc = db.collection("users").document(user.uid).get()
+                if user_doc.exists:
+                    st.session_state.user_data = {**user_doc.to_dict(), "uid": user.uid}
+                    st.session_state.user_logged_in = True
+                    st.rerun()
+            except: st.error("❌ Hata!")
     with col2:
         if st.button("Kayıt Ol"):
-            if isim_input and email and password:
-                try:
-                    user = auth.create_user(email=email, password=password)
-                    db.collection("users").document(user.uid).set({"isim": isim_input, "email": email})
-                    st.success("✅ Kayıt başarılı!")
-                except Exception as e: st.error(f"❌ Hata: {e}")
+            if len(isim_input) > 30: st.error("İsim çok uzun!"); st.stop()
+            if not KURUCU_EMAIL == email and emoji_kontrol(isim_input): st.error("Emoji yasak!"); st.stop()
+            try:
+                user = auth.create_user(email=email, password=password)
+                db.collection("users").document(user.uid).set({"isim": isim_input, "email": email})
+                st.success("✅ Kayıt başarılı!")
+            except Exception as e: st.error(f"❌ Hata: {e}")
     st.stop()
 
-# --- KURUCU KONTROLÜ (SAYFA İÇİ) ---
+# --- ANA EKRAN ---
 is_kurucu = st.session_state.user_data.get('email') == KURUCU_EMAIL
 gorunen_isim = st.session_state.user_data.get('isim')
 
-# --- ANA EKRAN ---
 st.set_page_config(page_title="Aslan Parçası V16.4", page_icon="🦁")
 
 with st.sidebar:
     st.markdown("### 👤 Profilim")
+    # İsmi güncelleme kısmı
+    yeni_isim = st.text_input("İsmini Düzenle:", value=gorunen_isim)
+    if st.button("Güncelle"):
+        if len(yeni_isim) <= 30 and (is_kurucu or not emoji_kontrol(yeni_isim)):
+            db.collection("users").document(st.session_state.user_data['uid']).update({"isim": yeni_isim})
+            st.session_state.user_data['isim'] = yeni_isim
+            st.rerun()
+    
     if is_kurucu:
-        st.markdown(f"**İsim:** <span style='color:#FF4B4B; font-weight:bold;'>{gorunen_isim} 👑</span>", unsafe_allow_html=True)
+        st.markdown(f"**İsim:** <span class='kurucu-isim'>{gorunen_isim} 🛠️</span>", unsafe_allow_html=True)
         st.info("Sistem Kurucusu")
     else:
         st.success(f"**İsim:** {gorunen_isim}")
     
-    if st.button("🚪 Çıkış Yap"): 
-        st.session_state.clear()
-        st.rerun()
+    if st.button("🚪 Çıkış Yap"): st.session_state.clear(); st.rerun()
     
     st.divider()
-    tema_secimi = st.selectbox("Arka Plan:", ["Aslan İni", "Kraliyet", "Uzay"])
-    theme_map = {"Aslan İni": "#1a1a00", "Kraliyet": "#2c0000", "Uzay": "#1a0033"}
+    tema_secimi = st.selectbox("Arka Plan:", ["Aslan İni", "Kraliyet", "Uzay", "Orman Derinliği", "Teknoloji"])
+    theme_map = {"Aslan İni": "#1a1a00", "Kraliyet": "#2c0000", "Uzay": "#1a0033", "Orman Derinliği": "#001a00", "Teknoloji": "#001a1a"}
     
-    kayitli_id = oku(DOSYA_ADI)
-    yeni_id = st.text_input("YouTube ID:", value=kayitli_id)
-    if st.button("💾 Kaydet"): kaydet(DOSYA_ADI, yeni_id); st.rerun()
-    if kayitli_id: st.markdown(f'<iframe width="100%" height="150" src="https://www.youtube.com/embed/{kayitli_id}" frameborder="0"></iframe>', unsafe_allow_html=True)
+    yeni_video = st.text_input("YouTube ID ekle:")
+    if st.button("💾 Kaydet"): kaydet_video(yeni_video)
+    
+    for v in st.session_state.saved_videos:
+        c1, c2 = st.columns([0.8, 0.2])
+        c1.markdown(f'<iframe width="100%" height="100" src="https://www.youtube.com/embed/{v}" frameborder="0"></iframe>', unsafe_allow_html=True)
+        if c2.button("🗑️", key=v): st.session_state.saved_videos.remove(v); st.rerun()
 
 # --- STYLE VE SOHBET ---
 st.markdown(f"""<style>
@@ -117,29 +123,26 @@ st.markdown(f"""<style>
 
 st.title("🤖 Aslan Parçası V16.4")
 
-# --- MESAJLARI İKONLU YAZDIR ---
 for m in st.session_state.messages:
     if m["role"] == "assistant":
         st.markdown(f"""<div class="assistant-box"><div class="header-box"><img src="{AVATAR_URL}" width="30" style="border-radius:50%"> Aslan Parçası</div><div>{m['content']}</div></div>""", unsafe_allow_html=True)
     else:
-        isim_style = "kurucu-isim" if is_kurucu else ""
-        st.markdown(f"""<div class="user-box"><div class="header-box user-header"><span class="{isim_style}">{gorunen_isim}</span> <img src="{USER_AVATAR}" width="30" style="border-radius:50%"></div><div>{m['content']}</div></div>""", unsafe_allow_html=True)
+        st.markdown(f"""<div class="user-box"><div class="header-box user-header"><span class="{'kurucu-isim' if is_kurucu else ''}">{gorunen_isim}</span> <img src="{USER_AVATAR}" width="30" style="border-radius:50%"></div><div>{m['content']}</div></div>""", unsafe_allow_html=True)
 
 def ai_cevap(mesajlar):
-    headers = {"Authorization": f"Bearer {API_KEY}"}
-    payload = {
-        "model": MODEL,
-        "messages": [{"role": "system", "content": f"Sen Aslan Parçası'sın. Kurucu: {is_kurucu}. Saat: {(datetime.utcnow() + timedelta(hours=3)).strftime('%H:%M')}."}] + mesajlar
-    }
+    sistem_mesaji = f"Sen Aslan Parçası'sın. Kurucun Ayaz Kaplan. Kullanıcı: {gorunen_isim}."
+    payload = {"model": MODEL, "messages": [{"role": "system", "content": sistem_mesaji}] + mesajlar}
+    headers = {"Authorization": f"Bearer {os.environ.get('API_KEY')}"}
     try:
         res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=payload)
         return res.json()['choices'][0]['message']['content']
     except: return "Sistem yorgun, Reis."
 
 if user_input := st.chat_input("Mesajını yaz..."):
-    st.session_state.messages.append({"role": "user", "content": user_input})
-    with st.spinner("Aslan cevaplıyor..."):
+    if "ben kimim" in user_input.lower():
+        cevap = f"Sen bizim değerli dostumuz {gorunen_isim}'sin!"
+    else:
+        st.session_state.messages.append({"role": "user", "content": user_input})
         cevap = ai_cevap(st.session_state.messages[-6:])
-        st.session_state.messages.append({"role": "assistant", "content": cevap})
+    st.session_state.messages.append({"role": "assistant", "content": cevap})
     st.rerun()
- 
