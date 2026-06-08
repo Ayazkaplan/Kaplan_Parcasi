@@ -9,17 +9,24 @@ from datetime import datetime, timedelta
 
 # --- FIREBASE BAŞLATMA ---
 if not firebase_admin._apps:
-    # Render ortam değişkeninden JSON'ı al (En güvenli ve hatasız yöntem)
-    cred_json = os.environ.get("FIREBASE_CREDENTIALS")
-    if cred_json:
-        cred_dict = json.loads(cred_json)
-        cred = credentials.Certificate(cred_dict)
-        firebase_admin.initialize_app(cred)
+    # Render'a eklediğin 'FIREBASE_JSON' değişkenini okuyoruz
+    firebase_json_str = os.environ.get("FIREBASE_JSON")
+    
+    if firebase_json_str:
+        try:
+            # JSON string'ini sözlüğe çevirip başlatıyoruz
+            cred_dict = json.loads(firebase_json_str)
+            cred = credentials.Certificate(cred_dict)
+            firebase_admin.initialize_app(cred)
+        except Exception as e:
+            st.error(f"Firebase başlatma hatası: {e}")
     else:
         # Local test için fallback
         if os.path.exists("firebase-key.json"):
             cred = credentials.Certificate("firebase-key.json")
             firebase_admin.initialize_app(cred)
+        else:
+            st.warning("Firebase anahtarı bulunamadı!")
 
 # --- AYARLAR ---
 API_KEY = os.environ.get("API_KEY")
@@ -64,7 +71,7 @@ if not st.session_state.user_logged_in:
                 st.session_state.user_logged_in = True
                 kaydet(MOD_DOSYASI, "Kurucu")
                 st.rerun()
-            except: st.error("❌ Kullanıcı bulunamadı!")
+            except Exception as e: st.error(f"❌ Kullanıcı bulunamadı! Detay: {e}")
     with col2:
         if st.button("Kayıt Ol"):
             try:
