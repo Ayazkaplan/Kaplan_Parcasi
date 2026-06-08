@@ -31,6 +31,7 @@ db = firestore.client()
 if "user_logged_in" not in st.session_state: st.session_state.user_logged_in = False
 if "user_data" not in st.session_state: st.session_state.user_data = None
 if "messages" not in st.session_state: st.session_state.messages = []
+if "input_key" not in st.session_state: st.session_state.input_key = 0
 
 # --- ŞİFRE KONTROLÜ (REST API) ---
 def firebase_login(email, password):
@@ -40,7 +41,6 @@ def firebase_login(email, password):
     if res.status_code == 200:
         return res.json()
     else:
-        # HATA AYIKLAMA: Firebase'in gerçek hata mesajını döndür
         return {"error": res.json().get('error', {}).get('message', 'Bilinmeyen Hata')}
 
 # --- GİRİŞ VE KAYIT EKRANI ---
@@ -58,34 +58,33 @@ if not st.session_state.user_logged_in:
                 user_doc = db.collection("users").document(auth_res['localId']).get()
                 if user_doc.exists:
                     data = user_doc.to_dict()
-                    # İsim kontrolünü gevşetelim, bazen boşluk karakteri vs takılabilir
-                    if data.get("isim").strip() == isim_input.strip():
+                    if data.get("isim", "").strip() == isim_input.strip():
                         st.session_state.user_data = {**data, "uid": auth_res['localId']}
                         st.session_state.user_logged_in = True
                         st.rerun()
                     else: st.error("❌ Kayıtlı isim ile girdiğin isim eşleşmiyor!")
                 else: st.error("❌ Kullanıcı hesabı bulunamadı!")
-            else: st.error(f"❌ Giriş hatası: {auth_res.get('error') if auth_res else 'API Hatası'}")
-            
+            else: st.error(f"❌ Giriş hatası: {auth_res.get('error', 'API Hatası')}")
     with col2:
         if st.button("Kayıt Ol"):
             try:
                 user = auth.create_user(email=email, password=password)
                 db.collection("users").document(user.uid).set({"isim": isim_input.strip(), "email": email, "videos": []})
-                st.success("✅ Kayıt başarılı! Sayfayı yenileyip giriş yap.")
-            except Exception as e: st.error(f"❌ Kayıt hatası: {e}")
+                st.success("✅ Kayıt başarılı! Giriş yapabilirsin.")
+            except Exception as e: st.error(f"❌ Hata: {e}")
     st.stop()
 
 # --- ANA EKRAN ---
-# (Buradaki kod aynı, değişmedi)
 uid = st.session_state.user_data['uid']
 user_ref = db.collection("users").document(uid)
 user_doc = user_ref.get().to_dict()
 gorunen_isim = user_doc.get('isim', 'Kullanıcı')
+is_kurucu = user_doc.get('email') == KURUCU_EMAIL
+rozet = " 🛠️" if is_kurucu else ""
 saved_videos = user_doc.get("videos", [])
 
 with st.sidebar:
-    st.markdown(f"**👤 Profil:** {gorunen_isim}")
+    st.markdown(f"**👤 Profil:** {gorunen_isim}{rozet}")
     if st.button("🚪 Çıkış Yap"): st.session_state.clear(); st.rerun()
     st.divider()
     yeni_video = st.text_input("YouTube ID ekle:")
@@ -98,22 +97,40 @@ with st.sidebar:
         if c2.button("🗑️", key=v):
             user_ref.update({"videos": firestore.ArrayRemove([v])}); st.rerun()
 
+# --- STİL VE SOHBET ---
+st.markdown("""<style>
+    .assistant-box { background-color: rgba(30,30,30,0.9); padding: 15px; border-radius: 10px; border-left: 5px solid gold; margin-bottom: 15px; }
+    .user-box { background-color: rgba(128,128,128,0.2); padding: 15px; border-radius: 10px; margin-bottom: 15px; text-align: right; }
+    .header-box { font-weight: bold; margin-bottom: 5px; color: gold; }
+    .user-header { color: #aaa; }
+</style>""", unsafe_allow_html=True)
+
 st.title("🤖 Aslan Parçası V16.4")
+
 for m in st.session_state.messages:
-    role = "assistant" if m["role"] == "assistant" else "user"
-    with st.chat_message(role): st.write(m["content"])
+    if m["role"] == "assistant":
+        st.markdown(f'<div class="assistant-box"><div class="header-box">Aslan Parçası</div><div>{m["content"]}</div></div>', unsafe_allow_html=True)
+    else:
+        st.markdown(f'<div class="user-box"><div class="header-box user-header">{gorunen_isim}</div><div>{m["content"]}</div></div>', unsafe_allow_html=True)
+
+def ai_cevap(mesajlar):
+    sistem_mesaji = f"Sen Aslan Parçası'sın. Kullanıcı: {gorunen_isim}. Nazik, profesyonel bir asistansın."
+    payload = {"model": MODEL, "messages": [{"role": "system", "content": sistem_mesaji}] + mesajlar}
+    headers = {"Authorization": f"Bearer {os.environ.get('API_KEY')}"}
+    try:
+        res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=payload)
+        return res.json()['choices'][0]['message']['content']
+    except: return "Sistem yorgun, Reis."
 
 def send_message():
-    if st.session_state.my_input:
-        st.session_state.messages.append({"role": "user", "content": st.session_state.my_input})
-        # AI Yanıtı
-        payload = {"model": MODEL, "messages": [{"role": "system", "content": "Nazik bir asistansın."}] + st.session_state.messages}
-        headers = {"Authorization": f"Bearer {os.environ.get('API_KEY')}"}
-        try:
-            res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=payload)
-            cevap = res.json()['choices'][0]['message']['content']
-        except: cevap = "Sistem yorgun, Reis."
+    val = st.session_state.my_input
+    if val:
+        st.session_state.messages.append({"role": "user", "content": val})
+        cevap = ai_cevap(st.session_state.messages[-6:])
         st.session_state.messages.append({"role": "assistant", "content": cevap})
         st.session_state.my_input = "" 
+        st.session_state.input_key += 1
+        st.rerun()
 
-st.chat_input("Mesajını yaz:", key="my_input", on_submit=send_message)
+st.text_area("Mesajını yaz:", key="my_input", height=100)
+st.button("🚀 Gönder", on_click=send_message)
