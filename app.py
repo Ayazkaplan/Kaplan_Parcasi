@@ -24,7 +24,7 @@ if not firebase_admin._apps:
 
 db = firestore.client()
 
-# --- AYARLAR VE DOSYA İŞLEMLERİ ---
+# --- AYARLAR ---
 API_KEY = os.environ.get("API_KEY")
 MODEL = "anthropic/claude-3-haiku"
 DOSYA_ADI = "sarki_id.txt"
@@ -39,13 +39,6 @@ def oku(dosya):
 if "user_logged_in" not in st.session_state: st.session_state.user_logged_in = False
 if "user_data" not in st.session_state: st.session_state.user_data = {"isim": "", "email": ""}
 
-def web_ara(sorgu):
-    try:
-        with DDGS() as ddgs:
-            results = list(ddgs.text(sorgu, max_results=3))
-            return "Güncel bilgiler: " + "\n".join([r['body'] for r in results])
-    except: return "İnternete erişemiyorum Reis."
-
 # --- GİRİŞ VE KAYIT EKRANI ---
 if not st.session_state.user_logged_in:
     st.title("🦁 Aslan Parçası V16.4")
@@ -57,20 +50,25 @@ if not st.session_state.user_logged_in:
     with col1:
         if st.button("Giriş Yap"):
             try:
+                # E-posta ile kullanıcıyı getir
                 user = auth.get_user_by_email(email)
+                # Kullanıcı varsa Firestore'dan bilgilerini çek
                 user_doc = db.collection("users").document(user.uid).get()
                 if user_doc.exists:
                     st.session_state.user_data = user_doc.to_dict()
                     st.session_state.user_logged_in = True
                     st.rerun()
-            except Exception as e: st.error("❌ Hata: Giriş yapılamadı.")
+                else:
+                    st.error("❌ Kullanıcı profili bulunamadı!")
+            except Exception as e: 
+                st.error("❌ E-posta hatalı veya kullanıcı yok.")
     with col2:
         if st.button("Kayıt Ol"):
             if isim_input and email and password:
                 try:
                     user = auth.create_user(email=email, password=password)
                     db.collection("users").document(user.uid).set({"isim": isim_input, "email": email})
-                    st.success("✅ Kayıt başarılı, şimdi giriş yapabilirsin!")
+                    st.success("✅ Kayıt başarılı!")
                 except Exception as e: st.error(f"❌ Hata: {e}")
             else: st.warning("⚠️ Lütfen tüm alanları doldur!")
     st.stop()
@@ -110,7 +108,6 @@ if "messages" not in st.session_state: st.session_state.messages = []
 def ai_cevap(mesaj_gecmisi, isim, kullanici_mesaji):
     headers = {"Authorization": f"Bearer {API_KEY}"}
     talimat = f"Sen Aslan Parçası'sın. {isim} ile konuşuyorsun. Saat: {(datetime.utcnow() + timedelta(hours=3)).strftime('%H:%M')}"
-    if any(k in kullanici_mesaji.lower() for k in ["hava", "ara", "çevir"]): talimat += f" [İnternet]: {web_ara(kullanici_mesaji)}"
     try:
         res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json={"model": MODEL, "messages": [{"role": "system", "content": talimat}] + mesaj_gecmisi[-6:]})
         return res.json()['choices'][0]['message']['content']
