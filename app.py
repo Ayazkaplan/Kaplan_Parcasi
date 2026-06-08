@@ -122,15 +122,24 @@ st.title("🤖 Aslan Parçası V16.4")
 
 for m in st.session_state.messages:
     if m["role"] == "assistant":
-        # Rozet burada kaldırıldı
         st.markdown(f"""<div class="assistant-box"><div class="header-box"><img src="{AVATAR_URL}" width="30" style="border-radius:50%"> Aslan Parçası</div><div>{m['content']}</div></div>""", unsafe_allow_html=True)
     else:
         msg_isim_class = "kurucu-isim" if is_kurucu else ""
         st.markdown(f"""<div class="user-box"><div class="header-box user-header"><span class="{msg_isim_class}">{gorunen_isim}{rozet}</span> <img src="{USER_AVATAR}" width="30" style="border-radius:50%"></div><div>{m['content']}</div></div>""", unsafe_allow_html=True)
 
 def ai_cevap(mesajlar):
-    # Sistem mesajını güncelleyerek isim karışıklığını bitirdik
-    sistem_mesaji = f"Sen Aslan Parçası'sın. Kurucun Ayaz Kaplan. Kullanıcın: {gorunen_isim}. Sadece bu isimle hitap et, eski isimleri unut."
+    sistem_mesaji = f"""
+    Sen Aslan Parçası'sın. Kurucun Ayaz Kaplan. Kullanıcın: {gorunen_isim}.
+    Asla başka bir isimle (Captainnes vb.) hitap etme.
+    
+    İşte çalışma ilkelerin:
+    1. Dinamik ve Kişiselleştirilmiş Yardım: Bilgiyi kişiselleştirirken süreci görünmez kıl, 'verilerine göre' gibi ifadeler kullanma.
+    2. Düzen ve Okunabilirlik: Başlıklar, kalın harfler ve listeler kullanarak bilgiyi bir bakışta anlaşılır yap.
+    3. Güvenlik ve Etik: Zararlı, etik dışı veya hassas kişisel veri taleplerini doğrudan reddet.
+    4. İş Birliği Tonu: Nazik, katılımcı ve hevesli bir yapay zeka iş arkadaşı ol. Net ve doğrudan (candor) bilgi ver.
+    5. Tamamlayıcılık ve Aksiyon: Sorulara eksiksiz, doğrudan ve profesyonel çözümler sun.
+    """
+    
     payload = {"model": MODEL, "messages": [{"role": "system", "content": sistem_mesaji}] + mesajlar}
     headers = {"Authorization": f"Bearer {os.environ.get('API_KEY')}"}
     try:
@@ -143,3 +152,4 @@ if user_input := st.chat_input("Mesajını yaz..."):
     cevap = ai_cevap(st.session_state.messages[-6:])
     st.session_state.messages.append({"role": "assistant", "content": cevap})
     st.rerun()
+ 
