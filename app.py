@@ -7,23 +7,26 @@ from firebase_admin import credentials, auth
 from duckduckgo_search import DDGS
 from datetime import datetime, timedelta
 
-# --- FIREBASE BAŞLATMA ---
+# --- FIREBASE BAŞLATMA (GARANTİ YÖNTEM) ---
 if not firebase_admin._apps:
-    # Render'da Secret Files ile yüklendiğinde dosya buradadır
-    cred_path = "/etc/secrets/firebase-key.json"
+    secret_path = "/etc/secrets/firebase-key.json"
+    local_path = "firebase-key.json"
     
-    try:
-        if os.path.exists(cred_path):
-            cred = credentials.Certificate(cred_path)
+    # Render'daki secret dosyasını veya yerel dosyayı seç
+    path_to_use = secret_path if os.path.exists(secret_path) else (local_path if os.path.exists(local_path) else None)
+    
+    if path_to_use:
+        try:
+            with open(path_to_use, 'r') as f:
+                # JSON dosyasını sözlük olarak yükle (Invalid_grant'ı bu çözer)
+                key_dict = json.load(f)
+            cred = credentials.Certificate(key_dict)
             firebase_admin.initialize_app(cred)
-        elif os.path.exists("firebase-key.json"):
-            # Local test için
-            cred = credentials.Certificate("firebase-key.json")
-            firebase_admin.initialize_app(cred)
-        else:
-            st.error("Firebase anahtarı bulunamadı!")
-    except Exception as e:
-        st.error(f"Firebase başlatılamadı: {e}")
+        except Exception as e:
+            st.error(f"Firebase başlatılamadı: {e}")
+            st.stop()
+    else:
+        st.error("Firebase anahtarı bulunamadı! Lütfen Render Secret Files kısmını kontrol et.")
 
 # --- AYARLAR ---
 API_KEY = os.environ.get("API_KEY")
@@ -68,12 +71,12 @@ if not st.session_state.user_logged_in:
                 st.session_state.user_logged_in = True
                 kaydet(MOD_DOSYASI, "Kurucu")
                 st.rerun()
-            except Exception as e: st.error(f"❌ Kullanıcı bulunamadı! Detay: {e}")
+            except Exception as e: st.error(f"❌ Hata: {e}")
     with col2:
         if st.button("Kayıt Ol"):
             try:
                 auth.create_user(email=email, password=password)
-                st.success("✅ Kayıt başarılı, giriş yapabilirsin.")
+                st.success("✅ Kayıt başarılı!")
             except Exception as e: st.error(f"❌ Hata: {e}")
     st.stop()
 
@@ -89,7 +92,7 @@ with st.sidebar:
         sil(MOD_DOSYASI); sil(ISIM_DOSYASI); st.session_state.user_logged_in = False; st.rerun()
     
     kayitli_isim = oku(ISIM_DOSYASI) or "Mehmet Reis"
-    secim = st.selectbox("👤 Kimsin Reis?", ["Mehmet Reis", "Ayaz Reis"], index=["Mehmet Reis", "Ayaz Reis"].index(kayitli_isim))
+    secim = st.selectbox("👤 Kimsin Reis?", ["Mehmet Reis", "Ayaz Reis"], index=["Mehmet Reis", "Ayaz Reis"].index(kayitli_isim) if kayitli_isim in ["Mehmet Reis", "Ayaz Reis"] else 0)
     
     if secim == "Ayaz Reis":
         if not st.session_state.ayaz_yetkili:
@@ -101,7 +104,6 @@ with st.sidebar:
         else: isim = "Ayaz Reis"
     else: st.session_state.ayaz_yetkili = False; kaydet(ISIM_DOSYASI, "Mehmet Reis"); isim = "Mehmet Reis"
 
-    # Tema ve Müzik
     tema_secimi = st.selectbox("Arka Plan:", ["Aslan İni", "Kraliyet", "Uzay"])
     theme_map = {"Aslan İni": "#1a1a00", "Kraliyet": "#2c0000", "Uzay": "#1a0033"}
     bg_color = theme_map[tema_secimi]
