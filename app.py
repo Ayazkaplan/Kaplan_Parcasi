@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 
 # --- AYARLAR ---
 API_KEY = os.environ.get("API_KEY")
+GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
 MODEL = "anthropic/claude-3-haiku"
 KURUCU_SIFRESI = "KAPLAN_REIS_74"
 NIHAI_SIFRE = "NiHAi_-kuRucU-AyAz"
@@ -16,6 +17,18 @@ MOD_DOSYASI = "mod_id.txt"
 ISIM_DOSYASI = "isim_id.txt"
 TEMA_KURUCU = "tema_kurucu.txt"
 TEMA_MISAFIR = "tema_misafir.txt"
+
+# --- GİRİŞ KONTROLÜ ---
+if "user_logged_in" not in st.session_state: st.session_state.user_logged_in = False
+
+if not st.session_state.user_logged_in:
+    st.title("🦁 Aslan Parçası'na Hoş Geldin!")
+    st.markdown("Devam etmek için lütfen Google ile giriş yap.")
+    
+    # Gerçek bir OAuth akışı için butona basıldığında Render'daki /login rotasına yönlendirme:
+    st.link_button("Google ile Giriş Yap", "https://aslan-parcasi-widget.onrender.com/login")
+    st.write("Not: Eğer daha önce giriş yaptıysan sistem seni yönlendirecektir.")
+    st.stop()
 
 # --- FONKSİYONLAR ---
 def kaydet(dosya, deger):
@@ -114,15 +127,11 @@ with col2:
     if isim == "Ayaz Reis":
         if st.button("⚙️ Yönetici"): st.session_state.admin_panel_open = not st.session_state.admin_panel_open; st.rerun()
 
-# --- YÖNETİCİ PANELİ (İZOLASYON ALANI) ---
-admin_placeholder = st.empty()
+# --- YÖNETİCİ PANELİ ---
 if st.session_state.admin_panel_open:
-    with admin_placeholder.container(border=True):
+    with st.container(border=True):
         st.subheader("🛠️ Yönetici Paneli")
-        st.write("Sistem ayarları ve kontrol merkezi.")
         if st.button("❌ Paneli Kapat"): st.session_state.admin_panel_open = False; st.rerun()
-else:
-    admin_placeholder.empty()
 
 def ai_cevap(mesaj_gecmisi, mod, isim, kullanici_mesaji):
     headers = {"Authorization": f"Bearer {API_KEY}"}
@@ -147,3 +156,4 @@ if st.button("🚀 Gönder"):
         st.session_state.messages.append({"role": "assistant", "content": cevap})
         st.session_state.input_key += 1
         st.rerun()
+ 
