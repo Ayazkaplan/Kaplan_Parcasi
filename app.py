@@ -69,6 +69,7 @@ if not st.session_state.user_logged_in:
                 if user_doc.exists and user_doc.to_dict().get("isim") == isim_input:
                     st.session_state.user_data = {**user_doc.to_dict(), "uid": auth_res['localId']}
                     st.session_state.user_logged_in = True
+                    st.session_state.tema = user_doc.to_dict().get("tema", list(TEMALAR.values())[0])
                     st.rerun()
                 else: st.error("❌ İsim veya bilgiler hatalı!")
             else: st.error("❌ E-posta veya şifre yanlış!")
@@ -76,9 +77,27 @@ if not st.session_state.user_logged_in:
         if st.button("Kayıt Ol"):
             try:
                 user = auth.create_user(email=email, password=password)
-                db.collection("users").document(user.uid).set({"isim": isim_input, "email": email, "videos": []})
+                db.collection("users").document(user.uid).set({"isim": isim_input, "email": email, "videos": [], "tema": list(TEMALAR.values())[0]})
                 st.success("✅ Kayıt başarılı!")
             except Exception as e: st.error(f"❌ Hata: {e}")
+            
+    st.divider()
+    col3, col4 = st.columns(2)
+    with col3:
+        if st.button("🔑 Şifremi Unuttum"):
+            if email:
+                try:
+                    auth.send_password_reset_email(email)
+                    st.info("📧 Şifre sıfırlama bağlantısı gönderildi.")
+                except: st.error("E-posta gönderilemedi.")
+            else: st.warning("Lütfen e-posta girin.")
+    with col4:
+        if st.button("👤 İsmimi Unuttum"):
+            if email:
+                users = db.collection("users").where("email", "==", email).get()
+                if users: st.success(f"Hesap İsminiz: {users[0].to_dict().get('isim')}")
+                else: st.error("Bu e-posta kayıtlı değil.")
+            else: st.warning("Lütfen e-posta girin.")
     st.stop()
 
 # --- ANA EKRAN AYARLARI ---
@@ -113,8 +132,15 @@ with st.sidebar:
     
     st.divider()
     st.markdown("### 🎨 Tema Seçimi")
-    secilen_tema = st.selectbox("Arka Plan:", list(TEMALAR.keys()))
-    st.session_state.tema = TEMALAR[secilen_tema]
+    mevcut_tema = user_doc.get("tema", list(TEMALAR.values())[0])
+    mevcut_tema_key = [k for k, v in TEMALAR.items() if v == mevcut_tema][0]
+    secilen_tema_adi = st.selectbox("Arka Plan:", list(TEMALAR.keys()), index=list(TEMALAR.keys()).index(mevcut_tema_key))
+    
+    if st.button("💾 Temayı Kaydet"):
+        user_ref.update({"tema": TEMALAR[secilen_tema_adi]})
+        st.session_state.tema = TEMALAR[secilen_tema_adi]
+        st.success("✅ Tema kaydedildi!")
+        st.rerun()
     
     if st.button("🧹 Sohbeti Temizle"):
         st.session_state.messages = []
@@ -155,9 +181,7 @@ for m in st.session_state.messages:
         st.markdown(f'''<div class="user-box"><div><div class="header-box" style="text-align: right;">{display_name}</div><div>{m["content"]}</div></div><img src="{USER_AVATAR}" class="avatar"></div>''', unsafe_allow_html=True)
 
 def ai_cevap(mesajlar):
-    # Kurucu durumu anlık olarak gönderiliyor
     kurucu_durumu = "SİZ KURUCUSUNUZ (AYAZ KAPLAN)." if is_kurucu else f"Kullanıcının ismi {kullanici_ismi}."
-    
     sistem_mesaji = (
         f"Sen Aslan Parçası'sın. {kurucu_durumu} "
         "Eğer kullanıcı kurucun Ayaz Kaplan ise ona her zaman 'Kurucum' veya 'Reis' diye hitap et ve kim olduğunu bildiğini hissettir. "
