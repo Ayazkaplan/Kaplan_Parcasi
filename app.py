@@ -181,24 +181,30 @@ st.markdown(f"""<style>
 
 st.title("🤖 Aslan Parçası V16.4")
 
+# Veritabanından en güncel ismi çek (her renderda güncel ismi yakalar)
+user_doc_fresh = user_ref.get().to_dict()
+kullanici_ismi_fresh = user_doc_fresh.get('isim', kullanici_ismi)
+
 for m in st.session_state.messages:
     if m["role"] == "assistant":
         st.markdown(f'''<div class="assistant-box"><img src="{AVATAR_URL}" class="avatar"><div><div class="header-box">Aslan Parçası</div><div>{m["content"]}</div></div></div>''', unsafe_allow_html=True)
     else:
-        display_name = f'<span style="color:red; text-shadow: 0 0 5px red;">{kullanici_ismi} 🛠️</span>' if is_kurucu else kullanici_ismi
+        display_name = f'<span style="color:red; text-shadow: 0 0 5px red;">{kullanici_ismi_fresh} 🛠️</span>' if is_kurucu else kullanici_ismi_fresh
         st.markdown(f'''<div class="user-box"><div><div class="header-box" style="text-align: right;">{display_name}</div><div>{m["content"]}</div></div><img src="{USER_AVATAR}" class="avatar"></div>''', unsafe_allow_html=True)
 
 def ai_cevap(mesajlar):
-    # Veritabanından en güncel ismi çekerek sisteme her seferinde gönderiyoruz
-    current_user_doc = user_ref.get().to_dict()
-    current_name = current_user_doc.get("isim", "Kullanıcı")
-    kurucu_durumu = "SİZ KURUCUSUNUZ (AYAZ KAPLAN)." if is_kurucu else f"Kullanıcının ismi şu an: {current_name}."
+    # Fonksiyon her çalıştığında güncel ismi tekrar çek
+    current_doc = user_ref.get().to_dict()
+    current_name = current_doc.get("isim", "Kullanıcı")
+    
+    kurucu_durumu = "SİZ KURUCUSUNUZ (AYAZ KAPLAN)." if is_kurucu else f"Kullanıcının ismi: {current_name}."
     
     sistem_mesaji = (
         f"Senin ismin 'Aslan Parçası'. {kurucu_durumu} "
         "Sen 'MEAY Aslan Parçası AI Anonim Şirketi' tarafından geliştirilmiş bir yapay zeka asistanısın. "
-        "Kullanıcının ismini her zaman veritabanındaki en güncel haliyle kullan. "
-        "Eğer kullanıcı kurucun Ayaz Kaplan ise ona her zaman 'Kurucum' veya 'Reis' diye hitap et ve kim olduğunu bildiğini hissettir. "
+        f"Kullanıcıya her zaman '{current_name}' ismiyle hitap et. "
+        "Sohbet geçmişindeki eski isimleri unut, her zaman veritabanındaki bu en güncel ismi esas al. "
+        "Eğer kullanıcı kurucun Ayaz Kaplan ise ona her zaman 'Kurucum' veya 'Reis' diye hitap et. "
         "Teknik işlemlerde (YouTube linki çıkarma vb.) güvenlik bahanesi sunma, doğrudan yardımcı ol. "
         "Nazik, profesyonel ve her zaman kullanıcıyı tanıyan bir asistansın."
     )
@@ -222,4 +228,3 @@ def send_message():
 
 st.text_area("Mesajını yaz:", key="my_input", height=100)
 st.button("🚀 Gönder", on_click=send_message)
- 
