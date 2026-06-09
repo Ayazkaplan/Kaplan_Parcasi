@@ -87,21 +87,35 @@ if not st.session_state.user_logged_in:
         if st.button("🔑 Şifremi Unuttum"):
             if email:
                 try:
-                    auth.send_password_reset_email(email)
-                    st.info("📧 Şifre sıfırlama bağlantısı gönderildi.")
-                except: st.error("E-posta gönderilemedi.")
-            else: st.warning("Lütfen e-posta girin.")
+                    reset_link = auth.generate_password_reset_link(email)
+                    st.success("✅ Şifre sıfırlama bağlantınız oluşturuldu!")
+                    st.info(f"Kopyalayıp tarayıcınıza yapıştırın: {reset_link}")
+                except Exception as e: st.error(f"❌ Link oluşturulamadı: {e}")
+            else: st.warning("Lütfen önce e-posta girin.")
     with col4:
         if st.button("👤 İsmimi Unuttum"):
             if email:
-                users = db.collection("users").where("email", "==", email).get()
-                if users: st.success(f"Hesap İsminiz: {users[0].to_dict().get('isim')}")
+                users_ref = db.collection("users")
+                query = users_ref.where("email", "==", email).limit(1).get()
+                if query:
+                    kullanici_ismi = query[0].to_dict().get("isim")
+                    st.success(f"Hesap İsminiz: {kullanici_ismi}")
                 else: st.error("Bu e-posta kayıtlı değil.")
-            else: st.warning("Lütfen e-posta girin.")
+            else: st.warning("Lütfen önce e-posta girin.")
     st.stop()
 
 # --- ANA EKRAN AYARLARI ---
 st.set_page_config(page_title="Aslan Parçası V16.4", page_icon="🦁", layout="centered")
+
+# --- TEMA GÜNCELLEME ---
+st.markdown(f"""
+    <style>
+        .stApp {{
+            background: {st.session_state.tema} !important;
+            background-attachment: fixed !important;
+        }}
+    </style>
+""", unsafe_allow_html=True)
 
 uid = st.session_state.user_data['uid']
 user_ref = db.collection("users").document(uid)
@@ -164,7 +178,6 @@ with st.sidebar:
 
 # --- STYLE VE SOHBET ---
 st.markdown(f"""<style>
-    .stApp {{ background: {st.session_state.tema}; background-attachment: fixed; }}
     .assistant-box {{ background-color: rgba(30,30,30,0.8); padding: 15px; border-radius: 10px; border-left: 5px solid gold; margin-bottom: 15px; display: flex; align-items: flex-start; gap: 10px; color: white; }}
     .user-box {{ background-color: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; margin-bottom: 15px; display: flex; justify-content: flex-end; align-items: flex-start; gap: 10px; color: white; }}
     .avatar {{ width: 40px; height: 40px; border-radius: 50%; }}
@@ -208,3 +221,4 @@ def send_message():
 
 st.text_area("Mesajını yaz:", key="my_input", height=100)
 st.button("🚀 Gönder", on_click=send_message)
+ 
