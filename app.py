@@ -8,6 +8,7 @@ import re
 
 # --- AYARLAR ---
 KURUCU_EMAIL = "ayazscma92@gmail.com"
+KURUCU_ISIM = "Ayaz Kaplan"
 MODEL = "anthropic/claude-3-haiku"
 AVATAR_URL = "https://i.imgur.com/3EfO8Ae.jpeg"
 USER_AVATAR = "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
@@ -154,7 +155,8 @@ for m in st.session_state.messages:
         st.markdown(f'''<div class="user-box"><div><div class="header-box" style="text-align: right;">{display_name}</div><div>{m["content"]}</div></div><img src="{USER_AVATAR}" class="avatar"></div>''', unsafe_allow_html=True)
 
 def ai_cevap(mesajlar):
-    sistem_mesaji = f"Sen Aslan Parçası'sın. Kullanıcının ismi: {kullanici_ismi}. Kurucun Ayaz Kaplan. Nazik, profesyonel ve ismiyle hitap eden bir asistansın."
+    kurucu_bilgisi = f"Senin kurucun {KURUCU_ISIM}'dır (Ayaz Kaplan). Şu an seninle konuşan kişi kurucun olduğu için bunu bilmelisin." if is_kurucu else "Kullanıcı kurucun değildir."
+    sistem_mesaji = f"Sen Aslan Parçası'sın. Kullanıcının ismi: {kullanici_ismi}. {kurucu_bilgisi} Nazik, profesyonel ve ismiyle hitap eden bir asistansın."
     payload = {"model": MODEL, "messages": [{"role": "system", "content": sistem_mesaji}] + mesajlar}
     headers = {"Authorization": f"Bearer {os.environ.get('API_KEY')}"}
     try:
@@ -175,4 +177,3 @@ def send_message():
 
 st.text_area("Mesajını yaz:", key="my_input", height=100)
 st.button("🚀 Gönder", on_click=send_message)
- 
