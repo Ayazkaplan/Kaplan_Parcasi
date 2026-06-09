@@ -92,14 +92,19 @@ with st.sidebar:
             st.success("✅ İsim güncellendi!")
             st.rerun()
             
-    # Kurucu İsmi Görünümü
+    # Kurucu İsmi Parlak Tasarımı
     gorunen_isim = user_doc.get('isim')
     if is_kurucu:
-        isim_stili = f'<span style="color:red; font-weight:bold;">{gorunen_isim} 🛠️</span>'
+        isim_stili = f'<span style="color:red; font-weight:bold; text-shadow: 0 0 8px red;">{gorunen_isim} 🛠️</span>'
     else:
         isim_stili = gorunen_isim
 
     st.markdown(f"**Profil:** {isim_stili}", unsafe_allow_html=True)
+    
+    if st.button("🧹 Sohbeti Temizle"):
+        st.session_state.messages = []
+        st.rerun()
+        
     if st.button("🚪 Çıkış Yap"): st.session_state.clear(); st.rerun()
     
     st.divider()
@@ -130,11 +135,11 @@ for m in st.session_state.messages:
     if m["role"] == "assistant":
         st.markdown(f'''<div class="assistant-box"><img src="{AVATAR_URL}" class="avatar"><div><div class="header-box">Aslan Parçası</div><div>{m["content"]}</div></div></div>''', unsafe_allow_html=True)
     else:
-        display_name = f'<span style="color:red">{user_doc.get("isim")} 🛠️</span>' if is_kurucu else user_doc.get("isim")
+        display_name = f'<span style="color:red; text-shadow: 0 0 5px red;">{user_doc.get("isim")} 🛠️</span>' if is_kurucu else user_doc.get("isim")
         st.markdown(f'''<div class="user-box"><div><div class="header-box" style="justify-content: flex-end;">{display_name}</div><div>{m["content"]}</div></div><img src="{USER_AVATAR}" class="avatar"></div>''', unsafe_allow_html=True)
 
 def ai_cevap(mesajlar):
-    sistem_mesaji = f"Sen Aslan Parçası'sın. Kullanıcı: {user_doc.get('isim')}. Nazik, profesyonel bir asistansın."
+    sistem_mesaji = f"Sen Aslan Parçası'sın. Kurucun Ayaz Kaplan. Nazik, profesyonel bir asistansın. Her zaman kendini 'Aslan Parçası' olarak tanıt."
     payload = {"model": MODEL, "messages": [{"role": "system", "content": sistem_mesaji}] + mesajlar}
     headers = {"Authorization": f"Bearer {os.environ.get('API_KEY')}"}
     try:
@@ -155,4 +160,3 @@ def send_message():
 
 st.text_area("Mesajını yaz:", key="my_input", height=100)
 st.button("🚀 Gönder", on_click=send_message)
- 
