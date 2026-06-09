@@ -86,15 +86,16 @@ with st.sidebar:
     
     if st.button("İsmi Güncelle"):
         if not is_kurucu and emoji_var_mi(yeni_isim):
-            st.error("❌ Kurucu dışındakiler isimde emoji kullanamaz!")
+            st.warning("⚠️ İsminizde emoji kullanamazsınız.")
         else:
             user_ref.update({"isim": yeni_isim})
+            st.success("✅ İsim güncellendi!")
             st.rerun()
             
-    # Kurucu Kontrolü ve Renk Tanımlama
+    # Kurucu İsmi Görünümü
     gorunen_isim = user_doc.get('isim')
     if is_kurucu:
-        isim_stili = f'<span style="color:red; text-shadow: 0 0 5px red; font-weight:bold;">{gorunen_isim} 🛠️</span>'
+        isim_stili = f'<span style="color:red; font-weight:bold;">{gorunen_isim} 🛠️</span>'
     else:
         isim_stili = gorunen_isim
 
@@ -117,21 +118,20 @@ with st.sidebar:
 
 # --- STYLE VE SOHBET ---
 st.markdown("""<style>
-    .assistant-box { background-color: rgba(30,30,30,0.9); padding: 15px; border-radius: 10px; border-left: 5px solid gold; margin-bottom: 15px; }
-    .user-box { background-color: rgba(128,128,128,0.2); padding: 15px; border-radius: 10px; margin-bottom: 15px; text-align: right; }
+    .assistant-box { background-color: rgba(30,30,30,0.9); padding: 15px; border-radius: 10px; border-left: 5px solid gold; margin-bottom: 15px; display: flex; align-items: flex-start; gap: 10px; }
+    .user-box { background-color: rgba(128,128,128,0.2); padding: 15px; border-radius: 10px; margin-bottom: 15px; display: flex; justify-content: flex-end; align-items: flex-start; gap: 10px; }
+    .avatar { width: 40px; height: 40px; border-radius: 50%; }
     .header-box { display: flex; align-items: center; gap: 10px; font-weight: bold; margin-bottom: 5px; }
-    .user-header { justify-content: flex-end; }
 </style>""", unsafe_allow_html=True)
 
 st.title("🤖 Aslan Parçası V16.4")
 
 for m in st.session_state.messages:
     if m["role"] == "assistant":
-        st.markdown(f'<div class="assistant-box"><div class="header-box">Aslan Parçası</div><div>{m["content"]}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'''<div class="assistant-box"><img src="{AVATAR_URL}" class="avatar"><div><div class="header-box">Aslan Parçası</div><div>{m["content"]}</div></div></div>''', unsafe_allow_html=True)
     else:
-        # Sohbet alanında ismi kurucuysa farklı gösterme
         display_name = f'<span style="color:red">{user_doc.get("isim")} 🛠️</span>' if is_kurucu else user_doc.get("isim")
-        st.markdown(f'<div class="user-box"><div class="header-box user-header">{display_name}</div><div>{m["content"]}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'''<div class="user-box"><div><div class="header-box" style="justify-content: flex-end;">{display_name}</div><div>{m["content"]}</div></div><img src="{USER_AVATAR}" class="avatar"></div>''', unsafe_allow_html=True)
 
 def ai_cevap(mesajlar):
     sistem_mesaji = f"Sen Aslan Parçası'sın. Kullanıcı: {user_doc.get('isim')}. Nazik, profesyonel bir asistansın."
