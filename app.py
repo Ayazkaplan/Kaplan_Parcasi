@@ -37,6 +37,10 @@ def firebase_login(email, password):
     res = requests.post(url, json=payload)
     return res.json() if res.status_code == 200 else None
 
+# --- EMOJİ KONTROLÜ ---
+def emoji_var_mi(text):
+    return bool(re.search(r'[^\w\s,.]', text))
+
 # --- GİRİŞ VE KAYIT EKRANI ---
 if not st.session_state.user_logged_in:
     st.set_page_config(page_title="Aslan Parçası V16.4", page_icon="🦁")
@@ -72,13 +76,29 @@ st.set_page_config(page_title="Aslan Parçası V16.4", page_icon="🦁", layout=
 uid = st.session_state.user_data['uid']
 user_ref = db.collection("users").document(uid)
 user_doc = user_ref.get().to_dict()
-gorunen_isim = user_doc.get('isim')
 is_kurucu = user_doc.get('email') == KURUCU_EMAIL
 saved_videos = user_doc.get("videos", [])
-rozet = " 🛠️" if is_kurucu else ""
 
+# --- SİDEBAR & PROFİL DÜZENLEME ---
 with st.sidebar:
-    st.markdown(f"**👤 Profil:** {gorunen_isim}")
+    st.markdown("### 👤 Profil Ayarları")
+    yeni_isim = st.text_input("Yeni İsim:", value=user_doc.get('isim'))
+    
+    if st.button("İsmi Güncelle"):
+        if not is_kurucu and emoji_var_mi(yeni_isim):
+            st.error("❌ Kurucu dışındakiler isimde emoji kullanamaz!")
+        else:
+            user_ref.update({"isim": yeni_isim})
+            st.rerun()
+            
+    # Kurucu Kontrolü ve Renk Tanımlama
+    gorunen_isim = user_doc.get('isim')
+    if is_kurucu:
+        isim_stili = f'<span style="color:red; text-shadow: 0 0 5px red; font-weight:bold;">{gorunen_isim} 🛠️</span>'
+    else:
+        isim_stili = gorunen_isim
+
+    st.markdown(f"**Profil:** {isim_stili}", unsafe_allow_html=True)
     if st.button("🚪 Çıkış Yap"): st.session_state.clear(); st.rerun()
     
     st.divider()
@@ -109,10 +129,12 @@ for m in st.session_state.messages:
     if m["role"] == "assistant":
         st.markdown(f'<div class="assistant-box"><div class="header-box">Aslan Parçası</div><div>{m["content"]}</div></div>', unsafe_allow_html=True)
     else:
-        st.markdown(f'<div class="user-box"><div class="header-box user-header">{gorunen_isim}</div><div>{m["content"]}</div></div>', unsafe_allow_html=True)
+        # Sohbet alanında ismi kurucuysa farklı gösterme
+        display_name = f'<span style="color:red">{user_doc.get("isim")} 🛠️</span>' if is_kurucu else user_doc.get("isim")
+        st.markdown(f'<div class="user-box"><div class="header-box user-header">{display_name}</div><div>{m["content"]}</div></div>', unsafe_allow_html=True)
 
 def ai_cevap(mesajlar):
-    sistem_mesaji = f"Sen Aslan Parçası'sın. Kullanıcı: {gorunen_isim}. Nazik, profesyonel bir asistansın."
+    sistem_mesaji = f"Sen Aslan Parçası'sın. Kullanıcı: {user_doc.get('isim')}. Nazik, profesyonel bir asistansın."
     payload = {"model": MODEL, "messages": [{"role": "system", "content": sistem_mesaji}] + mesajlar}
     headers = {"Authorization": f"Bearer {os.environ.get('API_KEY')}"}
     try:
@@ -133,3 +155,4 @@ def send_message():
 
 st.text_area("Mesajını yaz:", key="my_input", height=100)
 st.button("🚀 Gönder", on_click=send_message)
+ 
