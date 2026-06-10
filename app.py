@@ -40,6 +40,7 @@ if "user_logged_in" not in st.session_state: st.session_state.user_logged_in = F
 if "user_data" not in st.session_state: st.session_state.user_data = None
 if "messages" not in st.session_state: st.session_state.messages = []
 if "tema" not in st.session_state: st.session_state.tema = list(TEMALAR.values())[0]
+if "valid_users_cache" not in st.session_state: st.session_state.valid_users_cache = None
 
 # --- ŞİFRE KONTROLÜ (REST API) ---
 def firebase_login(email, password):
@@ -84,7 +85,7 @@ if not st.session_state.user_logged_in:
         if st.button("Kayıt Ol"):
             try:
                 user = auth.create_user(email=email, password=password)
-                # Kayıt esnasında "durum" alanı ekleniyor
+                # Kayıt esnasında varsayılan "durum" alanı 'Aktif' olarak ekleniyor
                 db.collection("users").document(user.uid).set({
                     "isim": isim_input, 
                     "email": email, 
@@ -113,7 +114,7 @@ uid = st.session_state.user_data['uid']
 user_ref = db.collection("users").document(uid)
 user_snap = user_ref.get()
 
-# Veritabanında kullanıcı yoksa oturumu temizle (Yönetici tarafından silinme durumu)
+# Veritabanında kullanıcı yoksa oturumu temizle (Yönetici silmiş olabilir)
 if not user_snap.exists:
     st.error("❌ Hesabınız silinmiş veya bulunamadı!")
     st.session_state.clear()
@@ -204,28 +205,113 @@ st.markdown(f"""<style>
     .header-box {{ font-weight: bold; margin-bottom: 5px; }}
 </style>""", unsafe_allow_html=True)
 
+# --- SİNK & OTOMATİK ARINDIRMA FONKSİYONU ---
+def otomatik_arindir_ve_grup():
+    with st.spinner("Hayalet ve mükerrer kayıtlar taranıyor..."):
+        all_users_ref = db.collection("users").get()
+        email_to_docs = {}
+        temizlenen_ghost = 0
+        temizlenen_duplicate = 0
+        
+        for doc in all_users_ref:
+            u_data = doc.to_dict()
+            u_id = doc.id
+            u_email = u_data.get("email", "").strip().lower()
+            
+            # E-posta alanı olmayan hatalı belgeleri temizle
+            if not u_email:
+                doc.reference.delete()
+                temizlenen_ghost += 1
+                continue
+                
+            try:
+                # Auth kontrolü yapılıyor
+                auth_user = auth.get_user(u_id)
+                creation_time = auth_user.user_metadata.creation_timestamp if auth_user.user_metadata else 0
+                user_info = {
+                    "doc": doc,
+                    "data": u_data,
+                    "id": u_id,
+                    "email": u_email,
+                    "creation_time": creation_time
+                }
+                if u_email not in email_to_docs:
+                    email_to_docs[u_email] = []
+                email_to_docs[u_email].append(user_info)
+                
+            except auth.UserNotFoundError:
+                # Auth'da olmayan 'hayalet' Firestore belgelerini sil
+                doc.reference.delete()
+                temizlenen_ghost += 1
+                
+            except Exception:
+                # Ağ hataları gibi durumlarda kaydı korumak için geçici işlem
+                user_info = {
+                    "doc": doc,
+                    "data": u_data,
+                    "id": u_id,
+                    "email": u_email,
+                    "creation_time": 0
+                }
+                if u_email not in email_to_docs:
+                    email_to_docs[u_email] = []
+                email_to_docs[u_email].append(user_info)
+                
+        valid_users = []
+        for email, users_list in email_to_docs.items():
+            if len(users_list) > 1:
+                # Mükerrer e-posta durumunda en güncel oluşturulan hesabı seç (creation_time azalan sıra)
+                users_list.sort(key=lambda x: x["creation_time"], reverse=True)
+                primary_user = users_list[0]
+                valid_users.append(primary_user)
+                
+                # Diğer eski mükerrer kayıtları veritabanından sil
+                for duplicate_user in users_list[1:]:
+                    duplicate_user["doc"].reference.delete()
+                    temizlenen_duplicate += 1
+            else:
+                if users_list:
+                    valid_users.append(users_list[0])
+                    
+        # Temizlik raporunu toast olarak bildir
+        toplam_temizlenen = temizlenen_ghost + temizlenen_duplicate
+        if toplam_temizlenen > 0:
+            st.toast(f"🧹 Otomatik Arındırma: {temizlenen_ghost} hayalet, {temizlenen_duplicate} mükerrer kayıt temizlendi!")
+            
+        return valid_users
+
 # --- YÖNETİCİ PANELİ (Sadece Kurucuya Özel) ---
 if is_kurucu:
     with st.expander("🛠️ YÖNETİCİ PANELİ (Kurucu Özel)"):
         st.write("Kurucu paneline hoş geldiniz, Reis.")
-        st.markdown("### 👥 Kayıtlı Kullanıcılar")
         
+        c1, c2 = st.columns([7, 3])
+        with c1:
+            st.markdown("### 👥 Kayıtlı Kullanıcılar")
+        with c2:
+            if st.button("🔄 Listeyi Yeniden Tara", use_container_width=True):
+                st.session_state.valid_users_cache = None
+                st.rerun()
+                
         try:
-            # Firestore veritabanındaki tüm kullanıcıları çekiyoruz
-            all_users_ref = db.collection("users").get()
+            # Önbellekte veri yoksa veya yenilenmişse temizleme mekanizmasını çalıştır
+            if st.session_state.valid_users_cache is None:
+                st.session_state.valid_users_cache = otomatik_arindir_ve_grup()
+                
+            valid_users = st.session_state.valid_users_cache
             
-            for doc in all_users_ref:
-                u_data = doc.to_dict()
-                u_id = doc.id
-                u_email = u_data.get("email", "Bilinmiyor")
+            for item in valid_users:
+                u_data = item["data"]
+                u_id = item["id"]
+                u_email = item["email"]
                 u_isim = u_data.get("isim", "Bilinmiyor")
                 u_durum = u_data.get("durum", "Aktif")
                 
-                # Kurucu kendini kazara silmesin veya pasifleştirmesin diye listede atlanıyor
+                # Kurucunun listede işlem görmemesi için kendisi atlanıyor
                 if u_email == KURUCU_EMAIL:
                     continue
                 
-                # Streamlit kolonları ile kullanıcı satırlarının oluşturulması
+                # Kullanıcı yönetimi arayüzü
                 col_info, col_act1, col_act2 = st.columns([5, 2.5, 2.5])
                 
                 with col_info:
@@ -237,17 +323,19 @@ if is_kurucu:
                     if st.button(btn_label, key=f"status_{u_id}"):
                         yeni_durum = "Pasif" if u_durum == "Aktif" else "Aktif"
                         db.collection("users").document(u_id).update({"durum": yeni_durum})
+                        st.session_state.valid_users_cache = None  # Önbelleği sıfırla
                         st.success(f"Durum '{yeni_durum}' olarak güncellendi.")
                         st.rerun()
                         
                 with col_act2:
                     if st.button("🗑️ Sil", key=f"del_{u_id}"):
                         try:
-                            # 1. Firebase Auth'dan sil
+                            # Firebase Auth'dan kaldırılıyor
                             auth.delete_user(u_id)
-                            # 2. Firestore veritabanından sil
+                            # Firestore veritabanından siliniyor
                             db.collection("users").document(u_id).delete()
-                            st.success(f"{u_isim} sistemden tamamen silindi.")
+                            st.session_state.valid_users_cache = None  # Önbelleği sıfırla
+                            st.success(f"{u_isim} silindi.")
                             st.rerun()
                         except Exception as e:
                             st.error(f"Hata oluştu: {e}")
@@ -276,8 +364,9 @@ def ai_cevap(mesajlar):
     kurucu_durumu = "SİZ KURUCUSUNUZ (AYAZ KAPLAN)." if is_kurucu else f"Kullanıcının ismi: {current_name}."
     
     sistem_mesaji = (
-        f"Senin ismin 'Aslan Parçası'. {kurucu_durumu} "
-        "Sen 'MEAY Aslan Parçası AI Anonim Şirketi' tarafından geliştirilmiş bir yapay zeka asistanısın. "
+        "Senin ismin Aslan Parçası, kurucun Ayaz Kaplan. Şirketin MEAY Aslan Parçası AI Anonim Şirketi. "
+        "Bu bilgileri aslan_canli_akis.txt dosyasından okumuyorsan, doğrudan sistem talimatlarının en başına ekleyerek kullan. "
+        f"Durum: {kurucu_durumu} "
         f"Kullanıcıya her zaman '{current_name}' ismiyle hitap et. "
         "Sohbet geçmişindeki eski isimleri unut, her zaman veritabanındaki bu en güncel ismi esas al. "
         "Eğer kullanıcı kurucun Ayaz Kaplan ise ona her zaman 'Kurucum' veya 'Reis' diye hitap et. "
