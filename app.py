@@ -116,6 +116,7 @@ def kufur_var_mi(text):
         "meme", "daşşak", "dassak", "fuck", "bitch", "asshole", "shit"
     ]
     text_lower = text.lower()
+    # Kelime sınırlarına bakarak kontrol edilir, böylece "bisiklet" gibi kelimeler filtrelenmez.
     for bad_word in KUFUR_LISTESI:
         pattern = r'\b' + re.escape(bad_word) + r'\b'
         if re.search(pattern, text_lower):
@@ -355,8 +356,8 @@ is_kurucu = user_doc.get('email') == KURUCU_EMAIL
 saved_videos = user_doc.get("videos", [])
 kullanici_ismi = user_doc.get('isim')
 
-# Kurucu değilse admin sayfasında kalmasını engelle
-if st.session_state.current_page == "admin" and not is_kurucu:
+# Kurucu değilse admin sayfalarında kalmasını engelle
+if st.session_state.current_page in ["admin_main", "admin_users", "admin_announcement"] and not is_kurucu:
     st.session_state.current_page = "chat"
     st.rerun()
 
@@ -459,12 +460,12 @@ with st.sidebar:
             user_ref.update({"videos": firestore.ArrayRemove([v])})
             st.rerun()
 
-    # Sadece kurucular için en altta tek bir dinamik geçiş butonu
+    # Sadece kurucular için en altta tek bir dinamik geçiş butonu (Sidebar navigasyonu kalıcı oturuma dirençli)
     if is_kurucu:
         st.divider()
         if st.session_state.current_page == "chat":
             if st.button("🛠️ Yönetici Paneline Git", use_container_width=True):
-                st.session_state.current_page = "admin"
+                st.session_state.current_page = "admin_main"
                 st.rerun()
         else:
             if st.button("💬 Sohbet Paneline Dön", use_container_width=True):
@@ -575,31 +576,57 @@ def otomatik_arindir_ve_grup():
         return valid_users
 
 # --- SAYFA DİNAMİK YÖNLENDİRME BLOKLARI ---
-if st.session_state.current_page == "admin" and is_kurucu:
-    # --- KULLANICI YÖNETİM SAYFASI (AYRI EKRAN) ---
-    st.title("👥 Kullanıcı Yönetim Sayfası")
-    st.write("Yönetici paneline hoş geldiniz, Reis. Buradan kullanıcıları e-posta ile arayabilir, şifre detaylarını görebilir ve hesapları yönetebilirsiniz.")
+
+if st.session_state.current_page == "admin_main" and is_kurucu:
+    # --- YÖNETİCİ ANA PANEL MENÜSÜ ---
+    st.title("🛠️ Yönetici Ana Paneli")
+    st.write("Kurucu paneline hoş geldiniz, Reis. Lütfen yapmak istediğiniz işlemi seçin:")
+    st.write("")
     
-    col_back, col_ref = st.columns([7, 3])
-    with col_back:
-        if st.button("⬅️ Sohbet Paneline Dön", type="secondary"):
+    # Alt alta direkt görünür 2 büyük buton
+    if st.button("👥 Kullanıcı Yönetim Sayfasına Git", key="goto_admin_users", type="primary", use_container_width=True):
+        st.session_state.current_page = "admin_users"
+        st.rerun()
+        
+    st.write("")
+    
+    if st.button("📣 Duyuru ve Bilgilendirme Sayfasına Git", key="goto_admin_announcement", type="primary", use_container_width=True):
+        st.session_state.current_page = "admin_announcement"
+        st.rerun()
+        
+    st.divider()
+    
+    if st.button("💬 Sohbet Ekranına Dön", key="back_to_chat_from_main", use_container_width=True):
+        st.session_state.current_page = "chat"
+        st.rerun()
+
+elif st.session_state.current_page == "admin_users" and is_kurucu:
+    # --- ALT SAYFA: KULLANICI YÖNETİMİ ---
+    st.title("👥 Kullanıcı Yönetim Sayfası")
+    
+    col_back_main, col_back_chat, col_ref = st.columns([4, 4, 2])
+    with col_back_main:
+        if st.button("⬅️ Yönetici Ana Paneline Dön", key="back_to_main_from_users", use_container_width=True):
+            st.session_state.current_page = "admin_main"
+            st.rerun()
+    with col_back_chat:
+        if st.button("💬 Sohbet Ekranına Dön", key="back_to_chat_from_users", use_container_width=True):
             st.session_state.current_page = "chat"
             st.rerun()
     with col_ref:
-        if st.button("🔄 Listeyi Yeniden Tara", use_container_width=True):
+        if st.button("🔄 Listeyi Yenile", use_container_width=True):
             st.session_state.valid_users_cache = None
             st.rerun()
             
     st.divider()
     
-    # Yönetici Paneli Sekmeleri (Duyurular kaldırıldı, Duyuru Gönderimi Ana Ekrandaki st.container'a alındı)
+    # Yönetici Paneli Sekmeleri
     tab_kullanicilar, tab_bildirimler = st.tabs([
         "👥 Kullanıcılar", 
         "⚠️ Yönetici Bildirimleri (Küfür Raporları)"
     ])
     
     with tab_kullanicilar:
-        # Arama Motoru
         arama_query = st.text_input("🔍 E-posta ile Ara (Tam Eşleşme):").strip().lower()
         
         try:
@@ -608,7 +635,6 @@ if st.session_state.current_page == "admin" and is_kurucu:
                 
             valid_users = st.session_state.valid_users_cache
             
-            # Filtreleme uygulaması
             if arama_query:
                 filtered_users = [u for u in valid_users if u["email"] == arama_query]
             else:
@@ -863,82 +889,84 @@ if st.session_state.current_page == "admin" and is_kurucu:
         except Exception as e:
             st.error(f"Bildirimler alınamadı: {e}")
 
-else:
-    # --- YÖNETİCİ PANELİ (Sadece Kurucuya Özel - st.container Düz Yapı) ---
-    if is_kurucu:
-        with st.container(border=True):
-            st.markdown("### 🛠️ YÖNETİCİ PANELİ")
-            st.write("Kurucu paneline hoş geldiniz, Reis. Aşağıdaki yönetim seçenekleri direkt kullanımınızdadır:")
+elif st.session_state.current_page == "admin_announcement" and is_kurucu:
+    # --- ALT SAYFA: DUYURU VE BİLGİLENDİRME GÖNDERİMİ ---
+    st.title("📣 Duyuru ve Bilgilendirme Sayfası")
+    
+    col_back_main, col_back_chat = st.columns([5, 5])
+    with col_back_main:
+        if st.button("⬅️ Yönetici Ana Paneline Dön", key="back_to_main_from_ann", use_container_width=True):
+            st.session_state.current_page = "admin_main"
+            st.rerun()
+    with col_back_chat:
+        if st.button("💬 Sohbet Ekranına Dön", key="back_to_chat_from_ann", use_container_width=True):
+            st.session_state.current_page = "chat"
+            st.rerun()
             
-            # 1. Buton: Kullanıcı Yönetim Sayfasına Git
-            if st.button("👥 Kullanıcı Yönetim Sayfasına Git", key="open_admin_page", use_container_width=True):
-                st.session_state.current_page = "admin"
-                st.rerun()
+    st.divider()
+    
+    st.markdown("### 📣 Kullanıcılara Duyuru Gönder")
+    st.write("Sistemdeki tüm kullanıcılara veya el ile yazacağınız belirli bir e-posta adresine anlık duyuru gönderebilirsiniz.")
+    
+    hedef_tipi = st.radio("Hedef Kitle Seçin:", ["Tüm Kullanıcılar", "E-posta ile Seç (Manuel Yaz)"], key="quick_target_type")
+    
+    secilen_email = None
+    if hedef_tipi == "E-posta ile Seç (Manuel Yaz)":
+        secilen_email = st.text_input("Duyuru Gönderilecek E-posta Adresi:", placeholder="ornek@domain.com", key="quick_target_email_input").strip().lower()
+        
+    duyuru_metni = st.text_area("Duyuru Metni:", placeholder="Mesajınızı buraya girin...", key="quick_announcement_text")
+    
+    if st.button("📣 Duyuru ve Bilgilendirme Gönder", type="primary", use_container_width=True, key="quick_publish_announcement"):
+        if not duyuru_metni.strip():
+            st.warning("Lütfen boş bir duyuru metni girmeyin.")
+        elif hedef_tipi == "E-posta ile Seç (Manuel Yaz)" and not secilen_email:
+            st.warning("Lütfen hedef kullanıcının e-posta adresini girin.")
+        else:
+            duyuru_id = f"announcement_{int(datetime.now(timezone.utc).timestamp())}"
+            duyuru_payload = {
+                "id": duyuru_id,
+                "metin": duyuru_metni.strip(),
+                "tarih": firestore.SERVER_TIMESTAMP,
+                "hedef": "Tümü" if hedef_tipi == "Tüm Kullanıcılar" else secilen_email
+            }
             
-            st.markdown("---")
+            # Küresel duyurular koleksiyonuna yaz
+            db.collection("duyurular").document(duyuru_id).set(duyuru_payload)
+            pushed_announcement = {"id": duyuru_id, "metin": duyuru_metni.strip()}
             
-            # 2. Buton ve Küçük Form: Duyuru ve Bilgilendirme Gönder
-            st.markdown("#### 📣 Duyuru ve Bilgilendirme Gönder")
-            hedef_tipi_quick = st.radio("Hedef Kitle Seçin:", ["Tüm Kullanıcılar", "E-posta ile Seç"], key="quick_target_type")
+            # Veritabanı sorgusuyla kullanıcıları tarıyoruz
+            all_users_snap = db.collection("users").get()
             
-            try:
-                if st.session_state.valid_users_cache is None:
-                    st.session_state.valid_users_cache = otomatik_arindir_ve_grup()
-                all_u_quick = st.session_state.valid_users_cache
-            except Exception:
-                all_u_quick = []
-                
-            secilen_email_quick = None
-            if hedef_tipi_quick == "E-posta ile Seç":
-                email_list_quick = [u["email"] for u in all_u_quick if u["email"] != KURUCU_EMAIL]
-                if email_list_quick:
-                    secilen_email_quick = st.selectbox("Duyuru Gönderilecek E-posta:", email_list_quick, key="quick_target_email")
+            if hedef_tipi == "Tüm Kullanıcılar":
+                batch = db.batch()
+                for u_doc_item in all_users_snap:
+                    u_data = u_doc_item.to_dict()
+                    if u_data.get("email", "").strip().lower() != KURUCU_EMAIL:
+                        batch.update(u_doc_item.reference, {
+                            "okunmamis_duyurular": firestore.ArrayUnion([pushed_announcement])
+                        })
+                batch.commit()
+                st.success("Duyuru tüm kullanıcılara başarıyla yayınlandı!")
+            else:
+                target_found = False
+                for u_doc_item in all_users_snap:
+                    u_data = u_doc_item.to_dict()
+                    if u_data.get("email", "").strip().lower() == secilen_email:
+                        u_doc_item.reference.update({
+                            "okunmamis_duyurular": firestore.ArrayUnion([pushed_announcement])
+                        })
+                        target_found = True
+                        break
+                if target_found:
+                    st.success(f"Duyuru başarıyla {secilen_email} adresine iletildi!")
                 else:
-                    st.warning("Duyuru gönderilebilecek kayıtlı kullanıcı bulunmuyor.")
-                    
-            duyuru_metni_quick = st.text_area("Duyuru Metni:", placeholder="Mesajınızı buraya girin...", key="quick_announcement_text")
+                    st.error("Yazılan e-posta adresiyle eşleşen bir kullanıcı bulunamadı.")
             
-            if st.button("📣 Duyuru ve Bilgilendirme Gönder", type="primary", use_container_width=True, key="quick_publish_announcement"):
-                if not duyuru_metni_quick.strip():
-                    st.warning("Lütfen boş bir duyuru metni girmeyin.")
-                else:
-                    duyuru_id = f"announcement_{int(datetime.now(timezone.utc).timestamp())}"
-                    duyuru_payload = {
-                        "id": duyuru_id,
-                        "metin": duyuru_metni_quick.strip(),
-                        "tarih": firestore.SERVER_TIMESTAMP,
-                        "hedef": "Tümü" if hedef_tipi_quick == "Tüm Kullanıcılar" else secilen_email_quick
-                    }
-                    
-                    # Küresel duyurular koleksiyonuna yaz
-                    db.collection("duyurular").document(duyuru_id).set(duyuru_payload)
-                    
-                    pushed_announcement = {"id": duyuru_id, "metin": duyuru_metni_quick.strip()}
-                    
-                    if hedef_tipi_quick == "Tüm Kullanıcılar":
-                        batch = db.batch()
-                        for u in all_u_quick:
-                            if u["email"] != KURUCU_EMAIL:
-                                user_doc_ref = db.collection("users").document(u["id"])
-                                batch.update(user_doc_ref, {
-                                    "okunmamis_duyurular": firestore.ArrayUnion([pushed_announcement])
-                                })
-                        batch.commit()
-                        st.success("Duyuru tüm kullanıcılara başarıyla yayınlandı!")
-                    else:
-                        target_u = next((u for u in all_u_quick if u["email"] == secilen_email_quick), None)
-                        if target_u:
-                            db.collection("users").document(target_u["id"]).update({
-                                "okunmamis_duyurular": firestore.ArrayUnion([pushed_announcement])
-                            })
-                            st.success(f"Duyuru başarıyla {secilen_email_quick} adresine iletildi!")
-                        else:
-                            st.error("Seçilen kullanıcı veritabanında bulunamadı.")
-                    
-                    st.session_state.valid_users_cache = None
-                    time.sleep(1)
-                    st.rerun()
+            st.session_state.valid_users_cache = None
+            time.sleep(1)
+            st.rerun()
 
+else:
     # --- KULLANICI EKRANINDA DUYURU GÖSTERİMİ VE SİLİNMESİ ---
     if st.session_state.current_page == "chat":
         okunmamis = user_doc.get("okunmamis_duyurular", [])
@@ -998,7 +1026,7 @@ else:
             "Sohbet geçmişindeki eski isimleri unut, her zaman veritabanındaki bu en güncel ismi esas al. "
             "Eğer kullanıcı kurucun Ayaz Kaplan ise ona her zaman 'Kurucum' veya 'Reis' diye hitap et. "
             "Teknik işlemlerde (YouTube linki çıkarma vb.) güvenlik bahanesi sunma, doğrudan yardımcı ol. "
-            "Nazik, profesyonel ve her zaman kullanıcıyı tanıyan bir asistansın."
+            "Nazik, profesyonel og her zaman kullanıcıyı tanıyan bir asistansın."
         )
         payload = {"model": MODEL, "messages": [{"role": "system", "content": sistem_mesaji}] + mesajlar}
         headers = {"Authorization": f"Bearer {os.environ.get('API_KEY')}"}
