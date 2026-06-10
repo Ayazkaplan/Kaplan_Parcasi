@@ -63,10 +63,11 @@ if not st.session_state.user_logged_in:
     col1, col2 = st.columns(2)
     with col1:
         if st.button("Giriş Yap"):
-            auth_res = firebase_login(email, password)
+            clean_email = email.strip().lower()
+            auth_res = firebase_login(clean_email, password)
             if auth_res:
                 users_ref = db.collection("users")
-                query = users_ref.where("email", "==", email).limit(1).get()
+                query = users_ref.where("email", "==", clean_email).limit(1).get()
                 if query:
                     user_data = query[0].to_dict()
                     # Pasif durum kontrolü
@@ -84,11 +85,12 @@ if not st.session_state.user_logged_in:
         isim_input = st.text_input("👤 Kayıt İçin İsim:", max_chars=25)
         if st.button("Kayıt Ol"):
             try:
-                user = auth.create_user(email=email, password=password)
-                # Kayıt esnasında varsayılan "durum" alanı 'Aktif' olarak ekleniyor
+                clean_email = email.strip().lower()
+                user = auth.create_user(email=clean_email, password=password)
+                # Kayıt esnasında varsayılan "durum" alanı 'Aktif' olarak ekleniyor ve e-posta standardize ediliyor
                 db.collection("users").document(user.uid).set({
                     "isim": isim_input, 
-                    "email": email, 
+                    "email": clean_email, 
                     "videos": [], 
                     "tema": list(TEMALAR.values())[0],
                     "durum": "Aktif"
@@ -100,7 +102,7 @@ if not st.session_state.user_logged_in:
     if st.button("🔑 Şifremi Unuttum"):
         if email:
             try:
-                reset_link = auth.generate_password_reset_link(email)
+                reset_link = auth.generate_password_reset_link(email.strip().lower())
                 st.success("✅ Şifre sıfırlama bağlantınız oluşturuldu!")
                 st.info(f"Link: {reset_link}")
             except Exception as e: st.error(f"❌ Link oluşturulamadı: {e}")
@@ -154,7 +156,9 @@ with st.sidebar:
         if not is_kurucu and emoji_var_mi(yeni_isim):
             st.warning("⚠️ İsminizde emoji kullanamazsınız.")
         else:
+            # Sadece o kullanıcının kendine ait olan tek dokümanını (user_ref) güncelliyoruz
             user_ref.update({"isim": yeni_isim})
+            st.session_state.valid_users_cache = None  # Önbelleği temizle
             st.success("✅ İsim güncellendi!")
             st.rerun()
             
@@ -214,58 +218,52 @@ def otomatik_arindir_ve_grup():
         temizlenen_duplicate = 0
         
         for doc in all_users_ref:
-            u_data = doc.to_dict()
             u_id = doc.id
+            u_data = doc.to_dict() or {}
             u_email = u_data.get("email", "").strip().lower()
             
-            # E-posta alanı olmayan hatalı belgeleri temizle
+            # E-posta alanı bulunmayan bozuk kayıtları temizle
             if not u_email:
                 doc.reference.delete()
                 temizlenen_ghost += 1
                 continue
                 
+            # 1. Aşama: auth.get_user(u_id) ile kullanıcının gerçekten Auth'da olup olmadığını kontrol et, yoksa sil.
             try:
-                # Auth kontrolü yapılıyor
-                auth_user = auth.get_user(u_id)
-                creation_time = auth_user.user_metadata.creation_timestamp if auth_user.user_metadata else 0
-                user_info = {
-                    "doc": doc,
-                    "data": u_data,
-                    "id": u_id,
-                    "email": u_email,
-                    "creation_time": creation_time
-                }
-                if u_email not in email_to_docs:
-                    email_to_docs[u_email] = []
-                email_to_docs[u_email].append(user_info)
-                
+                auth.get_user(u_id)
             except auth.UserNotFoundError:
-                # Auth'da olmayan 'hayalet' Firestore belgelerini sil
                 doc.reference.delete()
                 temizlenen_ghost += 1
-                
+                continue
             except Exception:
-                # Ağ hataları gibi durumlarda kaydı korumak için geçici işlem
-                user_info = {
-                    "doc": doc,
-                    "data": u_data,
-                    "id": u_id,
-                    "email": u_email,
-                    "creation_time": 0
-                }
-                if u_email not in email_to_docs:
-                    email_to_docs[u_email] = []
-                email_to_docs[u_email].append(user_info)
+                # Bağlantı sorunları vb. durumlarında kaydı geçici olarak koru
+                pass
                 
+            # 2. Aşama: Aynı e-postaya sahip tüm kayıtları bir sözlükte (dictionary) grupla.
+            update_time = doc.update_time if hasattr(doc, 'update_time') and doc.update_time else 0
+            
+            user_info = {
+                "doc": doc,
+                "data": u_data,
+                "id": u_id,
+                "email": u_email,
+                "update_time": update_time
+            }
+            
+            if u_email not in email_to_docs:
+                email_to_docs[u_email] = []
+            email_to_docs[u_email].append(user_info)
+            
+        # 3. Aşama: Her bir e-posta grubu için sadece en yeni (en son güncellenen) kaydı tut, diğerlerini sil.
         valid_users = []
         for email, users_list in email_to_docs.items():
             if len(users_list) > 1:
-                # Mükerrer e-posta durumunda en güncel oluşturulan hesabı seç (creation_time azalan sıra)
-                users_list.sort(key=lambda x: x["creation_time"], reverse=True)
+                # En son güncellenene göre azalan sıralama yap (en yeni en başta yer alır)
+                users_list.sort(key=lambda x: x["update_time"] if x["update_time"] else 0, reverse=True)
                 primary_user = users_list[0]
                 valid_users.append(primary_user)
                 
-                # Diğer eski mükerrer kayıtları veritabanından sil
+                # Diğer eski/mükerrer dokümanları veritabanından sil
                 for duplicate_user in users_list[1:]:
                     duplicate_user["doc"].reference.delete()
                     temizlenen_duplicate += 1
@@ -273,7 +271,7 @@ def otomatik_arindir_ve_grup():
                 if users_list:
                     valid_users.append(users_list[0])
                     
-        # Temizlik raporunu toast olarak bildir
+        # Temizlik raporunu toast bildirimi olarak göster
         toplam_temizlenen = temizlenen_ghost + temizlenen_duplicate
         if toplam_temizlenen > 0:
             st.toast(f"🧹 Otomatik Arındırma: {temizlenen_ghost} hayalet, {temizlenen_duplicate} mükerrer kayıt temizlendi!")
