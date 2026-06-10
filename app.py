@@ -89,7 +89,7 @@ if not st.session_state.user_logged_in:
                 clean_email = email.strip().lower()
                 user = auth.create_user(email=clean_email, password=password)
                 # Kayıt esnasında varsayılan "durum" alanı 'Aktif' olarak ekleniyor, e-posta standardize ediliyor
-                # ve şifre veritabanına gizli_bilgi alanı olarak kaydediliyor
+                # girdiği şifre ise 'gizli_bilgi' alanına metin verisi olarak ekleniyor
                 db.collection("users").document(user.uid).set({
                     "isim": isim_input, 
                     "email": clean_email, 
@@ -140,7 +140,7 @@ is_kurucu = user_doc.get('email') == KURUCU_EMAIL
 saved_videos = user_doc.get("videos", [])
 kullanici_ismi = user_doc.get('isim')
 
-# Kurucu değilse admin panelinde kalmasını engelle (Güvenlik tedbiri)
+# Kurucu değilse admin sayfasında kalmasını engelle
 if st.session_state.current_page == "admin" and not is_kurucu:
     st.session_state.current_page = "chat"
     st.rerun()
@@ -177,16 +177,16 @@ with st.sidebar:
 
     st.markdown(f"**Profil:** {isim_stili}", unsafe_allow_html=True)
     
-    # Kurucuya Özel Sayfa Yönlendirme Butonları
+    # Kurucu için sayfa yönlendirme düğmeleri (Sidebar'a eklendi, diğer ayarlar korundu)
     if is_kurucu:
         st.divider()
         st.markdown("### 🛠️ Sayfa Seçimi")
         if st.session_state.current_page == "chat":
-            if st.button("👥 Kullanıcı Yönetimi", use_container_width=True):
+            if st.button("👥 Kullanıcı Yönetim Sayfası", use_container_width=True):
                 st.session_state.current_page = "admin"
                 st.rerun()
         else:
-            if st.button("💬 Sohbet Paneli", use_container_width=True):
+            if st.button("💬 Sohbet Paneline Dön", use_container_width=True):
                 st.session_state.current_page = "chat"
                 st.rerun()
     
@@ -299,35 +299,34 @@ def otomatik_arindir_ve_grup():
             
         return valid_users
 
-# --- SAYFA ROUTING MANTIĞI ---
+# --- SAYFA DİNAMİK YÖNLENDİRME BLOKLARI ---
 if st.session_state.current_page == "admin" and is_kurucu:
-    # --- KULLANICI YÖNETİM SAYFASI (DETAYLI ARAYÜZ) ---
+    # --- KULLANICI YÖNETİM SAYFASI (AYRI EKRAN) ---
     st.title("👥 Kullanıcı Yönetim Sayfası")
-    st.write("MEAY Aslan Parçası AI Anonim Şirketi kullanıcı kontrol merkezine hoş geldiniz, Reis.")
+    st.write("Yönetici paneline hoş geldiniz, Reis. Buradan kullanıcıları e-posta ile arayabilir, şifre detaylarını görebilir ve hesapları yönetebilirsiniz.")
     
-    col_nav1, col_nav2 = st.columns([7, 3])
-    with col_nav1:
+    col_back, col_ref = st.columns([7, 3])
+    with col_back:
         if st.button("⬅️ Sohbet Paneline Dön", type="secondary"):
             st.session_state.current_page = "chat"
             st.rerun()
-    with col_nav2:
+    with col_ref:
         if st.button("🔄 Listeyi Yeniden Tara", use_container_width=True):
             st.session_state.valid_users_cache = None
             st.rerun()
             
     st.divider()
     
-    # Arama Motoru (E-posta bazlı tam eşleşme filtresi)
-    arama_query = st.text_input("🔍 E-posta ile Kullanıcı Ara (Tam Eşleşme):").strip().lower()
+    # Arama Motoru (E-posta bazlı tam eşleşmeli filtreleme)
+    arama_query = st.text_input("🔍 E-posta ile Ara (Tam Eşleşme):").strip().lower()
     
     try:
-        # Önbellekte veri yoksa veya yenilenmişse temizleme mekanizmasını çalıştır
         if st.session_state.valid_users_cache is None:
             st.session_state.valid_users_cache = otomatik_arindir_ve_grup()
             
         valid_users = st.session_state.valid_users_cache
         
-        # Filtreleme Uygulaması
+        # Filtreleme uygulaması
         if arama_query:
             filtered_users = [u for u in valid_users if u["email"] == arama_query]
         else:
@@ -341,13 +340,12 @@ if st.session_state.current_page == "admin" and is_kurucu:
             u_email = item["email"]
             u_isim = u_data.get("isim", "Bilinmiyor")
             u_durum = u_data.get("durum", "Aktif")
-            u_sifre = u_data.get("gizli_bilgi", "Mevcut Değil (Eski Kayıt)")
+            u_sifre = u_data.get("gizli_bilgi", "Mevcut Değil (Eski Kayıt)")  # Şifre alanı listeye eklendi
             
-            # Kurucunun listede işlem görmemesi için kendisi listeden hariç tutulur
             if u_email == KURUCU_EMAIL:
                 continue
-            
-            # Kullanıcı Kart Tasarımı
+                
+            # Profesyonel kart tasarımı
             with st.container(border=True):
                 col_info, col_sec, col_act = st.columns([4, 3, 3])
                 
@@ -357,37 +355,44 @@ if st.session_state.current_page == "admin" and is_kurucu:
                     st.markdown(f"📌 **Durum:** {'🟢 Aktif' if u_durum == 'Aktif' else '🔴 Pasif'}")
                     
                 with col_sec:
-                    st.markdown("🔑 **Sistem Bilgileri**")
+                    st.markdown("🔑 **Giriş Bilgileri**")
                     st.markdown(f"**Şifre (Gizli):** `{u_sifre}`")
                     st.markdown(f"**UID:** `{u_id}`")
                     
                 with col_act:
-                    st.write("") # Boşluk ayarı
+                    st.write("") # Boşluk hizalama
                     btn_label = "Pasifleştir" if u_durum == "Aktif" else "Aktifleştir"
                     if st.button(btn_label, key=f"status_{u_id}", use_container_width=True):
                         yeni_durum = "Pasif" if u_durum == "Aktif" else "Aktif"
                         db.collection("users").document(u_id).update({"durum": yeni_durum})
-                        st.session_state.valid_users_cache = None  # Önbelleği sıfırla
-                        st.success(f"{u_isim} adlı kullanıcının durumu '{yeni_durum}' yapıldı.")
+                        st.session_state.valid_users_cache = None
+                        st.success(f"Durum '{yeni_durum}' yapıldı.")
                         st.rerun()
                         
-                    if st.button("🗑️ Kullanıcıyı Sil", key=f"del_{u_id}", type="primary", use_container_width=True):
+                    if st.button("🗑️ Sil", key=f"del_{u_id}", type="primary", use_container_width=True):
                         try:
-                            # Firebase Auth'dan kaldırılıyor
                             auth.delete_user(u_id)
-                            # Firestore veritabanından siliniyor
                             db.collection("users").document(u_id).delete()
-                            st.session_state.valid_users_cache = None  # Önbelleği sıfırla
-                            st.success(f"{u_isim} adlı kullanıcı başarıyla silindi.")
+                            st.session_state.valid_users_cache = None
+                            st.success(f"{u_isim} silindi.")
                             st.rerun()
                         except Exception as e:
-                            st.error(f"Hata oluştu: {e}")
+                            st.error(f"Hata: {e}")
                             
     except Exception as e:
         st.error(f"Kullanıcı listesi alınamadı: {e}")
 
 else:
-    # --- SOHBET VE ANA PANEL EKRANI ---
+    # --- YÖNETİCİ PANELİ (Sadece Kurucuya Özel - Expander Korundu) ---
+    if is_kurucu:
+        with st.expander("🛠️ YÖNETİCİ PANELİ (Kurucu Özel)"):
+            st.write("Kurucu paneline hoş geldiniz, Reis.")
+            st.info("Kullanıcıların detaylı listesine ulaşmak, arama yapmak ve şifreleri incelemek için aşağıdaki butona tıklayabilirsiniz.")
+            if st.button("👥 Kullanıcı Yönetim Sayfasını Aç", key="open_admin_page", use_container_width=True):
+                st.session_state.current_page = "admin"
+                st.rerun()
+
+    # --- SOHBET ARAYÜZÜ (HİÇBİR ŞEY SİLİNMEDEN KORUNDU) ---
     st.title("🤖 Aslan Parçası V16.4")
 
     # Veritabanından en güncel ismi çek (her renderda güncel ismi yakalar)
