@@ -1,5 +1,4 @@
 import streamlit as st
-import streamlit.components.v1 as components
 import requests
 import os
 import json
@@ -105,7 +104,7 @@ def firebase_login(email, password):
         print(f"[FIREBASE LOGIN REST API HATASI] Giriş isteği gönderilirken hata oluştu: {e}")
         return None
 
-# --- OTURUM YÖNETİMİ & LOCALSTORAGE KALICILIĞI ---
+# --- OTURUM YÖNETİMİ (SERVER-SIDE MIMARI) ---
 if "user_logged_in" not in st.session_state: st.session_state.user_logged_in = False
 if "user_data" not in st.session_state: st.session_state.user_data = None
 if "messages" not in st.session_state: st.session_state.messages = []
@@ -113,41 +112,20 @@ if "tema" not in st.session_state: st.session_state.tema = list(TEMALAR.values()
 if "valid_users_cache" not in st.session_state: st.session_state.valid_users_cache = None
 if "current_page" not in st.session_state: st.session_state.current_page = "chat"
 if "force_login" not in st.session_state: st.session_state.force_login = False
-if "trigger_logout" not in st.session_state: st.session_state.trigger_logout = False
-if "storage_checked" not in st.session_state: st.session_state.storage_checked = False
-
-# JS'den gelen kontrol parametresini Python durumuna işle ve URL'den temizle
-if "checked" in st.query_params:
-    st.session_state.storage_checked = True
-    try:
-        del st.query_params["checked"]
-    except Exception:
-        pass
 
 def logout_user():
     st.session_state.force_login = False
     st.session_state.user_logged_in = False
     st.session_state.user_data = None
     st.session_state.messages = []
-    st.session_state.storage_checked = True
+    # Çıkış yapıldığında URL parametresini temizle ve sayfayı yenile
     st.query_params.clear()
-    
-    # Kilitlenmeyi önlemek için sadece JS yürütülsün ve Python dursun. (time.sleep ve rerun kaldırıldı)
-    components.html("""
-    <script>
-        localStorage.removeItem('aslan_session_uid');
-        const params = new URLSearchParams(window.parent.location.search);
-        params.delete('session_uid');
-        params.set('checked', 'true');
-        window.parent.location.href = window.parent.location.pathname + '?' + params.toString();
-    </script>
-    """, height=0, width=0)
-    st.stop()
+    st.rerun()
 
-# URL'de session_uid Varsa Doğrudan Oturum Açmayı Dene
-if "session_uid" in st.query_params:
-    stored_uid = st.query_params["session_uid"]
-    if not st.session_state.user_logged_in:
+# --- OTURUM KONTROLÜ VE DOĞRULAMA (SPINNER ILE) ---
+if "session_uid" in st.query_params and not st.session_state.user_logged_in:
+    with st.spinner("Oturum doğrulanıyor..."):
+        stored_uid = st.query_params["session_uid"]
         try:
             user_ref_temp = db.collection("users").document(stored_uid)
             user_snap = user_ref_temp.get()
@@ -173,7 +151,6 @@ if "session_uid" in st.query_params:
                     st.session_state.user_data = {**user_data, "uid": stored_uid}
                     st.session_state.user_logged_in = True
                     st.session_state.force_login = True
-                    st.session_state.storage_checked = True
                     st.session_state.tema = user_data.get("tema", list(TEMALAR.values())[0])
                     
                     sohbet_list = user_data.get("sohbet_gecmisi", [])
@@ -193,41 +170,6 @@ if "session_uid" in st.query_params:
                 st.query_params.clear()
         except Exception:
             st.query_params.clear()
-
-# URL'de Yoksa Ama LocalStorage'da Varsa Kurtarma Mekanizması (Kilitlenmeyen Çift Yönlü JS Akışı)
-if not st.session_state.user_logged_in and "session_uid" not in st.query_params and not st.session_state.storage_checked:
-    # 1.8 saniyelik zorunlu lock CSS'i tamamen kaldırıldı. Loader anında işlem görecek şekilde optimize edildi.
-    st.markdown("""
-    <div id="session-loader" style="display:flex; justify-content:center; align-items:center; height:100vh; flex-direction:column; position: fixed; top: 0; left: 0; width: 100%; z-index: 9999; background: #0f2027;">
-        <div style="width: 50px; height: 50px; border: 5px solid rgba(255,255,255,0.2); border-top: 5px solid #3498db; border-radius: 50%; animation: spin 0.5s linear infinite;"></div>
-        <h3 style="color: white; margin-top: 20px; font-family: sans-serif;">Oturum Kontrol Ediliyor...</h3>
-    </div>
-    <style>
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    </style>
-    """, unsafe_allow_html=True)
-
-    components.html("""
-    <script>
-        (function() {
-            const uid = localStorage.getItem('aslan_session_uid');
-            const params = new URLSearchParams(window.parent.location.search);
-            
-            // DOM Yüklendiği milisaniyede görsel takılmayı önlemek için ekran kilit elementini temizle
-            const loader = window.parent.document.getElementById('session-loader');
-            if (loader) { loader.remove(); }
-
-            if (uid) {
-                params.set('session_uid', uid);
-                window.parent.location.href = window.parent.location.pathname + '?' + params.toString();
-            } else {
-                params.set('checked', 'true');
-                window.parent.location.href = window.parent.location.pathname + '?' + params.toString();
-            }
-        })();
-    </script>
-    """, height=0, width=0)
-    st.stop() # JS yönlendirmesi tamamlanana kadar Python tarafını durdur ve login ekranının çakışmasını engelle
 
 # --- GİRİŞ VE KAYIT EKRANI ---
 if not st.session_state.user_logged_in or not st.session_state.force_login:
@@ -289,16 +231,9 @@ if not st.session_state.user_logged_in or not st.session_state.force_login:
                         st.session_state.force_login = True
                         st.session_state.tema = user_data.get("tema", list(TEMALAR.values())[0])
                         
-                        # Hem LocalStorage'a yaz hem de URL parametresini senkronize ederek sayfayı kırılmadan yönlendir (time.sleep ve st.rerun çakışması GİDERİLDİ)
-                        components.html(f"""
-                        <script>
-                            localStorage.setItem('aslan_session_uid', '{uid_logged}');
-                            const params = new URLSearchParams(window.parent.location.search);
-                            params.set('session_uid', '{uid_logged}');
-                            window.parent.location.href = window.parent.location.pathname + '?' + params.toString();
-                        </script>
-                        """, height=0, width=0)
-                        st.stop() # Python işlemi durdurulup, asenkron URL yenilemesi Streamlit sunucusu etkilenmeden işleniyor
+                        # SUNUCU TARAFLI URL SENKRONİZASYONU VE YÖNLENDİRME
+                        st.query_params["session_uid"] = uid_logged
+                        st.rerun()
                 else:
                     st.error("❌ Kullanıcı verisi bulunamadı!")
             else:
@@ -315,7 +250,6 @@ if not st.session_state.user_logged_in or not st.session_state.force_login:
                     ban_data = ban_doc.to_dict()
                     ban_bitis = ban_data.get("ban_bitis_zamani")
 
-                    # Timestamp -> Datetime Güvenli Dönüşümü
                     if hasattr(ban_bitis, "to_datetime"):
                         ban_bitis = ban_bitis.to_datetime()
                     
@@ -339,7 +273,6 @@ if not st.session_state.user_logged_in or not st.session_state.force_login:
 
                 user = auth.create_user(email=clean_email, password=password)
                 
-                # Güvenlik Açığı Giderildi: Plain-text password ("gizli_bilgi") tamamen kaldırıldı.
                 db.collection("users").document(user.uid).set({
                     "isim": isim_input, 
                     "email": clean_email, 
