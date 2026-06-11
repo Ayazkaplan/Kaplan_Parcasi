@@ -74,11 +74,10 @@ def kufur_var_mi(text):
     return False
 
 def emoji_var_mi(text):
-    # Emojileri ve özel sembolleri tespit eden regex deseni
     emoji_pattern = re.compile(
         "["
-        "\U00010000-\U0010ffff"  # SMP (Sanal Çok Dilli Düzlem)
-        "\u2600-\u27bf"          # Çeşitli Semboller ve Dingbats
+        "\U00010000-\U0010ffff"
+        "\u2600-\u27bf"
         "]+", flags=re.UNICODE
     )
     return bool(emoji_pattern.search(text))
@@ -90,8 +89,6 @@ def get_video_iframe(video_id):
 # Dinamik İsim Stili Oluşturucu
 def get_styled_user_name(u_name, u_color, u_glow, u_tag, u_rozet):
     color_val = u_color if u_color else "#FFFFFF"
-    
-    # 3 Aşamalı güçlü neon gölge efekti
     glow_css = f"text-shadow: 0 0 10px {color_val}, 0 0 20px {color_val}, 0 0 30px {color_val};" if u_glow else ""
     
     tag_html = ""
@@ -129,17 +126,26 @@ if "force_login" not in st.session_state: st.session_state.force_login = False
 if "trigger_logout" not in st.session_state: st.session_state.trigger_logout = False
 if "storage_checked" not in st.session_state: st.session_state.storage_checked = False
 
+# JS'den gelen kontrol parametresini Python durumuna işle ve URL'den temizle
+if "checked" in st.query_params:
+    st.session_state.storage_checked = True
+    try:
+        del st.query_params["checked"]
+    except Exception:
+        pass
+
 def logout_user():
     st.session_state.force_login = False
     st.session_state.user_logged_in = False
     st.session_state.user_data = None
     st.session_state.messages = []
+    st.session_state.storage_checked = True  # Çıkış yapıldığında tekrar kontrol tetikleme
     st.query_params.clear()
     
     components.html("""
     <script>
         localStorage.removeItem('aslan_session_uid');
-        window.parent.location.href = window.parent.location.pathname;
+        window.parent.location.href = window.parent.location.pathname + '?checked=1';
     </script>
     """, height=0, width=0)
     time.sleep(0.2)
@@ -174,6 +180,7 @@ if "session_uid" in st.query_params:
                     st.session_state.user_data = {**user_data, "uid": stored_uid}
                     st.session_state.user_logged_in = True
                     st.session_state.force_login = True
+                    st.session_state.storage_checked = True
                     st.session_state.tema = user_data.get("tema", list(TEMALAR.values())[0])
                     
                     sohbet_list = user_data.get("sohbet_gecmisi", [])
@@ -194,30 +201,34 @@ if "session_uid" in st.query_params:
         except Exception:
             st.query_params.clear()
 
-# URL'de Yoksa Ama LocalStorage'da Varsa Kurtarma Mekanizması (Döngüsüz Akıllı Kontrol)
-if not st.session_state.user_logged_in and "session_uid" not in st.query_params and not st.session_state.get("storage_checked", False):
-    st.session_state.storage_checked = True
+# URL'de Yoksa Ama LocalStorage'da Varsa Kurtarma Mekanizması (Kilitlenmeyen Çift Yönlü JS Akışı)
+if not st.session_state.user_logged_in and "session_uid" not in st.query_params and not st.session_state.storage_checked:
     st.markdown("""
-        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 150px;">
-            <div style="border: 4px solid rgba(255, 255, 255, 0.1); border-left-color: #FFD700; border-radius: 50%; width: 35px; height: 35px; animation: spin 1s linear infinite; margin-bottom: 15px;"> </div>
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 80vh; font-family: 'Segoe UI', sans-serif;">
+            <div style="border: 4px solid rgba(255, 255, 255, 0.1); border-left-color: #FFD700; border-radius: 50%; width: 45px; height: 45px; animation: spin 1s linear infinite; margin-bottom: 20px;"> </div>
             <style> @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } } </style>
-            <h4 style="color: #FFD700; font-family: 'Segoe UI', sans-serif;">Oturum Kontrol Ediliyor...</h4>
+            <h3 style="color: #FFD700; font-weight: 500;">Oturum Kontrol Ediliyor...</h3>
         </div>
     """, unsafe_allow_html=True)
     
     components.html("""
     <script>
         const uid = localStorage.getItem('aslan_session_uid');
+        const params = new URLSearchParams(window.parent.location.search);
         if (uid) {
-            const params = new URLSearchParams(window.parent.location.search);
             if (!params.has('session_uid')) {
                 params.set('session_uid', uid);
+                window.parent.location.href = window.parent.location.pathname + '?' + params.toString();
+            }
+        } else {
+            if (!params.has('checked')) {
+                params.set('checked', '1');
                 window.parent.location.href = window.parent.location.pathname + '?' + params.toString();
             }
         }
     </script>
     """, height=0, width=0)
-    time.sleep(0.6)
+    st.stop()  # JS yönlendirmesi tamamlanana kadar Python tarafını durdur ve login ekranının çakışmasını engelle
 
 # --- GİRİŞ VE KAYIT EKRANI ---
 if not st.session_state.user_logged_in or not st.session_state.force_login:
@@ -855,7 +866,6 @@ elif st.session_state.current_page == "admin_users" and is_kurucu:
                                 db.collection("users").document(u_id).update({"durum": "Aktif", "ban_bitis_zamani": None})
                                 db.collection("banlanan_emails").document(u_email).delete()
                                 st.session_state.valid_users_cache = None
-                                # Nokta hatası giderildi
                                 st.success("Hesap aktifleştirildi.")
                                 st.rerun()
                             
