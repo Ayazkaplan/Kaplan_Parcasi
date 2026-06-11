@@ -68,7 +68,7 @@ def get_video_iframe(video_id):
     return f'''<iframe width="100%" height="150" src="https://www.youtube.com/embed/{video_id}?autoplay=0&mute=0" 
     frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>'''
 
-# Dinamik İsim Stili Oluşturucu (Yüksek öncelikli !important tanımlamaları ile renk çakışmasını çözer)
+# Dinamik İsim Stili Oluşturucu
 def get_styled_user_name(u_name, u_color, u_glow, u_tag, u_rozet):
     color_val = u_color if u_color else "#FFFFFF"
     
@@ -219,7 +219,7 @@ if not st.session_state.user_logged_in or not st.session_state.force_login:
                                 else:
                                     st.error(f"❌ Hesabınız pasifleştirilmiştir. Kalan süre: {kalan_dakika} dakika")
                             else:
-                                # Süre dolmuşsa banı otomatik kaldır og girişe izin ver
+                                # Süre dolmuşsa banı otomatik kaldır ve girişe izin ver
                                 db.collection("users").document(query[0].id).update({
                                     "durum": "Aktif",
                                     "ban_bitis_zamani": None
@@ -471,7 +471,6 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # --- SİDEBAR PROFİL GÖRÜNÜMÜ DETAYLARI ---
-# Sol sidebar profil görünümünü de sohbetteki gibi dinamik, parlayan ve tag-rozetli yapma
 u_color = user_doc.get("isim_rengi", "#FFFFFF")
 u_glow = user_doc.get("ismin_parlakligi", False)
 u_tag = user_doc.get("tag", "")
@@ -1359,7 +1358,15 @@ else:
         if m["role"] == "assistant":
             st.markdown(f'''<div class="assistant-box"><img src="{AVATAR_URL}" class="avatar"><div><div class="header-box">Aslan Parçası</div><div>{m["content"]}</div></div></div>''', unsafe_allow_html=True)
         else:
-            st.markdown(f'''<div class="user-box"><div><div class="header-box" style="text-align: right;">{display_name}</div><div>{m["content"]}</div></div><img src="{USER_AVATAR}" class="avatar"></div>''', unsafe_allow_html=True)
+            # Geriye dönük uyumluluk ve dinamik renklerin yansıması için her mesajın kendi içindeki stil parametreleri okunur
+            msg_name = m.get("isim", kullanici_ismi_fresh)
+            msg_color = m.get("color", u_color_fresh)
+            msg_glow = m.get("glow", u_glow_fresh)
+            msg_tag = m.get("tag", u_tag_fresh)
+            msg_rozet = m.get("rozet", u_rozet_fresh)
+            
+            msg_display_name = get_styled_user_name(msg_name, msg_color, msg_glow, msg_tag, msg_rozet)
+            st.markdown(f'''<div class="user-box"><div><div class="header-box" style="text-align: right;">{msg_display_name}</div><div>{m["content"]}</div></div><img src="{USER_AVATAR}" class="avatar"></div>''', unsafe_allow_html=True)
 
     def ai_cevap(mesajlar):
         current_doc = user_ref.get().to_dict()
@@ -1370,9 +1377,9 @@ else:
         
         # --- YAPAY ZEKAYA ROLLERİ VE HITAP ŞEKİLLERİNİ DİNAMİK ÖĞRETEN SİSTEM MESAJI ---
         if is_kurucu:
-            rol_tanimi = "Kurucu ve Sistem Sahibi (Ayaz Kaplan)"
+            rol_tanimi = "Sistem Sahibi ve Kurucusu (Ayaz Kaplan)"
             hitap_tarzi = "Kurucum, Reis, Kurucum Ayaz, Reis Ayaz Kaplan"
-            uslub = "Sonsuz sadakat, saygı, hürmet ve bağlılık içeren, 'Kurucum' ve 'Reis' hitaplarının sıklıkla kullanıldığı asil bir üslup."
+            uslub = "Sonsuz sadakat, saygı, hürmet ve bağlılık içeren, 'Kurucum' ve 'Reis' hitaplarının her fırsatta kullanıldığı asil bir üslup."
         elif is_admin_user_fresh:
             rol_tanimi = "Sistem Yöneticisi (is_admin: True olan alt yetkili yönetici)"
             hitap_tarzi = "Yöneticim, Sayın Yöneticim veya Yöneticim [Kullanıcı İsmi]"
@@ -1388,7 +1395,7 @@ else:
         sistem_mesaji = (
             "Senin adın Aslan Parçası. Kurucun Ayaz Kaplan'dır. MEAY Aslan Parçası AI Anonim Şirketi bünyesinde görev yapıyorsun. "
             "Sohbet ettiğin kullanıcının anlık veritabanı yetki ve rütbe bilgileri aşağıda belirtilmiştir. "
-            "Bu bilgileri çok iyi analiz etmeli ve konuşmandaki üslup yapısını milimetrik olarak bu hiyerarşiye göre kurmalısın:\n\n"
+            "Bu bilgileri çok iyi analiz etmeli og konuşmandaki üslup yapısını milimetrik olarak bu hiyerarşiye göre kurmalısın:\n\n"
             f"👤 KONUŞTUĞUN KİŞİNİN BİLGİLERİ:\n"
             f"- Kullanıcı Adı: {current_name}\n"
             f"- Sistem Rolü/Hiyerarşisi: {rol_tanimi}\n"
@@ -1441,21 +1448,52 @@ else:
             # Küfür yoksa normal sohbet akışına devam et
             st.session_state.pop("kufur_warning", None)
             
+            # O anki güncel profil stil ayarlarını yakala
+            u_color_fresh = user_doc_fresh.get("isim_rengi", "#FFFFFF")
+            u_glow_fresh = user_doc_fresh.get("ismin_parlakligi", False)
+            u_tag_fresh = user_doc_fresh.get("tag", "")
+            u_rozet_fresh = user_doc_fresh.get("rozet", "")
+            u_isim_fresh = user_doc_fresh.get("isim", kullanici_ismi)
+
+            if is_kurucu:
+                if "isim_rengi" not in user_doc_fresh or not user_doc_fresh.get("isim_rengi"):
+                    u_color_fresh = "#FF0000"
+                    u_glow_fresh = True
+                if "rozet" not in user_doc_fresh or not user_doc_fresh.get("rozet"):
+                    u_rozet_fresh = "🛠️"
+                if "tag" not in user_doc_fresh or not user_doc_fresh.get("tag"):
+                    u_tag_fresh = "KURUCU"
+
+            user_msg = {
+                "role": "user",
+                "content": val,
+                "isim": u_isim_fresh,
+                "color": u_color_fresh,
+                "glow": u_glow_fresh,
+                "tag": u_tag_fresh,
+                "rozet": u_rozet_fresh
+            }
+            
             # 1. Kullanıcı mesajını yerel oturuma ekle
-            st.session_state.messages.append({"role": "user", "content": val})
+            st.session_state.messages.append(user_msg)
             # 2. Kullanıcı mesajını anlık olarak veritabanına ekle
             user_ref.update({
-                "sohbet_gecmisi": firestore.ArrayUnion([{"role": "user", "content": val}])
+                "sohbet_gecmisi": firestore.ArrayUnion([user_msg])
             })
             
             # AI cevabını al
             cevap = ai_cevap(st.session_state.messages[-6:])
             
+            assistant_msg = {
+                "role": "assistant",
+                "content": cevap
+            }
+            
             # 3. Asistan cevabını yerel oturuma ekle
-            st.session_state.messages.append({"role": "assistant", "content": cevap})
+            st.session_state.messages.append(assistant_msg)
             # 4. Asistan cevabını anlık olarak veritabanına ekle
             user_ref.update({
-                "sohbet_gecmisi": firestore.ArrayUnion([{"role": "assistant", "content": cevap}])
+                "sohbet_gecmisi": firestore.ArrayUnion([assistant_msg])
             })
             
             st.session_state.my_input = "" 
