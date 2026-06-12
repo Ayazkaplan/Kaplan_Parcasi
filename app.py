@@ -105,7 +105,7 @@ def firebase_login(email, password):
         print(f"[FIREBASE LOGIN REST API HATASI] Giriş isteği gönderilirken hata oluştu: {e}")
         return None
 
-# --- OTURUM YÖNETİMİ & LOCALSTORAGE KALICILIĞI (KUSURSUZ YÖNTEM) ---
+# --- OTURUM YÖNETİMİ (SENİN ARAŞTIRDIĞIN TOKEN/LOCALSTORAGE YÖNTEMİ) ---
 if "user_logged_in" not in st.session_state: st.session_state.user_logged_in = False
 if "user_data" not in st.session_state: st.session_state.user_data = None
 if "messages" not in st.session_state: st.session_state.messages = []
@@ -116,66 +116,64 @@ if "force_login" not in st.session_state: st.session_state.force_login = False
 if "storage_checked" not in st.session_state: st.session_state.storage_checked = False
 
 def logout_user():
+    # 1. Sunucu tarafını temizle
     st.session_state.clear()
     st.query_params.clear()
-    st.query_params["checked"] = "true"
-    # JS Sadece Storage temizler, yönlendirmeyi st.rerun yapar
-    components.html("<script>try{localStorage.removeItem('aslan_uid');}catch(e){}</script>", height=0, width=0)
-    time.sleep(0.3)
-    st.rerun()
+    # 2. Tam olarak senin bulduğun çıkış (Logout) Token silme Javascript'i:
+    components.html("""
+    <script>
+        localStorage.removeItem('aslan_uid');
+        window.parent.location.href = window.parent.location.pathname;
+    </script>
+    """, height=0, width=0)
+    st.stop()
 
 def trigger_invalid_session():
+    # Token süresi dolmuş veya hesap silinmişse Token'ı silip giriş sayfasına atar
     st.session_state.clear()
     st.query_params.clear()
-    st.query_params["checked"] = "true"
-    # JS Sadece Storage temizler, yönlendirmeyi st.rerun yapar
-    components.html("<script>try{localStorage.removeItem('aslan_uid');}catch(e){}</script>", height=0, width=0)
-    time.sleep(0.3)
-    st.rerun()
+    components.html("""
+    <script>
+        localStorage.removeItem('aslan_uid');
+        window.parent.location.href = window.parent.location.pathname;
+    </script>
+    """, height=0, width=0)
+    st.stop()
 
-# Tarayıcı URL'sindeki "checked" (kontrol edildi) bayrağını yakala ve temizle
+# URL'de "checked" varsa bu bayrağı al
 if "checked" in st.query_params:
     st.session_state.storage_checked = True
     try: del st.query_params["checked"]
     except Exception: pass
 
-# ADIM 1: SİTEYE İLK GİRİŞ VEYA KAPATIP AÇMA DURUMU (Kalıcı Oturum Yakalayıcı)
+# --- ADIM 1: SİTE İLK AÇILDIĞINDA TOKEN (LOCALSTORAGE) KONTROLÜ ---
 if not st.session_state.user_logged_in and "session_uid" not in st.query_params and not st.session_state.storage_checked:
-    # Sayfa temiz açıldıysa estetik bir bekleme animasyonu göster
+    # Sayfa temiz açıldı, arka planda Token aranıyor animasyonu
     st.markdown("""
-    <div id="aslan-loader" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #0f2027; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 999999;">
+    <div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #0f2027; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 999999;">
         <div style="width: 60px; height: 60px; border: 5px solid rgba(255, 255, 255, 0.1); border-top: 5px solid #f39c12; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-        <h3 style="color: white; font-family: sans-serif; margin-top: 25px;">Hesabına giriş yapılıyor...</h3>
-        <p style="color: #ccc; font-family: sans-serif; font-size: 14px; margin-top: 10px;">Lütfen bekleyin</p>
-        <a href="?checked=true" style="margin-top: 35px; padding: 10px 20px; background-color: transparent; border: 1px solid #f39c12; color: #f39c12; border-radius: 5px; text-decoration: none; font-family: sans-serif; font-size: 14px; transition: 0.3s; opacity: 0.9;">⏳ Eğer ekran takıldıysa buraya tıkla</a>
+        <h3 style="color: white; font-family: sans-serif; margin-top: 25px;">Hesap Kontrol Ediliyor...</h3>
     </div>
-    <style>
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    </style>
+    <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
     """, unsafe_allow_html=True)
     
-    # Arka planda JS ile LocalStorage kontrolü yap ve temiz URL yönlendirmesi sağla
+    # JS ile Token kontrolü (Senin araştırdığın sistemin okuma aşaması)
     components.html("""
     <script>
-        setTimeout(function() {
-            try {
-                const uid = localStorage.getItem('aslan_uid');
-                let newUrl = window.parent.location.href.split('?')[0]; // Temiz dizin yolu alınıyor
-                if (uid) {
-                    newUrl += '?session_uid=' + uid;
-                } else {
-                    newUrl += '?checked=true';
-                }
-                window.parent.location.href = newUrl;
-            } catch(e) {
-                console.error("Iframe Access Blocked", e);
-            }
-        }, 300);
+        const token = localStorage.getItem('aslan_uid');
+        const currentPath = window.parent.location.pathname;
+        if (token) {
+            // Token bulundu, URL'ye parametre olarak ekleyip giriş yap
+            window.parent.location.replace(currentPath + '?session_uid=' + token);
+        } else {
+            // Token yok, Giriş Ekranına şutla (checked=true döngüyü kırar)
+            window.parent.location.replace(currentPath + '?checked=true');
+        }
     </script>
     """, height=0, width=0)
-    st.stop() # Python çalışmasını durdurur, eğer mobil tarayıcı JS'i kilitlerse kullanıcı butona tıklayıp devam edebilir.
+    st.stop() # JS okuma işlemi yapana kadar Python'u durdur, kilitlenmeyi önler
 
-# ADIM 2: URL'DE SESSİON_UİD YAKALANDI (Firestore'dan Doğrula ve İçeri Al)
+# --- ADIM 2: URL'DE SESSİON_UİD YAKALANDI (Firestore'dan Doğrula ve İçeri Al) ---
 if "session_uid" in st.query_params and not st.session_state.user_logged_in:
     stored_uid = st.query_params["session_uid"]
     try:
@@ -198,7 +196,7 @@ if "session_uid" in st.query_params and not st.session_state.user_logged_in:
                     is_banned = True
             
             if not is_banned:
-                # Kullanıcı aktif ve temiz, sisteme sorunsuz giriş izni veriliyor
+                # KULLANICI ONAYLANDI: Sisteme sorunsuz giriş izni veriliyor
                 user_ref_temp.update({"son_gorulme_zamani": firestore.SERVER_TIMESTAMP})
                 st.session_state.user_data = {**user_data, "uid": stored_uid}
                 st.session_state.user_logged_in = True
@@ -248,7 +246,6 @@ if not st.session_state.user_logged_in or not st.session_state.force_login:
                     user_durum = user_data.get("durum", "Aktif")
                     ban_bitis = user_data.get("ban_bitis_zamani")
 
-                    # Timestamp -> Datetime Güvenli Dönüşümü
                     if hasattr(ban_bitis, "to_datetime"):
                         ban_bitis = ban_bitis.to_datetime()
                     
@@ -284,11 +281,14 @@ if not st.session_state.user_logged_in or not st.session_state.force_login:
                         st.session_state.force_login = True
                         st.session_state.tema = user_data.get("tema", list(TEMALAR.values())[0])
                         
-                        # NATIVE STREAMLIT YÖNLENDİRME (Kilitlenme ve çökme engellendi)
-                        st.query_params["session_uid"] = uid_logged
-                        components.html(f"<script>try{{localStorage.setItem('aslan_uid', '{uid_logged}');}}catch(e){{}}</script>", height=0, width=0)
-                        time.sleep(0.3)
-                        st.rerun()
+                        # TOKEN OLUŞTURMA: Başarılı girişte UID'yi cihazın LocalStorage'ına yaz (Senin sistemin aynısı)
+                        components.html(f"""
+                        <script>
+                            localStorage.setItem('aslan_uid', '{uid_logged}');
+                            window.parent.location.href = window.parent.location.pathname + '?session_uid={uid_logged}';
+                        </script>
+                        """, height=0, width=0)
+                        st.stop()
                 else:
                     st.error("❌ Kullanıcı verisi bulunamadı!")
             else:
@@ -305,7 +305,6 @@ if not st.session_state.user_logged_in or not st.session_state.force_login:
                     ban_data = ban_doc.to_dict()
                     ban_bitis = ban_data.get("ban_bitis_zamani")
 
-                    # Timestamp -> Datetime Güvenli Dönüşümü
                     if hasattr(ban_bitis, "to_datetime"):
                         ban_bitis = ban_bitis.to_datetime()
                     
@@ -362,7 +361,7 @@ if not st.session_state.user_logged_in or not st.session_state.force_login:
             st.warning("Lütfen önce e-posta girin.")
             st.stop()
 
-# --- ANA EKRAN AYARLARI ---
+# --- ANA EKRAN AYARLARI (SOHBET VE YÖNETİCİ PANELLERİ) ---
 else:
     uid = st.session_state.user_data['uid']
     user_ref = db.collection("users").document(uid)
@@ -383,7 +382,6 @@ else:
     user_durum = user_doc.get("durum", "Aktif")
     ban_bitis = user_doc.get("ban_bitis_zamani")
 
-    # Timestamp -> Datetime Güvenli Dönüşümü
     if hasattr(ban_bitis, "to_datetime"):
         ban_bitis = ban_bitis.to_datetime()
 
