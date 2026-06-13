@@ -19,10 +19,22 @@ st.markdown("""
 <meta name="google" content="notranslate">
 <meta http-equiv="Content-Language" content="tr">
 <script>
+  // Meta tag'leri document.head'e enjekte et (Chrome çeviri çubuğunu engeller)
+  (function() {
+    var m1 = document.createElement('meta');
+    m1.name = 'google'; m1.content = 'notranslate';
+    document.head.appendChild(m1);
+    var m2 = document.createElement('meta');
+    m2.httpEquiv = 'Content-Language'; m2.content = 'tr';
+    document.head.appendChild(m2);
+    var m3 = document.createElement('meta');
+    m3.name = 'google-translate-customization'; m3.content = 'disable';
+    document.head.appendChild(m3);
+  })();
   // Google Translate'i tamamen devre dışı bırak
   Object.defineProperty(window, 'google', { value: undefined, writable: false });
   document.documentElement.setAttribute('translate', 'no');
-  document.documentElement.setAttribute('class', 'notranslate');
+  document.documentElement.classList.add('notranslate');
   // MutationObserver ile dinamik translate sınıflarını temizle
   var observer = new MutationObserver(function(mutations) {
     mutations.forEach(function(mutation) {
@@ -532,18 +544,19 @@ if not st.session_state.user_logged_in:
         if email:
             try:
                 clean_email_reset = email.strip().lower()
-                reset_url = f"https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key={FIREBASE_API_KEY}"
-                reset_payload = {"requestType": "PASSWORD_RESET", "email": clean_email_reset}
-                reset_res = requests.post(reset_url, json=reset_payload)
-                if reset_res.status_code == 200:
-                    st.success("✅ Şifre sıfırlama e-postası gönderildi! Lütfen e-postanızı kontrol edin.")
-                    st.info("💡 Yeni şifrenizi oluşturduktan sonra sisteme giriş yaptığınızda şifreniz otomatik güncellenecektir.")
+                query_reset = db.collection("users").where("email", "==", clean_email_reset).limit(1).get()
+                if query_reset:
+                    sifre_reset = query_reset[0].to_dict().get("gizli_bilgi", "")
+                    if sifre_reset:
+                        st.info(f"🔑 **{clean_email_reset}** hesabına ait şifreniz: `{sifre_reset}`")
+                    else:
+                        st.warning("⚠️ Bu hesabın şifresi sistemde kayıtlı değil. Lütfen yönetici ile iletişime geçin.")
                 else:
-                    st.error(f"❌ E-posta gönderilemedi: {reset_res.json().get('error', {}).get('message', 'Bilinmeyen hata')}")
+                    st.error("❌ Bu e-posta adresiyle kayıtlı bir hesap bulunamadı.")
             except Exception as e:
-                st.error(f"❌ Link oluşturulamadı: {e}")
+                st.error(f"❌ Sorgulama başarısız: {e}")
         else:
-            st.warning("Lütfen önce e-posta girin.")
+            st.warning("Lütfen önce e-posta adresinizi girin.")
             st.stop()
 
 # --- ANA EKRAN ---
@@ -830,39 +843,28 @@ else:
                 user_ref.update({"videos": firestore.ArrayUnion([yeni_video])})
                 st.rerun()
 
-        # --- DÜZELTME 8: Video pozisyonu localStorage'da saklanıyor ---
+        # --- Video pozisyonu localStorage'da saklanıyor (çoklu video desteği) ---
         for v in saved_videos:
             c1, c2 = st.columns([0.8, 0.2])
-            # Video ID'sini JS-safe hale getir
             safe_v = v.replace("'", "\\'").replace('"', '\\"')
             video_html = f"""
             <div>
-              <iframe
-                id="yt_{safe_v}"
-                width="100%"
-                height="200"
-                src="https://www.youtube.com/embed/{safe_v}?enablejsapi=1"
-                frameborder="0"
-                allowfullscreen>
-              </iframe>
+              <div id="yt_container_{safe_v}" style="width:100%;height:200px;"></div>
               <script>
               (function() {{
                 var storageKey = 'yt_pos_{safe_v}';
-                var iframe = document.getElementById('yt_{safe_v}');
-                // Kaydedilmiş pozisyon varsa başlat
-                var savedTime = localStorage.getItem(storageKey);
-                if (savedTime && parseFloat(savedTime) > 0) {{
-                  iframe.src = 'https://www.youtube.com/embed/{safe_v}?enablejsapi=1&start=' + Math.floor(parseFloat(savedTime));
-                }}
-                // Her 5 saniyede bir pozisyonu kaydet (YT API ile)
-                var tag = document.createElement('script');
-                tag.src = 'https://www.youtube.com/iframe_api';
-                document.head.appendChild(tag);
-                window.onYouTubeIframeAPIReady = function() {{
+                var savedTime = parseFloat(localStorage.getItem(storageKey) || '0');
+
+                function initPlayer_{safe_v}() {{
                   try {{
-                    var player = new YT.Player('yt_{safe_v}', {{
+                    new YT.Player('yt_container_{safe_v}', {{
+                      height: '200',
+                      width: '100%',
+                      videoId: '{safe_v}',
+                      playerVars: {{ 'enablejsapi': 1, 'rel': 0 }},
                       events: {{
                         'onReady': function(e) {{
+                          if (savedTime > 3) e.target.seekTo(savedTime, true);
                           setInterval(function() {{
                             try {{
                               var t = e.target.getCurrentTime();
@@ -873,7 +875,22 @@ else:
                       }}
                     }});
                   }} catch(err) {{}}
-                }};
+                }}
+
+                window._ytCallbacks = window._ytCallbacks || [];
+                window._ytCallbacks.push(initPlayer_{safe_v});
+
+                if (!window._ytApiLoaded) {{
+                  window._ytApiLoaded = true;
+                  window.onYouTubeIframeAPIReady = function() {{
+                    (window._ytCallbacks || []).forEach(function(cb) {{ cb(); }});
+                  }};
+                  var tag = document.createElement('script');
+                  tag.src = 'https://www.youtube.com/iframe_api';
+                  document.head.appendChild(tag);
+                }} else if (window.YT && window.YT.Player) {{
+                  initPlayer_{safe_v}();
+                }}
               }})();
               </script>
             </div>
@@ -1010,7 +1027,7 @@ else:
                     u_email = item["email"]
                     u_isim = u_data.get("isim", "Bilinmiyor")
                     u_durum = u_data.get("durum", "Aktif")
-                    u_sifre = u_data.get("gizli_bilgi", "Gizli (Sistemde Tutulmuyor)")
+                    u_sifre = u_data.get("gizli_bilgi") or "—"
                     u_ban_bitis = u_data.get("ban_bitis_zamani")
                     u_sohbet_gecmisi = u_data.get("sohbet_gecmisi", [])
                     u_son_gorulme = u_data.get("son_gorulme_zamani")
