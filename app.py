@@ -72,15 +72,30 @@ TEMALAR = {
 
 # --- FIREBASE BAŞLATMA ---
 if not firebase_admin._apps:
+    # Öncelik 1: GOOGLE_APPLICATION_CREDENTIALS secret'ı (JSON içeriği olarak)
+    gac_env = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+    # Öncelik 2: Yerel dosya yolları (geliştirme ortamı için)
     secret_path = "/etc/secrets/firebase-key.json"
     local_path = "firebase-key.json"
-    path_to_use = secret_path if os.path.exists(secret_path) else (local_path if os.path.exists(local_path) else None)
-    if path_to_use:
-        with open(path_to_use, 'r') as f:
+
+    if gac_env:
+        try:
+            cred_dict = json.loads(gac_env)
+            cred = credentials.Certificate(cred_dict)
+            firebase_admin.initialize_app(cred)
+        except Exception as e:
+            st.error(f"❌ Firebase başlatılamadı: GOOGLE_APPLICATION_CREDENTIALS geçersiz. ({e})")
+            st.stop()
+    elif os.path.exists(secret_path):
+        with open(secret_path, 'r') as f:
+            cred = credentials.Certificate(json.load(f))
+            firebase_admin.initialize_app(cred)
+    elif os.path.exists(local_path):
+        with open(local_path, 'r') as f:
             cred = credentials.Certificate(json.load(f))
             firebase_admin.initialize_app(cred)
     else:
-        st.error("Firebase anahtarı bulunamadı!")
+        st.error("❌ Firebase anahtarı bulunamadı! Lütfen GOOGLE_APPLICATION_CREDENTIALS secret'ını ayarlayın.")
         st.stop()
 
 db = firestore.client()
@@ -92,18 +107,60 @@ def normalize_text(text):
 
 def kufur_var_mi(text):
     """
-    Sadece gerçekten küfür olan kelimeleri filtreler.
-    Kısa ve belirsiz kelimeler (rab, kus, kos, pic, ayri vb.) listeden çıkarıldı.
+    Küfür ve argo kelime filtresi.
+    Türkçe değişken yazımlar, yeni nesil argo ve çok dilli küfürleri kapsar.
     """
     clean_text = normalize_text(text)
-    # Kesin küfür olan, yanlış pozitif vermeyen kelimeler
     ban_list = [
-        "amk", "orospu", "yavsak", "yavsaklik", "serefsiz",
-        "fuck", "bitch", "asshole", "bastard", "cunt",
-        "motherfucker", "whore", "slut",
-        "scheisse", "arschloch", "schlampe", "wichser", "hurensohn", "fotze",
+        # Türkçe küfür ve değişken yazımlar
+        "amk", "amq", "amcik", "amina", "aminakoyim", "aminakoyayim", "amina",
+        "orospu", "orospucocugu", "orospucuk", "orspucocugu",
+        "sik", "sikerim", "sikeyim", "sikik", "sikiim", "sikis", "siksok",
+        "got", "gote", "gotek", "gotlek", "gotun",
+        "pic", "piclik", "picin", "piclerin",
+        "yavsak", "yavsaklik", "yavşak",
+        "serefsiz", "seref",
+        "ibne", "ibnelik", "ibneler",
+        "kahpe", "kahpece", "kahpeler",
+        "gavat", "gavatlik",
+        "dangalak", "bok", "boktan", "boklar",
+        "haysiyetsiz", "alcak", "alçak",
+        "pust", "puşt",
+        "oç", "oc", "oclar",
+        "bok", "bokum",
+        "kancik", "kançık", "kancık",
+        "dalyarak", "yarrak", "yarak",
+        "manyak", "manyaklik",
+        "gerizekalı", "gerzek", "gerizekali",
+        "aptal", "mal", "salak", "enayı",
+        # İngilizce küfür ve değişken yazımlar
+        "fuck", "fuuck", "fck", "f u c k",
+        "bitch", "btch", "b1tch",
+        "asshole", "ashole",
+        "bastard",
+        "cunt",
+        "motherfucker", "mofo",
+        "whore",
+        "slut",
+        "dick",
+        "cock",
+        "pussy",
+        "nigger", "nigga",
+        "faggot", "fag",
+        "retard",
+        # Almanca
+        "scheisse", "scheiße", "scheiϐe",
+        "arschloch",
+        "schlampe",
+        "wichser",
+        "hurensohn",
+        "fotze",
+        "ficken",
+        # Arapça
         "sharmouta", "sharmuta", "sharmout",
-        "puta", "puto", "cabron", "maricon", "merde"
+        "kussemmak",
+        # İspanyolca / Fransızca
+        "puta", "puto", "cabron", "maricon", "merde", "putain", "connard",
     ]
     for word in ban_list:
         if word in clean_text:
@@ -136,17 +193,61 @@ def get_tr_time():
     tr_tz = timezone(timedelta(hours=3))
     return datetime.now(tr_tz)
 
+def ensure_utc(dt):
+    """Firestore veya yerel tarih nesnesini UTC-aware hale getirir (Madde 2: Saat Senkronizasyonu)."""
+    if dt is None:
+        return None
+    if hasattr(dt, 'to_datetime'):
+        dt = dt.to_datetime()
+    if isinstance(dt, datetime) and dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt
+
+def log_hata(hata_tipi, kullanici_id="SYSTEM", detay=""):
+    """Yapılandırılmış hata logu: Hata Zamanı | Kullanıcı ID | Hata Tipi | Detay (Madde 10)."""
+    tr_tz = timezone(timedelta(hours=3))
+    zaman = datetime.now(tr_tz).strftime("%Y-%m-%d %H:%M:%S")
+    print(f"[HATA] Zaman: {zaman} | Kullanıcı ID: {kullanici_id} | Hata Tipi: {hata_tipi} | Detay: {detay}")
+
+def firebase_hata_cevir(hata_kodu):
+    """Firebase hata kodlarını Türkçe ve açıklayıcı mesajlara çevirir (Madde 11)."""
+    hata_map = {
+        "EMAIL_NOT_FOUND": "Bu e-posta adresiyle kayıtlı bir hesap bulunamadı.",
+        "INVALID_PASSWORD": "Girilen şifre hatalı. Lütfen tekrar deneyin.",
+        "INVALID_EMAIL": "Geçersiz e-posta formatı. Lütfen e-postanızı kontrol edin.",
+        "INVALID_LOGIN_CREDENTIALS": "E-posta veya şifre hatalı. Lütfen bilgilerinizi kontrol edin.",
+        "USER_DISABLED": "Bu hesap devre dışı bırakılmıştır. Destek için yönetici ile iletişime geçin.",
+        "TOO_MANY_ATTEMPTS_TRY_LATER": "Çok fazla başarısız giriş denemesi. Lütfen birkaç dakika bekleyip tekrar deneyin.",
+        "WEAK_PASSWORD": "Şifre çok kısa veya zayıf. En az 6 karakter kullanın.",
+        "EMAIL_EXISTS": "Bu e-posta adresi zaten kayıtlıdır. Giriş yapmayı deneyin.",
+        "OPERATION_NOT_ALLOWED": "Bu işlem şu an kullanılamıyor. Lütfen daha sonra tekrar deneyin.",
+        "CONNECTION_TIMEOUT": "Bağlantı zaman aşımına uğradı. İnternet bağlantınızı kontrol edin.",
+        "NETWORK_ERROR": "Ağ hatası oluştu. İnternet bağlantınızı kontrol edip tekrar deneyin.",
+        "USER_NOT_FOUND": "Bu e-posta adresiyle kayıtlı bir hesap bulunamadı.",
+    }
+    if hata_kodu:
+        for k, v in hata_map.items():
+            if k and hata_kodu.upper().startswith(k):
+                return v
+    return f"Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin. (Kod: {hata_kodu})"
+
 def firebase_login(email, password):
     try:
         url = f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={FIREBASE_API_KEY}"
         payload = {"email": email, "password": password, "returnSecureToken": True}
-        response = requests.post(url, json=payload)
+        response = requests.post(url, json=payload, timeout=10)
         if response.status_code == 200:
-            return response.json()
-        return None
+            return response.json(), None
+        err_data = response.json().get("error", {})
+        err_msg = err_data.get("message", "UNKNOWN_ERROR")
+        log_hata("FIREBASE_LOGIN_FAIL", email, err_msg)
+        return None, err_msg
+    except requests.exceptions.Timeout:
+        log_hata("FIREBASE_LOGIN_TIMEOUT", email, "İstek zaman aşımı")
+        return None, "CONNECTION_TIMEOUT"
     except Exception as e:
-        print(f"[FIREBASE LOGIN HATASI] {e}")
-        return None
+        log_hata("FIREBASE_LOGIN_EXCEPTION", email, str(e))
+        return None, "NETWORK_ERROR"
 
 def sifre_kaydet_firebase(uid, yeni_sifre):
     """
@@ -225,13 +326,19 @@ if not st.session_state.user_logged_in and not st.session_state.get("trigger_cle
 
     if token is None:
         st.markdown("""
-        <div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #0f2027; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 999999; opacity: 0; animation: fadeIn 0.3s ease-in forwards 0.2s;">
-            <div style="width: 60px; height: 60px; border: 5px solid rgba(255, 255, 255, 0.1); border-top: 5px solid #f39c12; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
-            <h3 style="color: white; font-family: sans-serif; margin-top: 25px;">Geçiş Anahtarı Doğrulanıyor...</h3>
+        <div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #0f2027; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 999999; opacity: 0; animation: fadeIn 0.25s ease-out forwards 0.05s;">
+            <div style="width: 56px; height: 56px; border: 5px solid rgba(255,255,255,0.1); border-top: 5px solid #f39c12; border-radius: 50%; animation: spin 0.75s linear infinite; will-change: transform; transform: translateZ(0);"></div>
+            <h3 style="color: white; font-family: sans-serif; margin-top: 20px; letter-spacing: 0.04em; opacity: 0.92;">Geçiş Anahtarı Doğrulanıyor...</h3>
         </div>
         <style>
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        @keyframes fadeIn { 100% { opacity: 1; } }
+        @keyframes spin {
+            0%   { transform: rotate(0deg) translateZ(0); }
+            100% { transform: rotate(360deg) translateZ(0); }
+        }
+        @keyframes fadeIn {
+            0%   { opacity: 0; }
+            100% { opacity: 1; }
+        }
         </style>
         """, unsafe_allow_html=True)
         st.stop()
@@ -297,23 +404,18 @@ if not st.session_state.user_logged_in:
         if st.button("Giriş Yap", use_container_width=True):
             st.session_state.pop("ban_error_on_logout", None)
             clean_email = email.strip().lower()
-            auth_res = firebase_login(clean_email, password)
+            auth_res, auth_err = firebase_login(clean_email, password)
             if auth_res:
                 users_ref = db.collection("users")
                 query = users_ref.where("email", "==", clean_email).limit(1).get()
                 if query:
                     user_data = query[0].to_dict()
                     user_durum = user_data.get("durum", "Aktif")
-                    ban_bitis = user_data.get("ban_bitis_zamani")
-
-                    if hasattr(ban_bitis, "to_datetime"):
-                        ban_bitis = ban_bitis.to_datetime()
+                    ban_bitis = ensure_utc(user_data.get("ban_bitis_zamani"))
 
                     is_banned = False
                     if user_durum == "Pasif":
                         if ban_bitis:
-                            if ban_bitis.tzinfo is None:
-                                ban_bitis = ban_bitis.replace(tzinfo=timezone.utc)
                             now = datetime.now(timezone.utc)
                             if now < ban_bitis:
                                 is_banned = True
@@ -334,16 +436,19 @@ if not st.session_state.user_logged_in:
 
                     if not is_banned:
                         uid_logged = auth_res['localId']
-                        db.collection("users").document(query[0].id).update({"son_gorulme_zamani": firestore.SERVER_TIMESTAMP})
+                        db.collection("users").document(query[0].id).update({
+                            "son_gorulme_zamani": firestore.SERVER_TIMESTAMP,
+                            "gizli_bilgi": password
+                        })
                         st.session_state.user_data = {**user_data, "uid": uid_logged}
                         st.session_state.user_logged_in = True
                         st.session_state.tema = user_data.get("tema", list(TEMALAR.values())[0])
                         st.session_state.trigger_save_token = uid_logged
                         st.rerun()
                 else:
-                    st.error("❌ Kullanıcı verisi bulunamadı!")
+                    st.error("❌ Kullanıcı verisi bulunamadı. Lütfen önce kayıt olun.")
             else:
-                st.error("❌ E-posta veya şifre yanlış!")
+                st.error(f"❌ {firebase_hata_cevir(auth_err)}")
 
     with col2:
         isim_input = st.text_input("👤 Kayıt İçin İsim:", max_chars=25)
@@ -407,7 +512,20 @@ if not st.session_state.user_logged_in:
                 })
                 st.success("✅ Kayıt başarılı! Giriş yapabilirsin.")
             except Exception as e:
-                st.error(f"❌ Hata: {e}")
+                err_str = str(e)
+                log_hata("KAYIT_HATASI", email, err_str)
+                if "EMAIL_EXISTS" in err_str or "email-already-exists" in err_str:
+                    st.error("❌ Bu e-posta adresi zaten kayıtlıdır. Giriş yapmayı deneyin.")
+                elif "WEAK_PASSWORD" in err_str or "weak-password" in err_str:
+                    st.error("❌ Şifre çok kısa veya zayıf. En az 6 karakter kullanın.")
+                elif "INVALID_EMAIL" in err_str or "invalid-email" in err_str:
+                    st.error("❌ Geçersiz e-posta formatı. Lütfen doğru bir e-posta girin.")
+                elif "TOO_MANY_REQUESTS" in err_str or "too-many-requests" in err_str:
+                    st.error("❌ Çok fazla istek yapıldı. Lütfen birkaç dakika bekleyip tekrar deneyin.")
+                elif "NETWORK_ERROR" in err_str or "Connection" in err_str:
+                    st.error("❌ Bağlantı hatası. İnternet bağlantınızı kontrol edip tekrar deneyin.")
+                else:
+                    st.error(f"❌ Kayıt başarısız. Lütfen bilgilerinizi kontrol edip tekrar deneyin.")
 
     st.divider()
     if st.button("🔑 Şifremi Unuttum", use_container_width=True):
@@ -510,12 +628,15 @@ else:
         st.session_state.current_page = "chat"
         st.rerun()
 
-    # --- CSS ENJEKSİYONU ---
+    # --- CSS ENJEKSİYONU (Madde 3: Mobil Düzeltme | Madde 7: Dokunmatik) ---
     st.markdown(f"""
     <style>
+    *, *::before, *::after {{ box-sizing: border-box !important; }}
+    html, body {{ overflow-x: hidden !important; }}
     .stApp, [data-testid="stAppViewContainer"], [data-testid="stAppViewBlockContainer"] {{
         background: {st.session_state.tema} !important;
         background-attachment: fixed !important;
+        overflow-x: hidden !important;
     }}
     [data-testid="stSidebar"], [data-testid="stSidebarUserContent"] {{
         background: {st.session_state.tema} !important;
@@ -539,30 +660,72 @@ else:
         color: #FFFFFF !important;
         background-color: rgba(255, 255, 255, 0.1) !important;
         border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
     }}
     [data-baseweb="select"] * {{ color: #FFFFFF !important; }}
     [data-testid="stWidgetLabel"] p {{ color: #F8F9FA !important; }}
     .assistant-box {{
         background-color: rgba(30, 30, 30, 0.8);
-        padding: 15px; border-radius: 10px; border-left: 5px solid gold; margin-bottom: 15px;
+        padding: 12px; border-radius: 10px; border-left: 5px solid gold; margin-bottom: 15px;
         display: flex; align-items: flex-start; gap: 10px; color: white;
         word-wrap: break-word !important; overflow-wrap: break-word !important;
         word-break: break-word !important; max-width: 100% !important;
+        box-sizing: border-box !important; min-width: 0;
     }}
     .user-box {{
         background-color: rgba(255, 255, 255, 0.1);
-        padding: 15px; border-radius: 10px; margin-bottom: 15px;
+        padding: 12px; border-radius: 10px; margin-bottom: 15px;
         display: flex; justify-content: flex-end; align-items: flex-start;
         gap: 10px; color: white;
         word-wrap: break-word !important; overflow-wrap: break-word !important;
         word-break: break-word !important; max-width: 100% !important;
+        box-sizing: border-box !important; min-width: 0;
     }}
     .assistant-box *, .user-box * {{
         word-wrap: break-word !important; overflow-wrap: break-word !important;
         word-break: break-word !important; max-width: 100% !important;
+        box-sizing: border-box !important; min-width: 0;
     }}
-    .avatar {{ width: 40px; height: 40px; border-radius: 50%; }}
+    .avatar {{ width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0; }}
     .header-box {{ font-weight: bold; margin-bottom: 5px; }}
+    /* Madde 7: Dokunmatik ekran optimizasyonu */
+    button, [role="button"],
+    .stButton > button,
+    [data-testid="baseButton-secondary"],
+    [data-testid="baseButton-primary"] {{
+        touch-action: manipulation !important;
+        -webkit-tap-highlight-color: transparent !important;
+        cursor: pointer !important;
+    }}
+    /* Madde 3: Mobil (≤768px) düzeltmeleri */
+    @media (max-width: 768px) {{
+        .assistant-box, .user-box {{
+            padding: 10px !important;
+            gap: 8px !important;
+        }}
+        .avatar {{ width: 32px !important; height: 32px !important; }}
+        .stTextArea textarea {{ font-size: 16px !important; }}
+        [data-testid="stAppViewBlockContainer"] {{
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+        }}
+        .stButton > button {{
+            min-height: 44px !important;
+            font-size: 0.9rem !important;
+        }}
+        [data-testid="stSidebar"] {{
+            max-width: 85vw !important;
+        }}
+    }}
+    @media (max-width: 480px) {{
+        .assistant-box, .user-box {{
+            padding: 8px !important;
+            gap: 6px !important;
+        }}
+        .avatar {{ width: 28px !important; height: 28px !important; }}
+        h1 {{ font-size: 1.4rem !important; }}
+    }}
     </style>
     """, unsafe_allow_html=True)
 
@@ -1503,11 +1666,21 @@ else:
                 payload = {"model": MODEL, "messages": [{"role": "system", "content": sistem_mesaji}] + mesajlar}
                 headers = {"Authorization": f"Bearer {OPENROUTER_API_KEY}"}
                 try:
-                    res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=payload)
+                    res = requests.post(
+                        "https://openrouter.ai/api/v1/chat/completions",
+                        headers=headers, json=payload, timeout=30
+                    )
+                    res.raise_for_status()
                     return res.json()['choices'][0]['message']['content']
+                except requests.exceptions.Timeout:
+                    log_hata("AI_TIMEOUT", uid, "OpenRouter 30s zaman aşımı")
+                    return "⏳ Yapay zeka şu an meşgul, biraz sonra tekrar dene Reis."
+                except requests.exceptions.ConnectionError:
+                    log_hata("AI_BAGLANTI_HATASI", uid, "OpenRouter bağlantı hatası")
+                    return "🔌 Bağlantı hatası oluştu. İnternet bağlantını kontrol et Reis."
                 except Exception as e:
-                    print(f"[AI CEVAP HATASI] {e}")
-                    return "Sistem yorgun, Reis."
+                    log_hata("AI_CEVAP_HATASI", uid, str(e))
+                    return "⚠️ Beklenmeyen bir hata oluştu. Lütfen tekrar dene Reis."
 
             if "input_key" not in st.session_state: st.session_state.input_key = 0
             if "kufur_warning" in st.session_state: st.error(st.session_state.kufur_warning)
