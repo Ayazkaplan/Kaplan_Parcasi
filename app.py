@@ -7,7 +7,7 @@ import firebase_admin
 from firebase_admin import credentials, auth, firestore
 import re
 from datetime import datetime, timezone, timedelta
-import time  # NAMEERROR HATASI ÇÖZÜLDÜ: time kütüphanesi en başa güvenle eklendi!
+import time
 import unicodedata
 
 # --- SAYFA AYARLARI (Tüm Streamlit komutlarından önce ilk sırada olmalıdır) ---
@@ -193,14 +193,15 @@ if not st.session_state.user_logged_in:
     
     st.title("🦁 Aslan Parçası V16.4")
 
-    # ADIM 2: GEÇİŞ ANAHTARI (PASSKEY) GÖRSEL ARAYÜZÜ (Kusursuz Button Çözümü)
-    # <a> linki kaldırıldı, yerine gerçek bir <button> eklendi. Tarayıcı indirme olarak algılayamaz!
+    # ADIM 2: GEÇİŞ ANAHTARI (PASSKEY) GÖRSEL ARAYÜZÜ - INCEPTION (ÇÖKME) HATASI GİDERİLDİ!
+    # Tamamen Native <a> etiketi kullanıldı. target="_top" sayesinde kutuyu yırtıp ana sayfayı açar.
     passkey_html = """
     <div id="passkey-container" style="display: none; padding: 25px; background: rgba(255, 255, 255, 0.08); border-radius: 12px; text-align: center; border: 1.5px solid #f39c12; margin-bottom: 25px; font-family: sans-serif; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
         <h3 style="color: white; margin-top: 0; font-size: 22px;">Önceki Oturum Bulundu 🔑</h3>
         <p style="color: #ddd; font-size: 15px; margin-bottom: 20px;">Cihazınızda daha önce giriş yapılmış bir kayıtlı anahtar algılandı.</p>
         
-        <button onclick="loginWithToken()" style="padding: 12px 24px; background-color: #f39c12; color: #000; font-weight: bold; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; transition: 0.3s; box-shadow: 0 2px 5px rgba(243, 156, 18, 0.5);">🚀 Hesabıma Hızlı Giriş Yap</button>
+        <!-- target="_top" BÜTÜN KİLİDİ AÇAN KAHRAMANDIR! Asla site içinde site açmaz. -->
+        <a id="passkey-link" href="#" target="_top" style="display: inline-block; padding: 12px 24px; background-color: #f39c12; color: #000; font-weight: bold; text-decoration: none; border-radius: 6px; font-size: 16px; transition: 0.3s; box-shadow: 0 2px 5px rgba(243, 156, 18, 0.5);">🚀 Hesabıma Hızlı Giriş Yap</a>
         
         <div style="margin-top: 20px;">
             <button onclick="clearToken()" style="background: transparent; border: none; color: #999; cursor: pointer; text-decoration: underline; font-size: 13px; transition: 0.3s;">Bu Anahtarı Sil ve Unut</button>
@@ -210,26 +211,9 @@ if not st.session_state.user_logged_in:
         var token = localStorage.getItem('aslan_passkey');
         if (token) {
             document.getElementById('passkey-container').style.display = 'block';
+            // Kök dizine '/' referans vererek doğrudan ana linkin parametresine yollar.
+            document.getElementById('passkey-link').href = "/?session_uid=" + token;
         }
-        
-        function loginWithToken() {
-            var token = localStorage.getItem('aslan_passkey');
-            if (token) {
-                try {
-                    // SİHRİN GERÇEKLEŞTİĞİ YER: 
-                    // Sadece sayfanın query parametresini güncelliyoruz. Asla farklı adrese gitmiyor!
-                    window.top.location.search = "?session_uid=" + token;
-                } catch(e) {
-                    try {
-                        window.parent.location.search = "?session_uid=" + token;
-                    } catch(e2) {
-                        // Eğer iframe tam korumalıysa ana dizin formülünü uygula
-                        window.location.href = "/?session_uid=" + token;
-                    }
-                }
-            }
-        }
-        
         function clearToken() {
             localStorage.removeItem('aslan_passkey');
             document.getElementById('passkey-container').style.display = 'none';
@@ -1395,4 +1379,4 @@ else:
                     st.session_state.input_key += 1
 
             st.text_area("Mesajını yaz:", key="my_input", height=100)
-            st.button("🚀 Gönder", on_click=send_message) 
+            st.button("🚀 Gönder", on_click=send_message)
