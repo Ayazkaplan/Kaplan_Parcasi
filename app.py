@@ -19,42 +19,50 @@ st.set_page_config(page_title="Aslan Parçası V16.4", page_icon="🦁", layout=
 st.markdown("""
 <meta name="google" content="notranslate">
 <meta http-equiv="Content-Language" content="tr">
-<script>
-  // Meta tag'leri document.head'e enjekte et (Chrome çeviri çubuğunu engeller)
-  (function() {
-    var m1 = document.createElement('meta');
-    m1.name = 'google'; m1.content = 'notranslate';
-    document.head.appendChild(m1);
-    var m2 = document.createElement('meta');
-    m2.httpEquiv = 'Content-Language'; m2.content = 'tr';
-    document.head.appendChild(m2);
-    var m3 = document.createElement('meta');
-    m3.name = 'google-translate-customization'; m3.content = 'disable';
-    document.head.appendChild(m3);
-  })();
-  // Google Translate'i tamamen devre dışı bırak
-  Object.defineProperty(window, 'google', { value: undefined, writable: false });
-  document.documentElement.setAttribute('translate', 'no');
-  document.documentElement.classList.add('notranslate');
-  // MutationObserver ile dinamik translate sınıflarını temizle
-  var observer = new MutationObserver(function(mutations) {
-    mutations.forEach(function(mutation) {
-      if (document.documentElement.classList.contains('translated-ltr') ||
-          document.documentElement.classList.contains('translated-rtl')) {
-        document.documentElement.classList.remove('translated-ltr', 'translated-rtl');
-      }
-    });
-  });
-  observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-</script>
 <style>
   .goog-te-banner-frame, .goog-te-menu-value, #goog-gt-tt,
   .goog-tooltip, .goog-tooltip:hover, .goog-te-balloon-frame,
-  div#goog-gt-tt, .VIpgJd-ZVi9od-ORHb-OEVmcd { display: none !important; }
-  body { top: 0px !important; }
+  div#goog-gt-tt, .VIpgJd-ZVi9od-ORHb-OEVmcd,
+  .goog-te-gadget, .goog-te-gadget-simple { display: none !important; }
+  body { top: 0 !important; }
   .notranslate { translate: no; }
+  font[style*="vertical-align"] { display: none !important; }
 </style>
 """, unsafe_allow_html=True)
+
+# Google Translate JS engeli — components.html ile (script çalışması garantili)
+components.html("""
+<script>
+  var m1 = document.createElement('meta');
+  m1.name = 'google'; m1.content = 'notranslate';
+  document.head.appendChild(m1);
+  var m2 = document.createElement('meta');
+  m2.httpEquiv = 'Content-Language'; m2.content = 'tr';
+  document.head.appendChild(m2);
+  var m3 = document.createElement('meta');
+  m3.name = 'google-translate-customization'; m3.content = 'disable';
+  document.head.appendChild(m3);
+  try { Object.defineProperty(window.parent, 'google', { value: undefined, writable: false }); } catch(e) {}
+  window.parent.document.documentElement.setAttribute('translate', 'no');
+  window.parent.document.documentElement.classList.add('notranslate');
+  if (window.parent.document.body) {
+    window.parent.document.body.setAttribute('translate', 'no');
+    window.parent.document.body.classList.add('notranslate');
+  }
+  var sel = '[data-testid="stApp"],[data-testid="stSidebar"],.main,.block-container';
+  window.parent.document.querySelectorAll(sel).forEach(function(el) {
+    el.setAttribute('translate', 'no');
+    el.classList.add('notranslate');
+  });
+  var obs = new MutationObserver(function(muts) {
+    var html = window.parent.document.documentElement;
+    if (html.classList.contains('translated-ltr') || html.classList.contains('translated-rtl')) {
+      html.classList.remove('translated-ltr', 'translated-rtl');
+    }
+  });
+  obs.observe(window.parent.document.documentElement, { attributes: true, attributeFilter: ['class'] });
+</script>
+""", height=0, width=0)
 
 # --- AYARLAR ---
 KURUCU_EMAIL = "ayazscma92@gmail.com"
@@ -120,64 +128,61 @@ def normalize_text(text):
 
 def kufur_var_mi(text):
     """
-    Küfür ve argo kelime filtresi.
-    Türkçe değişken yazımlar, yeni nesil argo ve çok dilli küfürleri kapsar.
+    Küfür filtresi — kelime sınırı (word boundary) tabanlı, yalnızca ağır hakaret
+    ve küfürleri yakalar. Günlük dilde geçen masum kelimeleri engellemez.
     """
     clean_text = normalize_text(text)
-    ban_list = [
-        # Türkçe küfür ve değişken yazımlar
-        "amk", "amq", "amcik", "amina", "aminakoyim", "aminakoyayim", "amina",
-        "orospu", "orospucocugu", "orospucuk", "orspucocugu",
-        "sik", "sikerim", "sikeyim", "sikik", "sikiim", "sikis", "siksok",
-        "got", "gote", "gotek", "gotlek", "gotun",
-        "pic", "piclik", "picin", "piclerin",
-        "yavsak", "yavsaklik", "yavşak",
-        "serefsiz", "seref",
-        "ibne", "ibnelik", "ibneler",
-        "kahpe", "kahpece", "kahpeler",
-        "gavat", "gavatlik",
-        "dangalak", "bok", "boktan", "boklar",
-        "haysiyetsiz", "alcak", "alçak",
-        "pust", "puşt",
-        "oç", "oc", "oclar",
-        "bok", "bokum",
-        "kancik", "kançık", "kancık",
-        "dalyarak", "yarrak", "yarak",
-        "manyak", "manyaklik",
-        "gerizekalı", "gerzek", "gerizekali",
-        "aptal", "mal", "salak", "enayı",
-        # İngilizce küfür ve değişken yazımlar
+
+    # Değişken yazım / birleşik kelime varyantları için substring eşleşmesi
+    substring_list = [
+        "amk", "amq", "amcik", "aminakoy", "aminakoyim", "aminakoyayim",
+        "orospucocugu", "orspucocugu", "orospucuk",
+        "sikerim", "sikeyim", "sikis", "siksok",
+        "gotek", "gotlek",
+        "piclik",
+        "yavsak", "yavsaklik",
+        "serefsiz",
+        "ibnelik",
+        "kahpece",
+        "gavatlik",
+        "dalyarak",
+        "kancik",
         "fuck", "fuuck", "fck", "f u c k",
-        "bitch", "btch", "b1tch",
+        "btch", "b1tch",
         "asshole", "ashole",
-        "bastard",
-        "cunt",
         "motherfucker", "mofo",
-        "whore",
-        "slut",
-        "dick",
-        "cock",
-        "pussy",
+        "scheisse", "scheiße",
+        "arschloch", "schlampe", "wichser", "hurensohn", "fotze", "ficken",
+        "sharmouta", "sharmuta", "kussemmak",
+        "putain", "connard",
+    ]
+
+    # Bağımsız kelime olarak geçtiğinde tetiklenen liste (yanlış pozitifi önler)
+    word_list = [
+        "amina", "orospu",
+        "sik", "got",
+        "pic", "picin",
+        "ibne", "kahpe", "gavat",
+        "yarrak", "yarak",
+        "dangalak", "gerzek", "gerizekali",
+        "bok",
+        "pust",
+        "bitch", "cunt", "whore", "slut", "dick", "cock",
+        "bastard",
         "nigger", "nigga",
         "faggot", "fag",
         "retard",
-        # Almanca
-        "scheisse", "scheiße", "scheiϐe",
-        "arschloch",
-        "schlampe",
-        "wichser",
-        "hurensohn",
-        "fotze",
-        "ficken",
-        # Arapça
-        "sharmouta", "sharmuta", "sharmout",
-        "kussemmak",
-        # İspanyolca / Fransızca
-        "puta", "puto", "cabron", "maricon", "merde", "putain", "connard",
+        "puta", "puto", "cabron", "maricon", "merde",
     ]
-    for word in ban_list:
+
+    for word in substring_list:
         if word in clean_text:
             return True
+
+    for word in word_list:
+        if re.search(r'(?<![a-z])' + re.escape(word) + r'(?![a-z])', clean_text):
+            return True
+
     return False
 
 def emoji_var_mi(text):
@@ -308,6 +313,9 @@ if "messages" not in st.session_state: st.session_state.messages = []
 if "tema" not in st.session_state: st.session_state.tema = list(TEMALAR.values())[0]
 if "valid_users_cache" not in st.session_state: st.session_state.valid_users_cache = None
 if "current_page" not in st.session_state: st.session_state.current_page = "chat"
+if "yt_results" not in st.session_state: st.session_state.yt_results = []
+if "yt_playing_id" not in st.session_state: st.session_state.yt_playing_id = None
+if "yt_playing_title" not in st.session_state: st.session_state.yt_playing_title = ""
 
 def trigger_invalid_session():
     for key in list(st.session_state.keys()):
@@ -888,75 +896,123 @@ else:
 
         st.divider()
 
-        with st.expander("❓ YouTube ID Nasıl Alınır?"):
-            st.markdown("Bir videonun ID'sini almak için URL'sine bakın. Örneğin https://www.youtube.com/watch?v=dQw4w9WgXcQ linkindeki dQw4w9WgXcQ kısmı videonun ID'sidir.")
+        # ═══════════════════════════════════════════
+        # 🎬 YOUTUBE ARAMA & İZLEME PORTALI
+        # ═══════════════════════════════════════════
+        st.markdown("#### 🎬 YouTube Portalı")
 
-        yeni_video = st.text_input("YouTube ID ekle:")
-        if st.button("💾 Kaydet"):
-            if yeni_video and yeni_video.strip() not in saved_videos:
-                _vid = yeni_video.strip()
+        # Arama çubuğu
+        col_sch, col_btn = st.columns([5, 1])
+        with col_sch:
+            yt_query = st.text_input(
+                "", placeholder="🔍 YouTube'da ara...",
+                label_visibility="collapsed", key="yt_search_input"
+            )
+        with col_btn:
+            do_yt_search = st.button("Ara", use_container_width=True, key="yt_search_btn")
+
+        if do_yt_search and yt_query and yt_query.strip():
+            with st.spinner("Aranıyor..."):
                 try:
-                    _chk = requests.get(
-                        f"https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v={_vid}&format=json",
-                        timeout=5
-                    )
-                    if _chk.status_code == 200:
-                        user_ref.update({"videos": firestore.ArrayUnion([_vid])})
-                        st.rerun()
-                    else:
-                        st.error("❌ Geçersiz YouTube ID veya video engelli. Lütfen ID'yi kontrol edin.")
-                except Exception:
-                    user_ref.update({"videos": firestore.ArrayUnion([_vid])})
-                    st.rerun()
+                    from youtubesearchpython import VideosSearch
+                    vs = VideosSearch(yt_query.strip(), limit=6)
+                    st.session_state.yt_results = vs.result().get("result", [])
+                    st.session_state.yt_playing_id = None
+                    st.session_state.yt_playing_title = ""
+                except Exception as _ye:
+                    st.error(f"Arama başarısız: {_ye}")
 
-        # --- Video: components.html ile tam YT API desteği + localStorage timestamp ---
-        for v in saved_videos:
-            c1, c2 = st.columns([0.8, 0.2])
-            safe_v = v.replace("\\", "").replace("'", "").replace('"', "").replace("`", "").replace("<", "").replace(">", "")
-            video_html = f"""<!DOCTYPE html>
-<html><body style="margin:0;padding:0;background:#111;overflow:hidden;">
-  <div id="player" style="width:100%;height:200px;"></div>
-  <div id="err" style="display:none;color:#f39c12;font-family:sans-serif;padding:16px;font-size:0.9em;">
-    ⚠️ Geçersiz ID veya video engelli
-  </div>
+        # --- OYNATICI MODU ---
+        if st.session_state.yt_playing_id:
+            safe_v = re.sub(r'[^a-zA-Z0-9_\-]', '', st.session_state.yt_playing_id)
+            title_disp = st.session_state.yt_playing_title
+            col_back, col_save = st.columns([2, 1])
+            with col_back:
+                if st.button("← Sonuçlara Dön", key="yt_back_btn"):
+                    st.session_state.yt_playing_id = None
+                    st.rerun()
+            with col_save:
+                if safe_v not in saved_videos:
+                    if st.button("📌 Kaydet", key="yt_save_playing", use_container_width=True):
+                        user_ref.update({"videos": firestore.ArrayUnion([safe_v])})
+                        st.rerun()
+            if title_disp:
+                st.caption(f"▶ {title_disp[:60]}{'...' if len(title_disp) > 60 else ''}")
+            player_html = f"""<!DOCTYPE html>
+<html><body style="margin:0;padding:0;background:#000;overflow:hidden;">
+  <div id="player" style="width:100%;height:300px;"></div>
+  <div id="err" style="display:none;color:#f39c12;font-family:sans-serif;padding:16px;font-size:0.9em;">⚠️ Video yüklenemedi</div>
   <script>
-    var storageKey = 'yt_ts_{safe_v}';
-    var savedTime = 0;
-    try {{ savedTime = parseFloat(localStorage.getItem(storageKey) || '0'); }} catch(e) {{}}
+    var sk = 'yt_ts_{safe_v}';
+    var st0 = 0;
+    try {{ st0 = parseFloat(localStorage.getItem(sk) || '0'); }} catch(e) {{}}
     var tag = document.createElement('script');
     tag.src = 'https://www.youtube.com/iframe_api';
     document.head.appendChild(tag);
     window.onYouTubeIframeAPIReady = function() {{
       new YT.Player('player', {{
-        height: '200', width: '100%',
+        height: '300', width: '100%',
         videoId: '{safe_v}',
-        playerVars: {{'rel': 0, 'enablejsapi': 1, 'modestbranding': 1}},
+        playerVars: {{'rel': 0, 'enablejsapi': 1, 'autoplay': 1, 'modestbranding': 1}},
         events: {{
           onReady: function(e) {{
-            if (savedTime > 3) e.target.seekTo(savedTime, true);
+            if (st0 > 3) e.target.seekTo(st0, true);
             setInterval(function() {{
               try {{
                 var t = e.target.getCurrentTime();
-                if (t > 0) localStorage.setItem(storageKey, t);
+                if (t > 0) localStorage.setItem(sk, t);
               }} catch(e2) {{}}
             }}, 5000);
           }},
           onError: function() {{
-            document.getElementById('player').style.display = 'none';
-            document.getElementById('err').style.display = 'block';
+            document.getElementById('player').style.display='none';
+            document.getElementById('err').style.display='block';
           }}
         }}
       }});
     }};
   </script>
 </body></html>"""
-            with c1:
-                components.html(video_html, height=210)
-            with c2:
-                st.write("")
-                if st.button("🗑️", key=v):
-                    user_ref.update({"videos": firestore.ArrayRemove([v])})
-                    st.rerun()
+            components.html(player_html, height=310)
+
+        # --- ARAMA SONUÇLARI ---
+        elif st.session_state.yt_results:
+            for _r in st.session_state.yt_results:
+                _vid_id = _r.get("id", "")
+                _title  = _r.get("title", "")
+                _dur    = _r.get("duration", "")
+                _thumbs = _r.get("thumbnails", [])
+                _thumb  = _thumbs[0].get("url", "") if _thumbs else ""
+                _col_img, _col_info = st.columns([1, 3])
+                with _col_img:
+                    if _thumb:
+                        st.image(_thumb, use_column_width=True)
+                with _col_info:
+                    st.markdown(f"**{_title[:55]}{'...' if len(_title)>55 else ''}**")
+                    if _dur:
+                        st.caption(f"⏱ {_dur}")
+                    if st.button("▶ İzle", key=f"yt_play_{_vid_id}"):
+                        st.session_state.yt_playing_id = _vid_id
+                        st.session_state.yt_playing_title = _title
+                        st.rerun()
+                st.markdown("---")
+
+        # --- KAYITLI VİDEOLAR ---
+        if saved_videos:
+            st.markdown("**📌 Kayıtlı Videolar**")
+            for v in saved_videos:
+                safe_v = re.sub(r'[^a-zA-Z0-9_\-]', '', v)
+                c1, c2 = st.columns([0.75, 0.25])
+                with c1:
+                    if st.button(f"▶ {safe_v}", key=f"yt_sv_{v}", use_container_width=True):
+                        st.session_state.yt_playing_id = safe_v
+                        st.session_state.yt_playing_title = safe_v
+                        st.session_state.yt_results = []
+                        st.rerun()
+                with c2:
+                    if st.button("🗑️", key=f"yt_del_{v}"):
+                        user_ref.update({"videos": firestore.ArrayRemove([v])})
+                        st.rerun()
 
         if is_kurucu:
             st.divider()
