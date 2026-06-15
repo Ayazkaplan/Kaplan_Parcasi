@@ -2364,4 +2364,4 @@ Müstakbel Şirket; yazılım mühendisleri, yapay zeka araştırmacıları, ür
                                     st.rerun()
             else:
                 st.markdown("<hr style='border:none;border-top:1px solid rgba(255,255,255,0.08);margin:16px 0 12px;'>", unsafe_allow_html=True)
-                st.info("Henüz kayıtlı video yok — bir video izlerken 📌 Kayıtlara Ekle butonuna bas.")
+                st.info("Henüz kayıtlı
