@@ -21,7 +21,14 @@ st.markdown("""
 <meta http-equiv="Content-Language" content="tr">
 <style>
   /* 3 Nokta Streamlit Menüsünü Tamamen Gizle (Bilgi Tuşu İçin) */
-  [data-testid="stHeader"] { display: none !important; }
+  [data-testid="stHeader"] { 
+    display: none !important; 
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    height: 0 !important;
+    min-height: 0 !important;
+  }
 
   .goog-te-banner-frame, .goog-te-menu-value, #goog-gt-tt,
   .goog-tooltip, .goog-tooltip:hover, .goog-te-balloon-frame,
@@ -31,37 +38,43 @@ st.markdown("""
   .notranslate { translate: no; }
   font[style*="vertical-align"] { display: none !important; }
 
-  /* ── ℹ️ Bilgi Butonu — sağ üst köşe, biraz daha aşağıda ── */
+  /* ── ℹ️ Bilgi Butonu — sağ üst köşe, tam tıklanabilir ── */
   div[data-testid="stPopover"] {
     position: fixed !important;
-    top: 55px !important; /* TIKLANABİLİR OLMASI İÇİN AŞAĞI ALINDI */
+    top: 15px !important;
     right: 15px !important;
     z-index: 999999 !important;
     width: auto !important;
     height: auto !important;
-    max-width: 44px !important;
+    max-width: 48px !important;
     margin: 0 !important;
     padding: 0 !important;
     pointer-events: auto !important;
   }
   div[data-testid="stPopover"] button:first-child {
-    background: rgba(20,20,40,0.9) !important;
-    border: 1px solid rgba(255,255,255,0.2) !important;
+    background: rgba(20,20,40,0.85) !important;
+    border: 1px solid rgba(255,255,255,0.25) !important;
     border-radius: 50% !important;
-    width: 36px !important;
-    height: 36px !important;
-    min-width: 36px !important;
-    min-height: 36px !important;
-    max-width: 36px !important;
-    max-height: 36px !important;
+    width: 42px !important;
+    height: 42px !important;
+    min-width: 42px !important;
+    min-height: 42px !important;
+    max-width: 42px !important;
+    max-height: 42px !important;
     padding: 0 !important;
-    font-size: 1rem !important;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.5) !important;
+    font-size: 1.2rem !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.6) !important;
     cursor: pointer !important;
     pointer-events: auto !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
+    transition: all 0.2s ease !important;
+  }
+  div[data-testid="stPopover"] button:first-child:hover {
+    background: rgba(40,40,80,0.95) !important;
+    transform: scale(1.05) !important;
+    border-color: rgba(255,215,0,0.5) !important;
   }
 </style>
 """, unsafe_allow_html=True)
@@ -403,6 +416,8 @@ if "yt_last_id" not in st.session_state: st.session_state.yt_last_id = None
 if "yt_last_title" not in st.session_state: st.session_state.yt_last_title = ""
 if "yt_last_channel" not in st.session_state: st.session_state.yt_last_channel = ""
 if "yt_ts_dict" not in st.session_state: st.session_state.yt_ts_dict = {}
+if "yt_iframe_mounted" not in st.session_state: st.session_state.yt_iframe_mounted = False
+if "yt_iframe_vid" not in st.session_state: st.session_state.yt_iframe_vid = ""
 
 def trigger_invalid_session():
     for key in list(st.session_state.keys()):
@@ -791,7 +806,7 @@ else:
         st.session_state.current_page = "chat"
         st.rerun()
 
-    # --- CSS ENJEKSİYONU (Madde 3: Mobil Düzeltme | Madde 7: Dokunmatik) ---
+    # --- CSS ENJEKSİYONU (Mobil Düzeltme + Dokunmatik) ---
     st.markdown(f"""
     <style>
     *, *::before, *::after {{ box-sizing: border-box !important; }}
@@ -852,7 +867,7 @@ else:
     }}
     .avatar {{ width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0; }}
     .header-box {{ font-weight: bold; margin-bottom: 5px; }}
-    /* Madde 7: Dokunmatik ekran optimizasyonu */
+    /* Dokunmatik ekran optimizasyonu */
     button, [role="button"],
     .stButton > button,
     [data-testid="baseButton-secondary"],
@@ -861,7 +876,7 @@ else:
         -webkit-tap-highlight-color: transparent !important;
         cursor: pointer !important;
     }}
-    /* Madde 3: Mobil (≤768px) düzeltmeleri */
+    /* Mobil (≤768px) düzeltmeleri */
     @media (max-width: 768px) {{
         .assistant-box, .user-box {{
             padding: 10px !important;
@@ -907,7 +922,6 @@ else:
 
     isim_stili = get_styled_user_name(kullanici_ismi, u_color, u_glow, u_tag, u_rozet)
 
-    # --- DÜZELTME 3: TR Saati ---
     tr_simdi = get_tr_time()
     saat_str = tr_simdi.strftime("%H:%M:%S")
     tarih_str = tr_simdi.strftime("%d.%m.%Y")
@@ -1293,7 +1307,6 @@ else:
                         b_email = b_data.get("email", "")
                         b_mesaj = b_data.get("metin", b_data.get("mesaj", ""))
                         b_tarih = b_data.get("tarih")
-                        # --- DÜZELTME 9: Raporda tag/renk/rozet gösterimi ---
                         b_color = b_data.get("isim_rengi", "#FFFFFF")
                         b_glow = b_data.get("ismin_parlakligi", False)
                         b_tag = b_data.get("tag", "")
@@ -1602,58 +1615,7 @@ else:
             st.error(f"Yöneticiler yüklenirken hata oluştu: {e}")
 
     else:
-        # ─── KALICI MİNİ OYNATICI — her sayfada render edilir, GÖRÜNMEZ SES MODU ───────
-        _gp_vid = ""
-        _gp_ts  = 0
-        if st.session_state.get("yt_playing_id"):
-            _gp_vid = re.sub(r'[^a-zA-Z0-9_\-]', '', st.session_state.yt_playing_id)
-            _gp_ts  = int(st.session_state.yt_ts_dict.get(_gp_vid, 0))
-        _gp_portal = (st.session_state.current_page == "youtube_portal")
-        components.html(f"""<script>
-(function() {{
-  var VID      = '{_gp_vid}';
-  var START_TS = {_gp_ts};
-  var IS_PORTAL = {'true' if _gp_portal else 'false'};
-  var pDoc     = window.parent.document;
-  if (!pDoc) return;
-
-  /* ── DOM elemanını bir kez oluştur (Tamamen Görünmez) ── */
-  if (!pDoc.getElementById('yt-gp-cont')) {{
-    var cont = pDoc.createElement('div');
-    cont.id = 'yt-gp-cont';
-    /* Tamamen görünmez, tıklanamaz, hayalet kutu */
-    cont.style.cssText = 'position:fixed;width:1px;height:1px;top:-9999px;left:-9999px;opacity:0;pointer-events:none;z-index:-99;';
-
-    var fr = pDoc.createElement('iframe');
-    fr.id  = 'yt-gp-frame';
-    fr.style.cssText = 'width:100%;height:100%;border:none;';
-    fr.allow = 'autoplay;encrypted-media;';
-    cont.appendChild(fr);
-    pDoc.body.appendChild(cont);
-  }}
-
-  var frame = pDoc.getElementById('yt-gp-frame');
-
-  /* Portal sayfasındaysak veya video yoksa, arkadaki gizli iframe'i tamamen boşalt (çift sesi önler) */
-  if (IS_PORTAL || !VID) {{
-      if (frame.src !== '') {{
-          frame.src = ''; 
-      }}
-      return;
-  }}
-
-  /* Portalda DEĞİLSEK ve video varsa, arka planda görünmez olarak çalmaya devam et */
-  var targetBase = 'https://www.youtube.com/embed/' + VID;
-  var targetSrc  = targetBase + '?autoplay=1&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&start=' + START_TS;
-
-  var curBase = (frame.src || '').split('?')[0];
-  if (curBase !== targetBase) {{
-    frame.src = targetSrc;
-  }}
-}})();
-</script>""", height=0, scrolling=False)
-        # ────────────────────────────────────────────────────────────────────────
-
+        # ─── SOHBET SAYFASI ────────────────────────────────────────────
         if st.session_state.current_page == "chat":
 
             @st.fragment(run_every=10)
@@ -1967,7 +1929,7 @@ Müstakbel Şirket; yazılım mühendisleri, yapay zeka araştırmacıları, ür
             st.button("🚀 Gönder", on_click=send_message)
 
         # ═══════════════════════════════════════════════════
-        # 🎬 YOUTUBE PORTAL SAYFASI
+        # 🎬 YOUTUBE PORTAL SAYFASI (DÜZELTİLMİŞ)
         # ═══════════════════════════════════════════════════
         elif st.session_state.current_page == "youtube_portal":
             yt_saved = user_ref.get().to_dict().get("videos", [])
@@ -1984,6 +1946,8 @@ Müstakbel Şirket; yazılım mühendisleri, yapay zeka araştırmacıları, ür
                         st.session_state.yt_playing_id      = _qp_vid_safe
                         st.session_state.yt_playing_title   = st.session_state.get("yt_last_title", _qp_vid_safe)
                         st.session_state.yt_playing_channel = st.session_state.get("yt_last_channel", "")
+                        st.session_state.yt_iframe_vid      = _qp_vid_safe
+                        st.session_state.yt_iframe_mounted  = False
                         st.query_params.clear()
                         st.rerun()
 
@@ -1991,15 +1955,15 @@ Müstakbel Şirket; yazılım mühendisleri, yapay zeka araştırmacıları, ür
             _yh1, _yh2 = st.columns([7, 1])
             with _yh1:
                 st.markdown("""
-<div style="display:flex;align-items:center;gap:14px;padding:6px 0 2px;">
-  <div style="background:#FF0000;border-radius:10px;width:46px;height:32px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-    <span style="color:#fff;font-size:1.1rem;font-weight:900;">▶</span>
-  </div>
-  <div>
-    <div style="font-size:1.6rem;font-weight:800;color:#fff;letter-spacing:-0.5px;line-height:1.1;">YouTube Portalı</div>
-    <div style="font-size:0.78rem;color:#777;margin-top:1px;">Aslan Parçası · Gömülü Oynatıcı & Arama</div>
-  </div>
-</div>""", unsafe_allow_html=True)
+    <div style="display:flex;align-items:center;gap:14px;padding:6px 0 2px;">
+      <div style="background:#FF0000;border-radius:10px;width:46px;height:32px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <span style="color:#fff;font-size:1.1rem;font-weight:900;">▶</span>
+      </div>
+      <div>
+        <div style="font-size:1.6rem;font-weight:800;color:#fff;letter-spacing:-0.5px;line-height:1.1;">YouTube Portalı</div>
+        <div style="font-size:0.78rem;color:#777;margin-top:1px;">Aslan Parçası · Gömülü Oynatıcı & Arama</div>
+      </div>
+    </div>""", unsafe_allow_html=True)
             with _yh2:
                 st.write("")
                 if st.button("← Geri", use_container_width=True, key="yt_geri_btn"):
@@ -2009,6 +1973,7 @@ Müstakbel Şirket; yazılım mühendisleri, yapay zeka araştırmacıları, ür
                         st.session_state.yt_last_channel = st.session_state.get("yt_playing_channel", "")
                     st.session_state.current_page = "chat"
                     st.session_state.yt_results   = []
+                    st.session_state.yt_iframe_mounted = False
                     st.rerun()
 
             st.markdown("<hr style='border:none;border-top:1px solid rgba(255,255,255,0.08);margin:10px 0 14px;'>", unsafe_allow_html=True)
@@ -2031,6 +1996,7 @@ Müstakbel Şirket; yazılım mühendisleri, yapay zeka araştırmacıları, ür
                         st.session_state.yt_playing_id = None
                         st.session_state.yt_playing_title = ""
                         st.session_state.yt_playing_channel = ""
+                        st.session_state.yt_iframe_mounted = False
                     else:
                         st.warning("⚠️ Sonuç bulunamadı. Farklı bir terim deneyin.")
 
@@ -2040,6 +2006,10 @@ Müstakbel Şirket; yazılım mühendisleri, yapay zeka araştırmacıları, ür
                 _ptitle   = st.session_state.yt_playing_title
                 _pch      = st.session_state.get("yt_playing_channel", "")
 
+                if st.session_state.yt_iframe_vid != _safe_vid:
+                    st.session_state.yt_iframe_vid = _safe_vid
+                    st.session_state.yt_iframe_mounted = False
+
                 _pb1, _pb2, _pb3 = st.columns([3, 2, 2])
                 with _pb1:
                     if st.button("← Sonuçlara Dön", key="yt_geri_sonuc"):
@@ -2047,6 +2017,7 @@ Müstakbel Şirket; yazılım mühendisleri, yapay zeka araştırmacıları, ür
                         st.session_state.yt_last_title   = _ptitle
                         st.session_state.yt_last_channel = _pch
                         st.session_state.yt_playing_id   = None
+                        st.session_state.yt_iframe_mounted = False
                         st.rerun()
                 with _pb2:
                     if _safe_vid not in yt_saved:
@@ -2068,95 +2039,102 @@ Müstakbel Şirket; yazılım mühendisleri, yapay zeka araştırmacıları, ür
 
                 if _ptitle:
                     st.markdown(f"""
-<div style="background:rgba(255,0,0,0.07);border-left:3px solid #FF0000;padding:10px 14px;border-radius:0 8px 8px 0;margin:10px 0;">
-  <div style="font-weight:700;font-size:0.97em;color:#fff;line-height:1.4;">{_ptitle[:110]}{'...' if len(_ptitle)>110 else ''}</div>
-  {f'<div style="font-size:0.8em;color:#aaa;margin-top:4px;">📺 {_pch}</div>' if _pch else ''}
-</div>""", unsafe_allow_html=True)
+    <div style="background:rgba(255,0,0,0.07);border-left:3px solid #FF0000;padding:10px 14px;border-radius:0 8px 8px 0;margin:10px 0;">
+      <div style="font-weight:700;font-size:0.97em;color:#fff;line-height:1.4;">{_ptitle[:110]}{'...' if len(_ptitle)>110 else ''}</div>
+      {f'<div style="font-size:0.8em;color:#aaa;margin-top:4px;">📺 {_pch}</div>' if _pch else ''}
+    </div>""", unsafe_allow_html=True)
 
                 _start_ts = int(st.session_state.yt_ts_dict.get(_safe_vid, 0))
 
-                _player_html = f"""<!DOCTYPE html>
-<html>
-<head>
-<style>
-  * {{ margin:0; padding:0; box-sizing:border-box; }}
-  body {{ background:#000; overflow:hidden; }}
-  #ytp {{ width:100%; height:490px; }}
-  #ytp-err {{
-    display:none; background:#111; color:#f39c12;
-    font-family:sans-serif; height:490px;
-    flex-direction:column; align-items:center;
-    justify-content:center; gap:12px; font-size:0.95rem;
-  }}
-  #ytp-err a {{ color:#3ea6ff; }}
-</style>
-</head>
-<body>
-  <div id="ytp"></div>
-  <div id="ytp-err">
-    ⚠️ Video yüklenemedi.
-    <a href="https://youtu.be/{_safe_vid}" target="_blank">YouTube'da aç ↗</a>
-  </div>
-  <script>
-    var SK = 'ytpos_{_safe_vid}';
-    var startT = {_start_ts};
-    try {{
-      var lsT = parseFloat(localStorage.getItem(SK) || '0') || 0;
-      if (lsT > startT + 2) startT = lsT;
-    }} catch(e) {{}}
+                # ─── TEKİL İFRAME: SADECE BİR KERE OLUŞTUR ──────────
+                if not st.session_state.yt_iframe_mounted:
+                    st.session_state.yt_iframe_mounted = True
+                    
+                    _player_html = f"""<!DOCTYPE html>
+    <html>
+    <head>
+    <style>
+      * {{ margin:0; padding:0; box-sizing:border-box; }}
+      body {{ background:#000; overflow:hidden; }}
+      #ytp {{ width:100%; height:490px; }}
+      #ytp-err {{
+        display:none; background:#111; color:#f39c12;
+        font-family:sans-serif; height:490px;
+        flex-direction:column; align-items:center;
+        justify-content:center; gap:12px; font-size:0.95rem;
+      }}
+      #ytp-err a {{ color:#3ea6ff; }}
+    </style>
+    </head>
+    <body>
+      <div id="ytp"></div>
+      <div id="ytp-err">
+        ⚠️ Video yüklenemedi.
+        <a href="https://youtu.be/{_safe_vid}" target="_blank">YouTube'da aç ↗</a>
+      </div>
+      <script>
+        var SK = 'ytpos_{_safe_vid}';
+        var startT = {_start_ts};
+        try {{
+          var lsT = parseFloat(localStorage.getItem(SK) || '0') || 0;
+          if (lsT > startT + 2) startT = lsT;
+        }} catch(e) {{}}
 
-    var tag = document.createElement('script');
-    tag.src = 'https://www.youtube.com/iframe_api';
-    document.head.appendChild(tag);
+        var tag = document.createElement('script');
+        tag.src = 'https://www.youtube.com/iframe_api';
+        document.head.appendChild(tag);
 
-    var ytP;
-    window.onYouTubeIframeAPIReady = function() {{
-      ytP = new YT.Player('ytp', {{
-        height:'490', width:'100%',
-        videoId:'{_safe_vid}',
-        playerVars:{{
-          autoplay:1, rel:0, modestbranding:1,
-          enablejsapi:1, playsinline:1,
-          start: Math.floor(startT)
-        }},
-        events:{{
-          onReady: function(e) {{
-            if (startT > 5) e.target.seekTo(startT, true);
-            setInterval(function() {{
-              try {{
-                var t = ytP.getCurrentTime();
-                if (t > 0) {{
-                  localStorage.setItem(SK, String(t));
+        var ytP;
+        window.onYouTubeIframeAPIReady = function() {{
+          ytP = new YT.Player('ytp', {{
+            height:'490', width:'100%',
+            videoId:'{_safe_vid}',
+            playerVars:{{
+              autoplay:1, rel:0, modestbranding:1,
+              enablejsapi:1, playsinline:1,
+              start: Math.floor(startT)
+            }},
+            events:{{
+              onReady: function(e) {{
+                if (startT > 5) e.target.seekTo(startT, true);
+                setInterval(function() {{
                   try {{
-                    var u = new URL(window.parent.location.href);
-                    u.searchParams.set('ytv', '{_safe_vid}');
-                    u.searchParams.set('ytt', String(Math.floor(t)));
-                    window.parent.history.replaceState(null, '', u.toString());
-                  }} catch(ue) {{}}
-                }}
-              }} catch(ex) {{}}
-            }}, 5000);
-          }},
-          onError: function() {{
-            document.getElementById('ytp').style.display = 'none';
-            document.getElementById('ytp-err').style.display = 'flex';
-          }}
-        }}
-      }});
-    }};
-  </script>
-</body>
-</html>"""
-                components.html(_player_html, height=495, scrolling=False)
+                    var t = ytP.getCurrentTime();
+                    if (t > 0) {{
+                      localStorage.setItem(SK, String(t));
+                      try {{
+                        var u = new URL(window.parent.location.href);
+                        u.searchParams.set('ytv', '{_safe_vid}');
+                        u.searchParams.set('ytt', String(Math.floor(t)));
+                        window.parent.history.replaceState(null, '', u.toString());
+                      }} catch(ue) {{}}
+                    }}
+                  }} catch(ex) {{}}
+                }}, 5000);
+              }},
+              onError: function() {{
+                document.getElementById('ytp').style.display = 'none';
+                document.getElementById('ytp-err').style.display = 'flex';
+              }}
+            }}
+          }});
+        }};
+      </script>
+    </body>
+    </html>"""
+                    components.html(_player_html, height=495, scrolling=False)
+                else:
+                    st.markdown(f"""
+    <div style="height:495px;background:#000;border-radius:8px;overflow:hidden;">
+      <iframe id="yt-gp-frame" src="https://www.youtube.com/embed/{_safe_vid}?autoplay=1&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&start={_start_ts}" style="width:100%;height:100%;border:none;display:block;"></iframe>
+    </div>
+    """, unsafe_allow_html=True)
 
-            # ─── ARAMA SONUÇLARI — KART GRİD ──────────────────────────
-            elif st.session_state.yt_results:
+            # ─── ARAMA SONUÇLARI ──────────────────────────────────────
+            if st.session_state.yt_results:
+                st.markdown("---")
+                st.markdown("### 📋 Arama Sonuçları")
                 _yres = st.session_state.yt_results
-                st.markdown(
-                    f"<div style='color:#777;font-size:0.82em;margin-bottom:10px;'>"
-                    f"🎯 {len(_yres)} sonuç</div>",
-                    unsafe_allow_html=True
-                )
                 _COLS = 3
                 for _ri in range(0, len(_yres), _COLS):
                     _rcols = st.columns(_COLS)
@@ -2181,67 +2159,71 @@ Müstakbel Şirket; yazılım mühendisleri, yapay zeka araştırmacıları, ür
                                 f'<div style="font-size:0.71em;color:#666;margin-top:1px;">{_rviews}</div>'
                             ) if _rviews else ""
                             st.markdown(f"""
-<div style="background:linear-gradient(160deg,#1c1c2e 0%,#16213e 100%);
-            border-radius:12px;overflow:hidden;margin-bottom:6px;
-            border:1px solid rgba(255,255,255,0.07);
-            box-shadow:0 4px 18px rgba(0,0,0,0.45);">
-  <div style="position:relative;overflow:hidden;aspect-ratio:16/9;background:#111;">
-    <img src="{_rthumb}" loading="lazy"
-         style="width:100%;height:100%;object-fit:cover;"
-         onerror="this.style.visibility='hidden'">
-    {_dur_badge}
-  </div>
-  <div style="padding:9px 12px 7px;">
-    <div style="font-size:0.84em;font-weight:700;line-height:1.4;color:#fff;
-                margin-bottom:4px;overflow:hidden;display:-webkit-box;
-                -webkit-line-clamp:2;-webkit-box-orient:vertical;">
-      {_rtitle[:95]}{'...' if len(_rtitle)>95 else ''}
-    </div>
-    <div style="font-size:0.74em;color:#999;">{_rch}</div>
-    {_views_line}
-  </div>
-</div>""", unsafe_allow_html=True)
+    <div style="background:linear-gradient(160deg,#1c1c2e 0%,#16213e 100%);
+                border-radius:12px;overflow:hidden;margin-bottom:6px;
+                border:1px solid rgba(255,255,255,0.07);
+                box-shadow:0 4px 18px rgba(0,0,0,0.45);">
+      <div style="position:relative;overflow:hidden;aspect-ratio:16/9;background:#111;">
+        <img src="{_rthumb}" loading="lazy"
+             style="width:100%;height:100%;object-fit:cover;"
+             onerror="this.style.visibility='hidden'">
+        {_dur_badge}
+      </div>
+      <div style="padding:9px 12px 7px;">
+        <div style="font-size:0.84em;font-weight:700;line-height:1.4;color:#fff;
+                    margin-bottom:4px;overflow:hidden;display:-webkit-box;
+                    -webkit-line-clamp:2;-webkit-box-orient:vertical;">
+          {_rtitle[:95]}{'...' if len(_rtitle)>95 else ''}
+        </div>
+        <div style="font-size:0.74em;color:#999;">{_rch}</div>
+        {_views_line}
+      </div>
+    </div>""", unsafe_allow_html=True)
                             if st.button("▶ İzle", key=f"ytplay_{_rid}_{_ridx}", use_container_width=True):
                                 st.session_state.yt_playing_id  = _rid
                                 st.session_state.yt_playing_title   = _rtitle
                                 st.session_state.yt_playing_channel = _rch
+                                st.session_state.yt_iframe_vid = _rid
+                                st.session_state.yt_iframe_mounted = False
                                 st.rerun()
 
             # ─── HOŞ GELDİN EKRANI ────────────────────────────────────
-            else:
+            elif not st.session_state.yt_results:
                 if st.session_state.get("yt_last_id"):
                     _lid   = st.session_state.yt_last_id
                     _ltit  = st.session_state.yt_last_title or _lid
                     _lch   = st.session_state.get("yt_last_channel", "")
                     _lthumb = f"https://img.youtube.com/vi/{_lid}/mqdefault.jpg"
                     st.markdown("""
-<div style="font-size:0.82em;color:#f39c12;font-weight:600;margin-bottom:8px;">▶ Kaldığın Yerden Devam Et</div>""",
+    <div style="font-size:0.82em;color:#f39c12;font-weight:600;margin-bottom:8px;">▶ Kaldığın Yerden Devam Et</div>""",
                         unsafe_allow_html=True)
                     _rc1, _rc2 = st.columns([3, 1])
                     with _rc1:
                         st.markdown(f"""
-<div style="background:rgba(255,165,0,0.07);border:1px solid rgba(255,165,0,0.25);border-radius:12px;overflow:hidden;display:flex;gap:12px;align-items:center;padding:10px;">
-  <img src="{_lthumb}" style="width:100px;min-width:100px;border-radius:8px;object-fit:cover;" loading="lazy">
-  <div>
-    <div style="font-size:0.87em;font-weight:700;color:#fff;line-height:1.4;">{_ltit[:70]}{'...' if len(_ltit)>70 else ''}</div>
-    {f'<div style="font-size:0.75em;color:#aaa;margin-top:3px;">{_lch}</div>' if _lch else ''}
-    <div style="font-size:0.72em;color:#777;margin-top:4px;">localStorage ile pozisyon kaydedildi — kaldığın yerden devam eder</div>
-  </div>
-</div>""", unsafe_allow_html=True)
+    <div style="background:rgba(255,165,0,0.07);border:1px solid rgba(255,165,0,0.25);border-radius:12px;overflow:hidden;display:flex;gap:12px;align-items:center;padding:10px;">
+      <img src="{_lthumb}" style="width:100px;min-width:100px;border-radius:8px;object-fit:cover;" loading="lazy">
+      <div>
+        <div style="font-size:0.87em;font-weight:700;color:#fff;line-height:1.4;">{_ltit[:70]}{'...' if len(_ltit)>70 else ''}</div>
+        {f'<div style="font-size:0.75em;color:#aaa;margin-top:3px;">{_lch}</div>' if _lch else ''}
+        <div style="font-size:0.72em;color:#777;margin-top:4px;">localStorage ile pozisyon kaydedildi — kaldığın yerden devam eder</div>
+      </div>
+    </div>""", unsafe_allow_html=True)
                     with _rc2:
                         if st.button("▶ Devam Et", key="yt_resume_btn", use_container_width=True):
                             st.session_state.yt_playing_id      = _lid
                             st.session_state.yt_playing_title   = _ltit
                             st.session_state.yt_playing_channel = _lch
+                            st.session_state.yt_iframe_vid = _lid
+                            st.session_state.yt_iframe_mounted = False
                             st.rerun()
                     st.markdown("<div style='margin-top:18px;'></div>", unsafe_allow_html=True)
 
                 st.markdown("""
-<div style="text-align:center;padding:32px 20px 24px;">
-  <div style="font-size:3.5rem;margin-bottom:14px;opacity:0.6;">🎬</div>
-  <div style="font-size:1.05rem;color:#888;margin-bottom:6px;font-weight:600;">YouTube'da bir şeyler ara</div>
-  <div style="font-size:0.83rem;color:#555;">Müzik · Haber · Belgesel · Eğitim · Eğlence</div>
-</div>""", unsafe_allow_html=True)
+    <div style="text-align:center;padding:32px 20px 24px;">
+      <div style="font-size:3.5rem;margin-bottom:14px;opacity:0.6;">🎬</div>
+      <div style="font-size:1.05rem;color:#888;margin-bottom:6px;font-weight:600;">YouTube'da bir şeyler ara</div>
+      <div style="font-size:0.83rem;color:#555;">Müzik · Haber · Belgesel · Eğitim · Eğlence</div>
+    </div>""", unsafe_allow_html=True)
 
             # ─── KAYITLI VİDEOLAR ─────────────────────────────────────
             if yt_saved:
@@ -2259,23 +2241,23 @@ Müstakbel Şirket; yazılım mühendisleri, yapay zeka araştırmacıları, ür
                         _svthumb = f"https://img.youtube.com/vi/{_svid}/mqdefault.jpg"
                         with _svc:
                             st.markdown(f"""
-<div style="background:rgba(255,165,0,0.05);border-radius:12px;overflow:hidden;
-            border:1px solid rgba(255,165,0,0.18);margin-bottom:6px;">
-  <div style="position:relative;overflow:hidden;aspect-ratio:16/9;background:#111;">
-    <img src="{_svthumb}" loading="lazy"
-         style="width:100%;height:100%;object-fit:cover;opacity:0.85;"
-         onerror="this.style.visibility='hidden'">
-    <div style="position:absolute;inset:0;display:flex;align-items:center;
-                justify-content:center;background:rgba(0,0,0,0.35);">
-      <span style="font-size:1.8rem;">📌</span>
-    </div>
-  </div>
-  <div style="padding:7px 10px 4px;">
-    <div style="font-size:0.74em;color:#999;font-family:monospace;">
-      {_svid[:22]}{'...' if len(_svid)>22 else ''}
-    </div>
-  </div>
-</div>""", unsafe_allow_html=True)
+    <div style="background:rgba(255,165,0,0.05);border-radius:12px;overflow:hidden;
+                border:1px solid rgba(255,165,0,0.18);margin-bottom:6px;">
+      <div style="position:relative;overflow:hidden;aspect-ratio:16/9;background:#111;">
+        <img src="{_svthumb}" loading="lazy"
+             style="width:100%;height:100%;object-fit:cover;opacity:0.85;"
+             onerror="this.style.visibility='hidden'">
+        <div style="position:absolute;inset:0;display:flex;align-items:center;
+                    justify-content:center;background:rgba(0,0,0,0.35);">
+          <span style="font-size:1.8rem;">📌</span>
+        </div>
+      </div>
+      <div style="padding:7px 10px 4px;">
+        <div style="font-size:0.74em;color:#999;font-family:monospace;">
+          {_svid[:22]}{'...' if len(_svid)>22 else ''}
+        </div>
+      </div>
+    </div>""", unsafe_allow_html=True)
                             _sbc1, _sbc2 = st.columns([3, 1])
                             with _sbc1:
                                 if st.button("▶ İzle", key=f"ytsv_play_{_svraw}_{_svidx}", use_container_width=True):
@@ -2283,6 +2265,8 @@ Müstakbel Şirket; yazılım mühendisleri, yapay zeka araştırmacıları, ür
                                     st.session_state.yt_playing_title   = _svid
                                     st.session_state.yt_playing_channel = ""
                                     st.session_state.yt_results         = []
+                                    st.session_state.yt_iframe_vid = _svid
+                                    st.session_state.yt_iframe_mounted = False
                                     st.rerun()
                             with _sbc2:
                                 if st.button("🗑️", key=f"ytsv_del_{_svraw}_{_svidx}"):
@@ -2290,4 +2274,4 @@ Müstakbel Şirket; yazılım mühendisleri, yapay zeka araştırmacıları, ür
                                     st.rerun()
             else:
                 st.markdown("<hr style='border:none;border-top:1px solid rgba(255,255,255,0.08);margin:16px 0 12px;'>", unsafe_allow_html=True)
-                st.info("Henüz kayıtlı") 
+                st.info("Henüz kayıtlı video yok. İzlediğin videoları kaydedip arşivleyebilirsin.")
