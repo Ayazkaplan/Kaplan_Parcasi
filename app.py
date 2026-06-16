@@ -26,22 +26,23 @@ st.markdown("""
 <meta http-equiv="Content-Language" content="tr">
 
 <style>
-  /* === 3 NOKTA STREAMLIT MENÜSÜNÜ TAMAMEN YOK ET === */
+  /* === STREAMLIT 3 NOKTA MENÜSÜNÜ GÖSTER (GİZLEME) === */
   [data-testid="stHeader"] { 
-    display: none !important; 
-    visibility: hidden !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
-    height: 0 !important;
-    min-height: 0 !important;
-    width: 0 !important;
-    overflow: hidden !important;
-    position: absolute !important;
-    top: -9999px !important;
-    left: -9999px !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    height: auto !important;
+    min-height: auto !important;
+    width: auto !important;
+    overflow: visible !important;
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    background: transparent !important;
   }
 
-  /* === SİDEBAR HAMBURGER BUTONU - ZORLA GÖSTER === */
+  /* === SİDEBAR HAMBURGER BUTONU - GÖRÜNSÜN === */
   [data-testid="collapsedControl"] {
     display: flex !important;
     visibility: visible !important;
@@ -79,11 +80,11 @@ st.markdown("""
   .notranslate { translate: no; }
   font[style*="vertical-align"] { display: none !important; }
 
-  /* === ℹ️ BİLGİ BUTONU — TAM SAĞ ÜST KÖŞE === */
+  /* === ℹ️ BİLGİ BUTONU — 3 NOKTA MENÜSÜNÜN ALTINA === */
   div[data-testid="stPopover"] {
     position: fixed !important;
-    top: 10px !important;
-    right: 10px !important;
+    top: 55px !important;
+    right: 15px !important;
     z-index: 999998 !important;
     width: auto !important;
     height: auto !important;
