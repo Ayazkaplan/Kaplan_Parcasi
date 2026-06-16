@@ -13,14 +13,19 @@ import unicodedata
 import tempfile
 
 # --- SAYFA AYARLARI ---
-st.set_page_config(page_title="Aslan Parçası V16.4", page_icon="🦁", layout="centered")
+st.set_page_config(
+    page_title="Aslan Parçası V16.4",
+    page_icon="🦁",
+    layout="centered",
+    initial_sidebar_state="expanded"
+)
 
 # --- Google Translate Engelleme + Global UI Tweaks ---
 st.markdown("""
 <meta name="google" content="notranslate">
 <meta http-equiv="Content-Language" content="tr">
 <style>
-  /* 3 Nokta Streamlit Menüsünü Tamamen Gizle (Bilgi Tuşu İçin) */
+  /* 3 Nokta Streamlit Menüsünü Tamamen Yok Et */
   [data-testid="stHeader"] { 
     display: none !important; 
     visibility: hidden !important;
@@ -28,6 +33,34 @@ st.markdown("""
     pointer-events: none !important;
     height: 0 !important;
     min-height: 0 !important;
+    width: 0 !important;
+    overflow: hidden !important;
+    position: absolute !important;
+    top: -9999px !important;
+    left: -9999px !important;
+  }
+
+  /* Sidebar hamburger menü butonunu görünür yap */
+  [data-testid="collapsedControl"] {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: fixed !important;
+    top: 15px !important;
+    left: 15px !important;
+    z-index: 999999 !important;
+    background: rgba(20,20,40,0.75) !important;
+    border-radius: 50% !important;
+    padding: 10px !important;
+    border: 1px solid rgba(255,255,255,0.15) !important;
+    cursor: pointer !important;
+    box-shadow: 0 2px 15px rgba(0,0,0,0.4) !important;
+    transition: all 0.2s ease !important;
+  }
+  [data-testid="collapsedControl"]:hover {
+    background: rgba(40,40,80,0.9) !important;
+    border-color: rgba(255,215,0,0.3) !important;
+    transform: scale(1.05) !important;
   }
 
   .goog-te-banner-frame, .goog-te-menu-value, #goog-gt-tt,
@@ -38,12 +71,12 @@ st.markdown("""
   .notranslate { translate: no; }
   font[style*="vertical-align"] { display: none !important; }
 
-  /* ── ℹ️ Bilgi Butonu — sağ üst köşe, tam tıklanabilir ── */
+  /* ── ℹ️ Bilgi Butonu — sağ üst köşe ── */
   div[data-testid="stPopover"] {
     position: fixed !important;
     top: 15px !important;
     right: 15px !important;
-    z-index: 999999 !important;
+    z-index: 999998 !important;
     width: auto !important;
     height: auto !important;
     max-width: 48px !important;
@@ -819,10 +852,6 @@ else:
     [data-testid="stSidebar"], [data-testid="stSidebarUserContent"] {{
         background: {st.session_state.tema} !important;
         background-attachment: fixed !important;
-    }}
-    [data-testid="stHeader"] {{
-        background: transparent !important;
-        background-color: transparent !important;
     }}
     h1, h2, h3, h4, h5, h6, label, li, .stSubheader, .stText {{
         color: #F8F9FA !important;
