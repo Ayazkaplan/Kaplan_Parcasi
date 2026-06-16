@@ -20,12 +20,13 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- Google Translate Engelleme + Global UI Tweaks ---
+# --- GOOGLE TRANSLATE ENGELLEME + GLOBAL UI TWEAKS ---
 st.markdown("""
 <meta name="google" content="notranslate">
 <meta http-equiv="Content-Language" content="tr">
+
 <style>
-  /* 3 Nokta Streamlit Menüsünü Tamamen Yok Et */
+  /* === 3 NOKTA STREAMLIT MENÜSÜNÜ TAMAMEN YOK ET === */
   [data-testid="stHeader"] { 
     display: none !important; 
     visibility: hidden !important;
@@ -40,10 +41,8 @@ st.markdown("""
     left: -9999px !important;
   }
 
-  /* Sidebar hamburger menü butonunu görünür yap */
-  [data-testid="collapsedControl"],
-  [data-testid="stSidebarCollapsedControl"],
-  button[data-testid="baseButton-header"] {
+  /* === SİDEBAR HAMBURGER BUTONU === */
+  [data-testid="collapsedControl"] {
     display: flex !important;
     visibility: visible !important;
     opacity: 1 !important;
@@ -65,14 +64,13 @@ st.markdown("""
     color: white !important;
     font-size: 1.2rem !important;
   }
-  [data-testid="collapsedControl"]:hover,
-  [data-testid="stSidebarCollapsedControl"]:hover,
-  button[data-testid="baseButton-header"]:hover {
+  [data-testid="collapsedControl"]:hover {
     background: rgba(40,40,80,0.95) !important;
     border-color: rgba(255,215,0,0.4) !important;
     transform: scale(1.05) !important;
   }
 
+  /* === GOOGLE TRANSLATE ENGELLEME === */
   .goog-te-banner-frame, .goog-te-menu-value, #goog-gt-tt,
   .goog-tooltip, .goog-tooltip:hover, .goog-te-balloon-frame,
   div#goog-gt-tt, .VIpgJd-ZVi9od-ORHb-OEVmcd,
@@ -81,7 +79,7 @@ st.markdown("""
   .notranslate { translate: no; }
   font[style*="vertical-align"] { display: none !important; }
 
-  /* ── ℹ️ Bilgi Butonu — tam sağ üst köşe ── */
+  /* === ℹ️ BİLGİ BUTONU — TAM SAĞ ÜST KÖŞE === */
   div[data-testid="stPopover"] {
     position: fixed !important;
     top: 10px !important;
