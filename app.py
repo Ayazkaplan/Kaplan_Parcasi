@@ -289,7 +289,8 @@ components.html("""
       'Paneline D': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>',
       'Ekran': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>',
       'G\\u00f6nder': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>',
-      'ifre': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>'
+      'ifre': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+      'Sil': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>'
     };
 
     function injectIcons() {
@@ -699,7 +700,7 @@ if not st.session_state.user_logged_in and not st.session_state.get("trigger_cle
         st.markdown("""
         <div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #0f2027; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 999999; opacity: 0; animation: fadeIn 0.25s ease-out forwards 0.05s;">
             <div style="width: 56px; height: 56px; border: 5px solid rgba(255,255,255,0.1); border-top: 5px solid #f39c12; border-radius: 50%; animation: spin 0.75s linear infinite; will-change: transform; transform: translateZ(0);"></div>
-            <h3 style="color: white; font-family: sans-serif; margin-top: 20px; letter-spacing: 0.04em; opacity: 0.92;">Geçiş Anahtarı Doğrulanıyor...</h3>
+            <h3 style="color: white; font-family: sans-serif; margin-top: 20px; letter-spacing: 0.04em; opacity: 0.92; text-align: center; width: 100%;">Geçiş Anahtarı Doğrulanıyor...</h3>
         </div>
         <style>
         @keyframes spin {
@@ -2542,7 +2543,7 @@ Yapay zeka ve gerçek zamanlı iletişim teknolojilerini birleştirerek Türkiye
                                     st.session_state.global_player_rendered = False  # 🔥 YENİ VİDEO İÇİN SIFIRLA
                                     st.rerun()
                             with _sbc2:
-                                if st.button("🗑️", key=f"ytsv_del_{_svraw}_{_svidx}"):
+                                if st.button("Sil", key=f"ytsv_del_{_svraw}_{_svidx}"):
                                     current_videos = user_ref.get().to_dict().get("videos", [])
                                     if _svraw in current_videos:
                                         current_videos.remove(_svraw)
