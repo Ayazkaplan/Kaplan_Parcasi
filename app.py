@@ -1150,7 +1150,7 @@ else:
                                     if (startT > 0) {{
                                         event.target.seekTo(startT, true);
                                     }}
-                                    
+                                    event.target.mute();
                                     setInterval(function() {{
                                         try {{
                                             var currentTime = globalPlayer.getCurrentTime();
@@ -2095,7 +2095,7 @@ else:
 
                 _start_ts = int(st.session_state.yt_ts_dict.get(_safe_vid, 0))
 
-                # ─── PORTAL OYNATICI (GÖRSEL, SES YOK - mute KALDIRILDI) ──
+                # ─── PORTAL OYNATICI (GÖRSEL, SES YOK) ──
                 if not st.session_state.yt_iframe_mounted:
                     st.session_state.yt_iframe_mounted = True
                     
