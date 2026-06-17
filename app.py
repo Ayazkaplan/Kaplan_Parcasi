@@ -1097,14 +1097,12 @@ else:
             return valid_users
 
     # --- KESİNTİSİZ YOUTUBE SES (SADECE BİR KERE MOUNT EDİLİR) ---
-    # Eğer video çalıyorsa ve iframe daha önce mount edilmemişse veya video değiştiyse
     yt_audio_container = st.empty()
     
     if st.session_state.yt_audio_playing and st.session_state.get("yt_playing_id"):
         _vid = re.sub(r'[^a-zA-Z0-9_\-]', '', st.session_state.yt_playing_id)
         _ts = int(st.session_state.yt_ts_dict.get(_vid, 0))
         
-        # Sadece bir kere mount et (video değişmediyse)
         if not st.session_state.yt_iframe_mounted or st.session_state.yt_iframe_vid != _vid:
             with yt_audio_container:
                 components.html(
@@ -1114,13 +1112,11 @@ else:
                     </div>
                     """,
                     height=0,
-                    width=0,
-                    key=f"yt_audio_{_vid}_{_ts}"
+                    width=0
                 )
             st.session_state.yt_iframe_mounted = True
             st.session_state.yt_iframe_vid = _vid
     else:
-        # Video durdurulduysa container'ı temizle
         if st.session_state.yt_iframe_mounted:
             yt_audio_container.empty()
             st.session_state.yt_iframe_mounted = False
@@ -1996,11 +1992,9 @@ Müstakbel Şirket; yazılım mühendisleri, yapay zeka araştırmacıları, ür
                     if _qp_ts > 0:
                         st.session_state.yt_ts_dict[_qp_vid_safe] = _qp_ts
                     
-                    # Önce eski videoyu durdur (state'leri sıfırla)
                     st.session_state.yt_audio_playing = False
                     st.session_state.yt_iframe_mounted = False
                     
-                    # Yeni videoyu ayarla
                     st.session_state.yt_playing_id      = _qp_vid_safe
                     st.session_state.yt_playing_title   = st.session_state.get("yt_last_title", _qp_vid_safe)
                     st.session_state.yt_playing_channel = st.session_state.get("yt_last_channel", "")
@@ -2183,7 +2177,7 @@ Müstakbel Şirket; yazılım mühendisleri, yapay zeka araştırmacıları, ür
       </script>
     </body>
     </html>"""
-                    components.html(_player_html, height=495, scrolling=False, key=f"yt_player_{_safe_vid}")
+                    components.html(_player_html, height=495, scrolling=False)
                 else:
                     st.markdown(f"""
     <div style="height:495px;background:#000;border-radius:8px;overflow:hidden;">
@@ -2241,7 +2235,6 @@ Müstakbel Şirket; yazılım mühendisleri, yapay zeka araştırmacıları, ür
       </div>
     </div>""", unsafe_allow_html=True)
                             if st.button("▶ İzle", key=f"ytplay_{_rid}_{_ridx}", use_container_width=True):
-                                # Önce eski videoyu durdur
                                 st.session_state.yt_audio_playing = False
                                 st.session_state.yt_iframe_mounted = False
                                 st.session_state.yt_playing_id      = _rid
@@ -2274,7 +2267,6 @@ Müstakbel Şirket; yazılım mühendisleri, yapay zeka araştırmacıları, ür
     </div>""", unsafe_allow_html=True)
                     with _rc2:
                         if st.button("▶ Devam Et", key="yt_resume_btn", use_container_width=True):
-                            # Önce eski videoyu durdur
                             st.session_state.yt_audio_playing = False
                             st.session_state.yt_iframe_mounted = False
                             st.session_state.yt_playing_id      = _lid
@@ -2328,7 +2320,6 @@ Müstakbel Şirket; yazılım mühendisleri, yapay zeka araştırmacıları, ür
                             _sbc1, _sbc2 = st.columns([3, 1])
                             with _sbc1:
                                 if st.button("▶ İzle", key=f"ytsv_play_{_svraw}_{_svidx}", use_container_width=True):
-                                    # Önce eski videoyu durdur
                                     st.session_state.yt_audio_playing = False
                                     st.session_state.yt_iframe_mounted = False
                                     st.session_state.yt_playing_id      = _svid
