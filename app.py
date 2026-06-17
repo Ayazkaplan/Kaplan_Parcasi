@@ -475,7 +475,8 @@ def trigger_invalid_session():
         if key not in ["tema", "tema_rengi", "yt_audio_playing", "yt_iframe_mounted", 
                        "yt_iframe_vid", "yt_resume_time", "yt_ts_dict", "yt_playing_id",
                        "yt_playing_title", "yt_playing_channel", "global_player_container",
-                       "global_player_rendered", "global_player_rendered_vid"]:
+                       "global_player_rendered", "global_player_rendered_vid",
+                       "ban_error_on_logout"]:
             del st.session_state[key]
     st.session_state.trigger_clear_token = True
     st.rerun()
