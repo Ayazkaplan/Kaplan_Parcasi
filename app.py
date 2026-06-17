@@ -1885,16 +1885,24 @@ else:
                 st.markdown("""
 **Müstakbel Şirket**, dijital iletişim ve yapay zeka alanında öncü çözümler geliştiren, geleceğin teknolojilerini bugünün ihtiyaçlarıyla buluşturan köklü bir teknoloji kuruluşudur.
 
-**Aslan Parçası V16.4**, Müstakbel Şirket bünyesinde geliştirilen amiral gemisi yapay zeka platformudur.
+**Aslan Parçası V16.4**, Müstakbel Şirket bünyesinde geliştirilen amiral gemisi yapay zeka platformudur. Gerçek zamanlı sohbet, yapay zeka destekli asistan, YouTube entegrasyonu ve topluluk yönetimi tek çatı altında sunulmaktadır.
                 """)
                 st.divider()
+                st.markdown("## 🎯 Misyonumuz")
+                st.markdown("""
+Kullanıcılarımıza güvenli, hızlı ve yapay zeka destekli bir dijital iletişim ortamı sunmak; teknolojiyi herkes için erişilebilir kılarak toplulukları bir araya getirmek ve bilgiye ulaşmayı kolaylaştırmaktır.
+                """)
+                st.divider()
+                st.markdown("## 🚀 Vizyonumuz")
+                st.markdown("""
+Yapay zeka ve gerçek zamanlı iletişim teknolojilerini birleştirerek Türkiye'nin en yenilikçi dijital topluluk platformu olmak; kullanıcı deneyimini sürekli iyileştirerek global ölçekte rekabet eden bir ekosistem oluşturmaktır.
+                """)
+                st.divider()
+                st.markdown("## 👥 Kadromuz")
                 st.markdown("""
 <div style="background:rgba(255,165,0,0.08);border-left:3px solid #f39c12;padding:12px 14px;border-radius:6px;">
 <b>👑 Kurucu & CEO:</b> Ayaz Kaplan<br>
-<b>🏢 Şirket:</b> Müstakbel Şirket<br>
-<b>🤖 AI Motoru:</b> Claude-3 Haiku (OpenRouter)<br>
-<b>🔥 Altyapı:</b> Firebase Auth + Firestore<br>
-<b>🌐 Platform:</b> Aslan Parçası V16.4
+<b>🛡️ Yönetici & Tester:</b> Mehmet Sür
 </div>
                 """, unsafe_allow_html=True)
 
