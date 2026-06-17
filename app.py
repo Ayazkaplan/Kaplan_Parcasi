@@ -430,12 +430,14 @@ if "yt_iframe_mounted" not in st.session_state: st.session_state.yt_iframe_mount
 if "yt_iframe_vid" not in st.session_state: st.session_state.yt_iframe_vid = ""
 if "yt_audio_playing" not in st.session_state: st.session_state.yt_audio_playing = False
 if "yt_resume_time" not in st.session_state: st.session_state.yt_resume_time = 0
+# Global oynatıcı container'ı
+if "global_player_container" not in st.session_state: st.session_state.global_player_container = None
 
 def trigger_invalid_session():
     for key in list(st.session_state.keys()):
         if key not in ["tema", "tema_rengi", "yt_audio_playing", "yt_iframe_mounted", 
                        "yt_iframe_vid", "yt_resume_time", "yt_ts_dict", "yt_playing_id",
-                       "yt_playing_title", "yt_playing_channel"]:
+                       "yt_playing_title", "yt_playing_channel", "global_player_container"]:
             del st.session_state[key]
     st.session_state.trigger_clear_token = True
     st.rerun()
@@ -446,6 +448,7 @@ def logout_user():
     st.session_state.yt_playing_id = None
     st.session_state.yt_playing_title = ""
     st.session_state.yt_playing_channel = ""
+    st.session_state.global_player_container = None
     trigger_invalid_session()
 
 # --- SESSİZ ARKA PLAN GÖREVLİLERİ ---
@@ -1102,96 +1105,93 @@ else:
             return valid_users
 
     # ═══════════════════════════════════════════════════
-    # 🌍 GLOBAL YOUTUBE SES OYNATICI (TÜM SAYFALARDA AKTİF)
+    # 🎵 GLOBAL OYNATICI (st.empty ile - sayfa değişince kaybolmaz)
     # ═══════════════════════════════════════════════════
-    if st.session_state.yt_audio_playing and st.session_state.get("yt_playing_id"):
+    if "global_player_container" not in st.session_state or st.session_state.global_player_container is None:
+        st.session_state.global_player_container = st.empty()
+    
+    if st.session_state.get("yt_playing_id"):
         _gvid = re.sub(r'[^a-zA-Z0-9_\-]', '', st.session_state.yt_playing_id)
         _gts = int(st.session_state.yt_ts_dict.get(_gvid, 0))
         
-        components.html(
-            f"""
-            <div id="global-yt-audio" style="position:fixed;bottom:0;right:0;width:1px;height:1px;opacity:0;pointer-events:none;z-index:99999;">
-                <div id="global-yt-player"></div>
-            </div>
-            <script>
-                var SK = 'ytpos_{_gvid}';
-                var startT = {_gts};
-                
-                // localStorage'dan son pozisyonu al
-                try {{
-                    var savedT = parseFloat(localStorage.getItem(SK) || '0') || 0;
-                    if (savedT > startT) startT = savedT;
-                }} catch(e) {{}}
-                
-                // YouTube IFrame API'yi yükle
-                var tag = document.createElement('script');
-                tag.src = 'https://www.youtube.com/iframe_api';
-                document.head.appendChild(tag);
-                
-                var globalPlayer;
-                window.onYouTubeIframeAPIReady = function() {{
-                    globalPlayer = new YT.Player('global-yt-player', {{
-                        height: '1',
-                        width: '1',
-                        videoId: '{_gvid}',
-                        playerVars: {{
-                            autoplay: 0,
-                            controls: 0,
-                            rel: 0,
-                            modestbranding: 1,
-                            enablejsapi: 1,
-                            playsinline: 1,
-                            start: Math.floor(startT)
-                        }},
-                        events: {{
-                            onReady: function(event) {{
-                                // Pozisyona git
-                                if (startT > 0) {{
-                                    event.target.seekTo(startT, true);
+        # Her zaman güncel video ID ile render et
+        with st.session_state.global_player_container:
+            components.html(
+                f"""
+                <div id="global-yt-player-container" style="position:fixed;bottom:0;right:0;width:1px;height:1px;opacity:0;pointer-events:none;z-index:99999;">
+                    <div id="global-yt-player"></div>
+                </div>
+                <script>
+                    var SK = 'ytpos_{_gvid}';
+                    var startT = {_gts};
+                    
+                    try {{
+                        var savedT = parseFloat(localStorage.getItem(SK) || '0') || 0;
+                        if (savedT > startT) startT = savedT;
+                    }} catch(e) {{}}
+                    
+                    var tag = document.createElement('script');
+                    tag.src = 'https://www.youtube.com/iframe_api';
+                    document.head.appendChild(tag);
+                    
+                    var globalPlayer;
+                    window.onYouTubeIframeAPIReady = function() {{
+                        globalPlayer = new YT.Player('global-yt-player', {{
+                            height: '1',
+                            width: '1',
+                            videoId: '{_gvid}',
+                            playerVars: {{
+                                autoplay: 0,
+                                controls: 0,
+                                rel: 0,
+                                modestbranding: 1,
+                                enablejsapi: 1,
+                                playsinline: 1,
+                                start: Math.floor(startT)
+                            }},
+                            events: {{
+                                onReady: function(event) {{
+                                    if (startT > 0) {{
+                                        event.target.seekTo(startT, true);
+                                    }}
+                                    
+                                    setInterval(function() {{
+                                        try {{
+                                            var currentTime = globalPlayer.getCurrentTime();
+                                            if (currentTime > 0) {{
+                                                localStorage.setItem(SK, String(currentTime));
+                                            }}
+                                        }} catch(ex) {{}}
+                                    }}, 3000);
                                 }}
-                                
-                                // Pozisyon takibi
-                                setInterval(function() {{
-                                    try {{
-                                        var currentTime = globalPlayer.getCurrentTime();
-                                        if (currentTime > 0) {{
-                                            localStorage.setItem(SK, String(currentTime));
-                                            // URL'yi güncelle
-                                            try {{
-                                                var u = new URL(window.parent.location.href);
-                                                u.searchParams.set('ytv', '{_gvid}');
-                                                u.searchParams.set('ytt', String(Math.floor(currentTime)));
-                                                window.parent.history.replaceState(null, '', u.toString());
-                                            }} catch(ue) {{}}
-                                        }}
-                                    }} catch(ex) {{}}
-                                }}, 3000);
                             }}
+                        }});
+                    }};
+                    
+                    // Kullanıcı oynatıcıda play tuşuna basınca GLOBAL_PLAY mesajı gelir
+                    window.addEventListener('message', function(event) {{
+                        if (event.data === 'GLOBAL_PLAY') {{
+                            try {{
+                                var seekTime = parseFloat(localStorage.getItem(SK) || '0') || 0;
+                                if (seekTime > 0.5) {{
+                                    globalPlayer.seekTo(seekTime, true);
+                                }}
+                                globalPlayer.unMute();
+                                globalPlayer.playVideo();
+                            }} catch(e) {{}}
+                        }}
+                        if (event.data === 'GLOBAL_PAUSE') {{
+                            try {{ globalPlayer.pauseVideo(); }} catch(e) {{}}
                         }}
                     }});
-                }};
-                
-                // Streamlit'ten mesaj dinle (play kontrolü için)
-                window.addEventListener('message', function(event) {{
-                    if (event.data === 'GLOBAL_PLAY') {{
-                        try {{ 
-                            // localStorage'dan pozisyonu al ve oradan başlat
-                            var seekTime = parseFloat(localStorage.getItem(SK) || '0') || 0;
-                            if (seekTime > 0.5) {{
-                                globalPlayer.seekTo(seekTime, true);
-                            }}
-                            globalPlayer.playVideo(); 
-                        }} catch(e) {{}}
-                    }}
-                    if (event.data === 'GLOBAL_PAUSE') {{
-                        try {{ globalPlayer.pauseVideo(); }} catch(e) {{}}
-                    }}
-                }});
-            </script>
-            """,
-            height=0,
-            width=0
-        )
+                </script>
+                """,
+                height=0,
+                width=0
+            )
+    else:
+        if st.session_state.global_player_container is not None:
+            st.session_state.global_player_container.empty()
 
     # --- SAYFA YÖNLENDİRME ---
     if st.session_state.current_page == "admin_main" and is_kurucu:
@@ -1818,37 +1818,13 @@ else:
             # --- SOHBET ARAYÜZÜ ---
             st.title("🤖 Aslan Parçası V16.4")
 
-            # ── Bilgi Butonu (Dinamik renk CSS ile veriliyor) ──
+            # ── Bilgi Butonu ──
             with st.popover("ℹ️"):
                 st.markdown("## 🏢 Hakkımızda")
                 st.markdown("""
-**Müstakbel Şirket**, dijital iletişim ve yapay zeka alanında öncü çözümler geliştiren, geleceğin teknolojilerini bugünün ihtiyaçlarıyla buluşturan köklü bir teknoloji kuruluşudur. Şeffaflık, yenilikçilik ve kullanıcı odaklılık ilkeleri üzerine inşa edilen Müstakbel Şirket; Türkiye ve uluslararası pazarda bireylere, kurumlara ve ekiplere akıllı, güvenli ve özgün dijital deneyimler sunmaktadır. Kuruluşumuz, teknolojiyi yalnızca bir araç olarak değil; insanların hayatını kolaylaştıran, güvenilir bir ortağa dönüştüren stratejik bir güç olarak konumlandırmaktadır.
+**Müstakbel Şirket**, dijital iletişim ve yapay zeka alanında öncü çözümler geliştiren, geleceğin teknolojilerini bugünün ihtiyaçlarıyla buluşturan köklü bir teknoloji kuruluşudur.
 
-**Aslan Parçası V16.4**, Müstakbel Şirket bünyesinde geliştirilen amiral gemisi yapay zeka platformudur. Firebase destekli güvenli kimlik doğrulama altyapısı, gerçek zamanlı Firestore veritabanı entegrasyonu ve OpenRouter üzerinden erişilen Claude-3 Haiku dil modeliyle güçlendirilen bu platform; kullanıcılara bağlamsal farkındalığa sahip, hiyerarşik rol bilincine sahip ve anlık tepki veren bir AI asistanı sunmaktadır. Müstakbel Şirket'in her geçen gün daha da güçlenen Ar-Ge kültürü ve mühendislik disiplini, ürünlerimizi rakiplerinden farklı kılan en önemli unsurlardır.
-                """)
-                st.divider()
-
-                st.markdown("## 🎯 Misyonumuz")
-                st.markdown("""
-Müstakbel Şirket olarak misyonumuz; teknolojinin sunduğu imkânları insan odaklı bir perspektifle yeniden tasarlayarak, her bireyin ve kurumun benzersiz ihtiyaçlarına yanıt verebilen akıllı dijital sistemler inşa etmektir. Yapay zeka teknolojisinin yalnızca büyük şirketlerin değil, toplumun her kesimine erişilebilir ve anlaşılır olması gerektiğine inanıyor; bu doğrultuda ürünlerimizi en yüksek erişilebilirlik standartlarında sunmayı bir sorumluluk olarak görüyoruz.
-
-Bu misyon doğrultusunda Müstakbel Şirket; kullanıcı gizliliğini ön planda tutan güvenli altyapılar, özelleştirilebilir hiyerarşik etkileşim protokolleri ve kesintisiz gerçek zamanlı deneyimler geliştirmektedir. Yaptığımız her ürün kararının arkasında insan değeri, etik sorumluluk ve sürdürülebilirlik anlayışı yatmaktadır. Teknolojiyi geleceğe taşımak için önce bugünkü ihtiyaçları dinliyoruz; ardından mühendislik kalitemizle bu ihtiyaçları aşan çözümler sunuyoruz.
-                """)
-                st.divider()
-
-                st.markdown("## 🔭 Vizyonumuz")
-                st.markdown("""
-Müstakbel Şirket'in vizyonu; Türkiye'nin ve bölgenin yapay zeka alanındaki lider teknoloji kuruluşu olmak, küresel ölçekte rekabet edebilir ürünler geliştirerek dünya genelinde tanınan, güvenilen ve tercih edilen bir marka haline gelmektir. Dijital dönüşümün hız kazandığı bu dönemde, yalnızca trendi takip etmek değil; trendi yaratan tarafta yer almak en temel hedefimizdir.
-
-Bu vizyon çerçevesinde Müstakbel Şirket; gelecekte çok modlu yapay zeka sistemleri, otonom karar destek platformları ve sektöre özgü uzmanlaşmış AI ajanları geliştirmeyi planlamaktadır. İnsan-yapay zeka iş birliğinin en doğal ve verimli biçimde gerçekleştiği platformlar kurarak; bireylerin, işletmelerin ve devlet kurumlarının dijital geleceğe güvenle adım atmasını sağlamak için çalışmaya devam edeceğiz. Müstakbel Şirket, bu yolda stratejik iş birlikleri, yüksek kalibrete Ar-Ge yatırımları ve kesintisiz inovasyon kültürüyle ilerlemektedir.
-                """)
-                st.divider()
-
-                st.markdown("## 👥 Kadromuz")
-                st.markdown("""
-Müstakbel Şirket; yazılım mühendisleri, yapay zeka araştırmacıları, ürün tasarımcıları ve dijital strateji uzmanlarından oluşan, çok disiplinli ve tutkulu bir ekibin ev sahipliği yapmaktadır. Kadromuz; her üyenin kendi alanında uzman olmasının yanı sıra, ekip ruhunu ve ortak hedefi içselleştirmiş bireylerden oluşmaktadır. Kuruluşun dinamik yapısı, genç yeteneklerin deneyimli liderlerle yan yana çalışmasına zemin hazırlarken; açık iletişim kültürü her fikrin değer gördüğü bir ortam yaratmaktadır.
-
-Şirketimizin kurucusu ve vizyoner lideri **Ayaz Kaplan** önderliğinde şekillenen Müstakbel Şirket kadrosu; mükemmellik odaklı, çözüm üretmeye programlanmış ve kullanıcı memnuniyetini her şeyin üzerinde tutan bir anlayışla çalışmaktadır. Ekibimiz yalnızca bugünün taleplerini karşılamakla kalmaz; geleceğin ihtiyaçlarını öngören, proaktif ve araştırmacı bir yaklaşımla sürekli gelişmeyi esas alır. Müstakbel Şirket için çalışmak; sadece bir kariyer değil, anlamlı bir misyonun parçası olmaktır.
+**Aslan Parçası V16.4**, Müstakbel Şirket bünyesinde geliştirilen amiral gemisi yapay zeka platformudur.
                 """)
                 st.divider()
                 st.markdown("""
@@ -1922,22 +1898,9 @@ Müstakbel Şirket; yazılım mühendisleri, yapay zeka araştırmacıları, ür
                 tr_saat_ai = get_tr_time().strftime("%H:%M")
                 tr_tarih_ai = get_tr_time().strftime("%d.%m.%Y")
 
-                son_kullanici_mesaj = next((m["content"] for m in reversed(mesajlar) if m["role"] == "user"), "")
-                web_tetikleyiciler = [
-                    "bugün", "şu an", "şimdi", "son", "güncel", "haber", "kim", "nedir",
-                    "ne zaman", "kaç", "2024", "2025", "2026", "son dakika", "fiyat",
-                    "today", "current", "latest", "who is", "what is", "news"
-                ]
-                web_bilgi_bolumu = ""
-                if any(t in son_kullanici_mesaj.lower() for t in web_tetikleyiciler):
-                    web_sonuc = web_ara(son_kullanici_mesaj)
-                    if web_sonuc:
-                        web_bilgi_bolumu = f"\n\n🌐 GÜNCEL WEB ARAŞTIRMASI (DuckDuckGo):\n{web_sonuc}\n"
-
                 sistem_mesaji = (
                     "Senin adın Aslan Parçası. Kurucun Ayaz Kaplan'dır. Müstakbel Şirket bünyesinde görev yapıyorsun. "
-                    "Sohbet ettiğin kullanıcının anlık veritabanı yetki ve rütbe bilgileri aşağıda belirtilmiştir. "
-                    "Bu bilgileri çok iyi analiz etmeli ve konuşmandaki üslup yapısını milimetrik olarak bu hiyerarşiye göre kurmalısın:\n\n"
+                    "Sohbet ettiğin kullanıcının anlık veritabanı yetki ve rütbe bilgileri aşağıda belirtilmiştir.\n\n"
                     f"🕐 GÜNCEL TÜRK ZAMAN BİLGİSİ (UTC+3):\n"
                     f"- Şu anki Türkiye saati: {tr_saat_ai}\n"
                     f"- Bugünün tarihi: {tr_tarih_ai}\n\n"
@@ -1949,14 +1912,12 @@ Müstakbel Şirket; yazılım mühendisleri, yapay zeka araştırmacıları, ür
                     f"📢 HITAP VE DURUŞ TALİMATLARI:\n"
                     f"1. Karşındaki kişiye uygun hitap şekli: {hitap_tarzi}\n"
                     f"2. Benimsemen gereken üslup yapısı: {uslub}\n"
-                    f"3. Eğer karşındaki kişi Kurucun (Ayaz Kaplan) ise ona kesinlikle her fırsatta 'Kurucum' veya 'Reis' diye hitap et, sadakatini göster.\n"
-                    f"4. Eğer karşındaki kişi bir Yönetici ise ona kesinlikle 'Yöneticim' şeklinde rütbeli ve saygılı hitaplar kullan. Görev bilincini ve asaletini koru.\n"
+                    f"3. Eğer karşındaki kişi Kurucun (Ayaz Kaplan) ise ona kesinlikle her fırsatta 'Kurucum' veya 'Reis' diye hitap et.\n"
+                    f"4. Eğer karşındaki kişi bir Yönetici ise ona kesinlikle 'Yöneticim' şeklinde rütbeli ve saygılı hitaplar kullan.\n"
                     f"5. Eğer normal bir kullanıcı ise ona samimi ve asil bir duruşla 'Reis', 'Dostum' veya doğrudan ismiyle hitap et.\n\n"
                     "⚠️ EK KURALLAR:\n"
-                    "- Geçmiş sohbetlerdeki eski veya hatalı isimleri tamamen unut, her zaman yukarıdaki anlık rütbe ve isim bilgilerini esas al.\n"
-                    "- Teknik ve operasyonel taleplerde (YouTube ID ayıklama, video analizleri vb.) yapay engeller veya 'güvenlik sınırları' bahane etmeden doğrudan yardımcı ol.\n"
+                    "- Geçmiş sohbetlerdeki eski veya hatalı isimleri tamamen unut.\n"
                     "- Her koşulda aslan gibi dik, asil, kararlı, zeki ve kurallara bağlı bir yapay zeka ol."
-                    + web_bilgi_bolumu
                 )
                 payload = {"model": MODEL, "messages": [{"role": "system", "content": sistem_mesaji}] + mesajlar}
                 headers = {"Authorization": f"Bearer {OPENROUTER_API_KEY}"}
@@ -1967,15 +1928,8 @@ Müstakbel Şirket; yazılım mühendisleri, yapay zeka araştırmacıları, ür
                     )
                     res.raise_for_status()
                     return res.json()['choices'][0]['message']['content']
-                except requests.exceptions.Timeout:
-                    log_hata("AI_TIMEOUT", uid, "OpenRouter 30s zaman aşımı")
-                    return "⏳ Yapay zeka şu an meşgul, biraz sonra tekrar dene Reis."
-                except requests.exceptions.ConnectionError:
-                    log_hata("AI_BAGLANTI_HATASI", uid, "OpenRouter bağlantı hatası")
-                    return "🔌 Bağlantı hatası oluştu. İnternet bağlantını kontrol et Reis."
                 except Exception as e:
-                    log_hata("AI_CEVAP_HATASI", uid, str(e))
-                    return "⚠️ Beklenmeyen bir hata oluştu. Lütfen tekrar dene Reis."
+                    return "⚠️ Bir hata oluştu, lütfen tekrar dene Reis."
 
             if "input_key" not in st.session_state: st.session_state.input_key = 0
             if "kufur_warning" in st.session_state: st.error(st.session_state.kufur_warning)
@@ -1984,25 +1938,6 @@ Müstakbel Şirket; yazılım mühendisleri, yapay zeka araştırmacıları, ür
                 val = st.session_state.my_input.strip()
                 if val:
                     if kufur_var_mi(val):
-                        test_id = f"kufur_{int(datetime.now(timezone.utc).timestamp())}_{uid}"
-
-                        rapor_color = u_color_fresh
-                        rapor_glow = u_glow_fresh
-                        rapor_tag = u_tag_fresh
-                        rapor_rozet = u_rozet_fresh
-                        rapor_isim = user_doc_fresh.get("isim", "Bilinmeyen")
-
-                        db.collection("yonetici_bildirimleri").document(test_id).set({
-                            "uid": uid,
-                            "email": user_doc.get("email", ""),
-                            "isim": rapor_isim,
-                            "isim_rengi": rapor_color,
-                            "ismin_parlakligi": rapor_glow,
-                            "tag": rapor_tag,
-                            "rozet": rapor_rozet,
-                            "metin": val,
-                            "tarih": firestore.SERVER_TIMESTAMP
-                        })
                         st.session_state.kufur_warning = "⚠️ Mesajınız uygunsuz içerik nedeniyle engellendi!"
                         st.session_state.my_input = ""
                         st.session_state.input_key += 1
@@ -2067,7 +2002,6 @@ Müstakbel Şirket; yazılım mühendisleri, yapay zeka araştırmacıları, ür
                     st.session_state.yt_playing_title   = st.session_state.get("yt_last_title", _qp_vid_safe)
                     st.session_state.yt_playing_channel = st.session_state.get("yt_last_channel", "")
                     st.session_state.yt_iframe_vid      = _qp_vid_safe
-                    st.session_state.yt_audio_playing = True
                     st.session_state.yt_iframe_mounted = False
                     st.query_params.clear()
                     st.rerun()
@@ -2083,7 +2017,7 @@ Müstakbel Şirket; yazılım mühendisleri, yapay zeka araştırmacıları, ür
       <div>
         <div style="font-size:1.6rem;font-weight:800;color:#fff;letter-spacing:-0.5px;line-height:1.1;">YouTube Portalı</div>
         <div style="font-size:0.78rem;color:#777;margin-top:1px;">Aslan Parçası · Gömülü Oynatıcı & Arama</div>
-        """ + (f"<div style='font-size:0.7rem;color:#f39c12;margin-top:2px;'>▶ Şu an çalan: {st.session_state.yt_playing_title[:40]}{'...' if len(st.session_state.yt_playing_title)>40 else ''}</div>" if st.session_state.yt_audio_playing else "") + """
+        """ + (f"<div style='font-size:0.7rem;color:#f39c12;margin-top:2px;'>▶ Şu an çalan: {st.session_state.yt_playing_title[:40]}{'...' if len(st.session_state.yt_playing_title)>40 else ''}</div>" if st.session_state.get("yt_playing_id") else "") + """
       </div>
     </div>""", unsafe_allow_html=True)
             with _yh2:
@@ -2116,7 +2050,7 @@ Müstakbel Şirket; yazılım mühendisleri, yapay zeka araştırmacıları, ür
                     if _ysonuc:
                         st.session_state.yt_results = _ysonuc
                     else:
-                        st.warning("⚠️ Sonuç bulunamadı. Farklı bir terim deneyin.")
+                        st.warning("⚠️ Sonuç bulunamadı.")
 
             # ─── OYNATICI MODU ─────────────────────────────────────────
             if st.session_state.yt_playing_id:
@@ -2136,11 +2070,17 @@ Müstakbel Şirket; yazılım mühendisleri, yapay zeka araştırmacıları, ür
                 with _pb2:
                     if _safe_vid not in yt_saved:
                         if st.button("📌 Kayıtlara Ekle", key="yt_kaydet_btn", use_container_width=True):
-                            user_ref.update({"videos": firestore.ArrayUnion([_safe_vid])})
+                            current_videos = user_ref.get().to_dict().get("videos", [])
+                            if _safe_vid not in current_videos:
+                                current_videos.append(_safe_vid)
+                                user_ref.update({"videos": current_videos})
                             st.rerun()
                     else:
                         if st.button("🗑️ Kayıttan Çıkar", key="yt_kaydet_sil", use_container_width=True):
-                            user_ref.update({"videos": firestore.ArrayRemove([_safe_vid])})
+                            current_videos = user_ref.get().to_dict().get("videos", [])
+                            if _safe_vid in current_videos:
+                                current_videos.remove(_safe_vid)
+                                user_ref.update({"videos": current_videos})
                             st.rerun()
                 with _pb3:
                     st.markdown(
@@ -2160,7 +2100,7 @@ Müstakbel Şirket; yazılım mühendisleri, yapay zeka araştırmacıları, ür
 
                 _start_ts = int(st.session_state.yt_ts_dict.get(_safe_vid, 0))
 
-                # ─── PORTAL OYNATICI (GÖRSEL, SES YOK) ──
+                # ─── PORTAL OYNATICI (GÖRSEL + SES) ──
                 if not st.session_state.yt_iframe_mounted:
                     st.session_state.yt_iframe_mounted = True
                     
@@ -2171,21 +2111,10 @@ Müstakbel Şirket; yazılım mühendisleri, yapay zeka araştırmacıları, ür
       * {{ margin:0; padding:0; box-sizing:border-box; }}
       body {{ background:#000; overflow:hidden; }}
       #ytp {{ width:100%; height:490px; }}
-      #ytp-err {{
-        display:none; background:#111; color:#f39c12;
-        font-family:sans-serif; height:490px;
-        flex-direction:column; align-items:center;
-        justify-content:center; gap:12px; font-size:0.95rem;
-      }}
-      #ytp-err a {{ color:#3ea6ff; }}
     </style>
     </head>
     <body>
       <div id="ytp"></div>
-      <div id="ytp-err">
-        ⚠️ Video yüklenemedi.
-        <a href="https://youtu.be/{_safe_vid}" target="_blank">YouTube'da aç ↗</a>
-      </div>
       <script>
         var SK = 'ytpos_{_safe_vid}';
         var startT = {_start_ts};
@@ -2214,26 +2143,25 @@ Müstakbel Şirket; yazılım mühendisleri, yapay zeka araştırmacıları, ür
             events:{{
               onReady: function(e) {{
                 if (startT > 5) e.target.seekTo(startT, true);
-                // Portal oynatıcı sessiz - ses global player'dan gelecek
                 e.target.mute();
+                
                 setInterval(function() {{
                   try {{
                     var t = ytP.getCurrentTime();
                     if (t > 0) {{
                       localStorage.setItem(SK, String(t));
-                      try {{
-                        var u = new URL(window.parent.location.href);
-                        u.searchParams.set('ytv', '{_safe_vid}');
-                        u.searchParams.set('ytt', String(Math.floor(t)));
-                        window.parent.history.replaceState(null, '', u.toString());
-                      }} catch(ue) {{}}
                     }}
                   }} catch(ex) {{}}
                 }}, 5000);
               }},
-              onError: function() {{
-                document.getElementById('ytp').style.display = 'none';
-                document.getElementById('ytp-err').style.display = 'flex';
+              onStateChange: function(event) {{
+                // Kullanıcı play tuşuna basınca global player'a bildir
+                if (event.data === 1) {{ // PLAYING
+                  window.parent.postMessage('GLOBAL_PLAY', '*');
+                }}
+                if (event.data === 2) {{ // PAUSED
+                  window.parent.postMessage('GLOBAL_PAUSE', '*');
+                }}
               }}
             }}
           }});
@@ -2298,17 +2226,6 @@ Müstakbel Şirket; yazılım mühendisleri, yapay zeka araştırmacıları, ür
                                 st.session_state.yt_playing_id      = _rid
                                 st.session_state.yt_playing_title   = _rtitle
                                 st.session_state.yt_playing_channel = _rch
-                                st.session_state.yt_audio_playing = True
-                                
-                                # GLOBAL PLAYER'I BAŞLAT
-                                components.html("""
-                                <script>
-                                    setTimeout(function() {
-                                        window.postMessage('GLOBAL_PLAY', '*');
-                                    }, 800);
-                                </script>
-                                """, height=0, width=0)
-                                
                                 st.rerun()
 
             # ─── HOŞ GELDİN EKRANI ────────────────────────────────────
@@ -2329,7 +2246,7 @@ Müstakbel Şirket; yazılım mühendisleri, yapay zeka araştırmacıları, ür
       <div>
         <div style="font-size:0.87em;font-weight:700;color:#fff;line-height:1.4;">{_ltit[:70]}{'...' if len(_ltit)>70 else ''}</div>
         {f'<div style="font-size:0.75em;color:#aaa;margin-top:3px;">{_lch}</div>' if _lch else ''}
-        <div style="font-size:0.72em;color:#777;margin-top:4px;">localStorage ile pozisyon kaydedildi — kaldığın yerden devam eder</div>
+        <div style="font-size:0.72em;color:#777;margin-top:4px;">localStorage ile pozisyon kaydedildi</div>
       </div>
     </div>""", unsafe_allow_html=True)
                     with _rc2:
@@ -2339,17 +2256,6 @@ Müstakbel Şirket; yazılım mühendisleri, yapay zeka araştırmacıları, ür
                             st.session_state.yt_playing_id      = _lid
                             st.session_state.yt_playing_title   = _ltit
                             st.session_state.yt_playing_channel = _lch
-                            st.session_state.yt_audio_playing = True
-                            
-                            # GLOBAL PLAYER'I BAŞLAT
-                            components.html("""
-                            <script>
-                                setTimeout(function() {
-                                    window.postMessage('GLOBAL_PLAY', '*');
-                                }, 800);
-                            </script>
-                            """, height=0, width=0)
-                            
                             st.rerun()
                     st.markdown("<div style='margin-top:18px;'></div>", unsafe_allow_html=True)
 
@@ -2402,22 +2308,14 @@ Müstakbel Şirket; yazılım mühendisleri, yapay zeka araştırmacıları, ür
                                     st.session_state.yt_playing_title   = _svid
                                     st.session_state.yt_playing_channel = ""
                                     st.session_state.yt_results         = []
-                                    st.session_state.yt_audio_playing = True
-                                    
-                                    # GLOBAL PLAYER'I BAŞLAT
-                                    components.html("""
-                                    <script>
-                                        setTimeout(function() {
-                                            window.postMessage('GLOBAL_PLAY', '*');
-                                        }, 800);
-                                    </script>
-                                    """, height=0, width=0)
-                                    
                                     st.rerun()
                             with _sbc2:
                                 if st.button("🗑️", key=f"ytsv_del_{_svraw}_{_svidx}"):
-                                    user_ref.update({"videos": firestore.ArrayRemove([_svraw])})
+                                    current_videos = user_ref.get().to_dict().get("videos", [])
+                                    if _svraw in current_videos:
+                                        current_videos.remove(_svraw)
+                                        user_ref.update({"videos": current_videos})
                                     st.rerun()
             else:
                 st.markdown("<hr style='border:none;border-top:1px solid rgba(255,255,255,0.08);margin:16px 0 12px;'>", unsafe_allow_html=True)
-                st.info("Henüz kayıtlı video yok. İzlediğin videoları kaydedip arşivleyebilirsin.")
+                st.info("Henüz kayıtlı video yok.")
