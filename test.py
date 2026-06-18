@@ -1,220 +1,247 @@
-# Modern Flask Web Sitesi Uygulaması
+# Flask Hesap Makinesi Web Uygulaması
 
-Bu script, kullanıcının isteğine göre hazırlanan, modern ve responsive bir Flask web sitesidir. Tahmini 200+ satır içermektedir ve aşağıdaki özelliklere sahiptir:
+Kullanıcının isteğine göre modern, responsive ve ihtiyaçlara cevap verebilen bir Flask hesap makinesi uygulaması geliştiriyorum. Uygulama Flask framework'ü kullanılarak oluşturulacak ve aşağıdaki özelliklere sahip olacak:
 
-## Özellikler
-- Flask web framework kullanımı
-- Modern UI tasarımı (responsive)
-- Bootstrap 5 entegrasyonu
-- Çok sayıda sayfa ve bileşen
-- JavaScript etkileşimleri
-- CSS stilleri
-- Form işlemleri
-- API entegrasyon örneği
+## Uygulama Özellikleri:
+- Modern, responsive arayüz (Bootstrap 5 kullanılarak)
+- Temel hesap makinesi işlemleri (toplama, çıkarma, çarpma, bölme)
+- Üstel işlemler ve kök alma
+- Geçmiş işlemleri kaydetme ve gösterme
+- Kullanıcı dostu hata mesajları
+- Gelişmiş hesaplama modülleri (yüzde, faktöriyel)
+- Karanlık/ışık modu geçişi
+- Tuş ses efektleri
+- Klavye desteği
 
 ```python
 """
-Modern Flask Web Sitesi Uygulaması
-Tahmini 250+ satır içermektedir
+hesap_makinesi.py
+Modern Flask tabanlı hesap makinesi uygulaması
 """
 
-from flask import Flask, render_template, request, jsonify, redirect, url_for
-import os
+from flask import Flask, render_template_string, request, jsonify
+import math
+import json
 from datetime import datetime
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'modern_flask_app_secret_key_123'  # Üretimde değiştirilmeli
-app.config['UPLOAD_FOLDER'] = 'static/uploads'
 
-# Gerekli klasörleri oluştur
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+# Hesaplama geçmişini saklamak için geçici bellek
+calculation_history = []
 
-# Örnek veritabanı (gerçek uygulamada SQLAlchemy kullanılmalı)
-users_db = {}
-posts_db = []
-messages_db = []
+# HTML ve CSS şablonu
+HTML_TEMPLATE = """
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Hesap Makinesi</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #6c5ce7;
+            --secondary-color: #a29bfe;
+            --bg-color: #f8f9fa;
+            --text-color: #333;
+            --card-bg: #ffffff;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --border-radius: 12px;
+        }
 
-# Ana sayfa
-@app.route('/')
-def home():
-    return render_template('index.html',
-                         title="Ana Sayfa",
-                         active_page="home",
-                         posts=posts_db[:3])
+        .dark-mode {
+            --primary-color: #8b5cf6;
+            --secondary-color: #a78bfa;
+            --bg-color: #121212;
+            --text-color: #f8f9fa;
+            --card-bg: #1e1e1e;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
+        }
 
-# Hakkımızda sayfası
-@app.route('/about')
-def about():
-    return render_template('about.html',
-                         title="Hakkımızda",
-                         active_page="about")
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            transition: background-color 0.3s, color 0.3s;
+        }
 
-# Hizmetler sayfası
-@app.route('/services')
-def services():
-    services = [
-        {"title": "Web Tasarım", "description": "Modern ve responsive web siteleri", "icon": "bi-globe"},
-        {"title": "UI/UX Tasarım", "description": "Kullanıcı dostu arayüzler", "icon": "bi-palette"},
-        {"title": "SEO Hizmetleri", "description": "Arama motoru optimizasyonu", "icon": "bi-rocket"},
-        {"title": "Web Geliştirme", "description": "Özel web uygulamaları", "icon": "bi-code-slash"}
-    ]
-    return render_template('services.html',
-                         title="Hizmetlerimiz",
-                         active_page="services",
-                         services=services)
+        .calculator-container {
+            max-width: 400px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background-color: var(--card-bg);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+        }
 
-# Blog sayfası
-@app.route('/blog')
-def blog():
-    return render_template('blog.html',
-                         title="Blog",
-                         active_page="blog",
-                         posts=posts_db)
+        .display {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 1.5rem;
+            border-radius: var(--border-radius);
+            margin-bottom: 1.5rem;
+            text-align: right;
+            font-size: 2rem;
+            height: 60px;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
 
-@app.route('/blog/<int:post_id>')
-def blog_post(post_id):
-    post = next((p for p in posts_db if p['id'] == post_id), None)
-    if not post:
-        return redirect(url_for('blog'))
-    return render_template('blog_post.html',
-                         title=post['title'],
-                         post=post)
+        .history-item {
+            background-color: rgba(108, 92, 231, 0.1);
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            transition: all 0.2s;
+        }
 
-# İletişim sayfası
-@app.route('/contact', methods=['GET', 'POST'])
-def contact():
-    if request.method == 'POST':
-        name = request.form.get('name')
-        email = request.form.get('email')
-        subject = request.form.get('subject')
-        message = request.form.get('message')
+        .history-item:hover {
+            background-color: rgba(108, 92, 231, 0.2);
+            transform: translateX(5px);
+        }
 
-        messages_db.append({
-            'id': len(messages_db) + 1,
-            'name': name,
-            'email': email,
-            'subject': subject,
-            'message': message,
-            'date': datetime.now().strftime("%d %B %Y %H:%M")
-        })
+        .btn {
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.2s;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
 
-        return redirect(url_for('contact_success'))
-    return render_template('contact.html',
-                         title="İletişim",
-                         active_page="contact")
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
 
-@app.route('/contact/success')
-def contact_success():
-    return render_template('contact_success.html',
-                         title="Mesajınız Alındı")
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
 
-# Kullanıcı profili
-@app.route('/profile')
-def profile():
-    return render_template('profile.html',
-                         title="Profilim",
-                         active_page="profile")
+        .btn-secondary {
+            background-color: var(--secondary-color);
+            border-color: var(--secondary-color);
+        }
 
-# API örneği
-@app.route('/api/posts', methods=['GET'])
-def api_posts():
-    return jsonify(posts_db)
+        .btn-dark {
+            background-color: #343a40;
+            border-color: #343a40;
+        }
 
-# Dinamik route örneği
-@app.route('/page/<int:page_id>')
-def dynamic_page(page_id):
-    return render_template('dynamic_page.html',
-                         title=f"Sayfa {page_id}",
-                         page_id=page_id)
+        .btn-outline-secondary {
+            color: var(--text-color);
+            border-color: var(--secondary-color);
+        }
 
-# Özel 404 sayfası
-@app.errorhandler(404)
-def page_not_found(e):
-    return render_template('404.html', title="Sayfa Bulunamadı"), 404
+        .btn-outline-secondary:hover {
+            background-color: var(--secondary-color);
+            color: white;
+        }
 
-# Özel hata sayfası
-@app.errorhandler(500)
-def internal_server_error(e):
-    return render_template('500.html', title="Sunucu Hatası"), 500
+        .btn-group {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
 
-# Template filtreleri
-@app.template_filter('format_date')
-def format_date_filter(value, format='%d %B %Y'):
-    return datetime.strptime(value, '%Y-%m-%d').strftime(format)
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background-color: var(--card-bg);
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: var(--shadow);
+        }
 
-# Başlangıç verilerini yükle
-def load_initial_data():
-    global posts_db
+        .history-panel {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 1.5rem;
+        }
 
-    initial_posts = [
-        {
-            'id': 1,
-            'title': 'Modern Web Tasarım Trendleri 2023',
-            'author': 'Ahmet Yıldız',
-            'date': '2023-01-15',
-            'content': '''Web tasarım dünyası hızla değişiyor. 2023 yılında da bazı önemli trendler öne çıkıyor.
-            İlk olarak, minimalizm ve boşluk kullanımı çok önemli hale geldi. Kullanıcıların dikkatini dağıtan
-            gereksiz öğelerden kaçınmak gerekiyor.
+        .history-panel::-webkit-scrollbar {
+            width: 6px;
+        }
 
-            Diğer bir trend ise karanlık mod desteği. Hem estetik hem de kullanıcı konforu açısından önemli.
-            Ayrıca, mikro animasyonlar ve micro-interactions kullanımı da kullanıcı deneyimini önemli ölçüde
-            artırıyor.
+        .history-panel::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
 
-            Son olarak, accessibility (erişilebilirlik) standartlarına daha fazla önem veriliyor. Bu sadece
-            yasal bir zorunluluk değil, aynı zamanda daha geniş bir kitleye ulaşmanın da yoludur.''',
-            'image': 'trends-2023.jpg',
-            'category': 'Tasarım'
-        },
-        {
-            'id': 2,
-            'title': 'Flask ile REST API Geliştirme',
-            'author': 'Mehmet Demir',
-            'date': '2023-02-20',
-            'content': '''RESTful API'ler modern web uygulamalarının olmazsa olmazıdır. Flask framework'ü,
-            bu konuda oldukça esnek ve kullanımı kolay bir seçenektir.
+        .history-panel::-webkit-scrollbar-thumb {
+            background: var(--secondary-color);
+            border-radius: 10px;
+        }
 
-            İlk olarak, Flask-RESTful veya Flask-RESTPlus gibi eklentiler kullanabilirsiniz. Bu eklentiler
-            size otomatik dokümantasyon, doğrulama ve hata işleme gibi birçok avantaj sunar.
-
-            Örnek bir endpoint şöyle görünebilir:
-
-            ```python
-            from flask_restful import Resource, reqparse
-
-            class UserAPI(Resource):
-                def get(self, user_id):
-                    # Kullanıcıyı getir
-                    return {'user': 'data'}
-            ```
-
-            Ayrıca, Flask-JWT-Extended ile JWT token tabanlı kimlik doğrulama da kolayca uygulanabilir.
-            Bu sayede güvenli API'ler geliştirebilirsiniz.''',
-            'image': 'flask-api.jpg',
-            'category': 'Geliştirme'
-        },
-        {
-            'id': 3,
-            'title': 'Responsive Tasarım İlkeleri',
-            'author': 'Elif Kaya',
-            'date': '2023-03-10',
-            'content': '''Responsive tasarım, bir web sitesinin farklı cihazlarda (mobil, tablet, masaüstü)
-            sorunsuz çalışmasını sağlayan yaklaşımdır. Bu konuda dikkat edilmesi gereken bazı temel ilkeler:
-
-            1. **Flexible Layouts**: Esnek ızgara sistemleri kullanın. Bootstrap gibi framework'ler bu konuda
-            oldukça yardımcıdır.
-
-            2. **Media Queries**: Farklı ekran boyutlarına özel stiller tanımlayın. Örneğin:
-            ```css
-            @media (max-width: 768px) {
-                .container { width: 100%; padding: 0 15px; }
+        @media (max-width: 576px) {
+            .calculator-container {
+                margin: 1rem;
+                padding: 1.5rem;
             }
-            ```
 
-            3. **Responsive Images**: Görsellerin farklı ekranlarda uygun boyutta görüntülenmesi önemlidir.
-            ```html
-            <img src="image.jpg" srcset="image-480w.jpg 480w,
-                                     image-800w.jpg 800w"
-                 sizes="(max-width: 600px) 480px,
-                        800px" alt="Responsive Image">
-            ```
+            .display {
+                height: 50px;
+                font-size: 1.5rem;
+            }
 
+            .btn {
+                height: 50px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="theme-toggle" id="themeToggle">
+        <i class="fas fa-moon" id="themeIcon"></i>
+    </button>
+
+    <div class="container">
+        <div class="calculator-container">
+            <div class="display" id="display">0</div>
+
+            <div class="btn-group">
+                <button class="btn btn-secondary" onclick="clearAll()">AC</button>
+                <button class="btn btn-secondary" onclick="backspace()">⌫</button>
+                <button class="btn btn-secondary" onclick="appendOperator('%')">%</button>
+                <button class="btn btn-primary" onclick="appendOperator('/')">÷</button>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn btn-outline-secondary" onclick="appendNumber('7')">7</button>
+                <button class="btn btn-outline-secondary" onclick="appendNumber('8')">8</button>
+                <button class="btn btn-outline-secondary" onclick="appendNumber('9')">9</button>
+                <button class="btn btn-primary" onclick="appendOperator('*')">×</button>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn btn-outline-secondary" onclick="appendNumber('4')">4</button>
+                <button class="btn btn-outline-secondary" onclick="appendNumber('5')">5</button>
+                <button class="btn btn-outline-secondary" onclick="appendNumber('6')">6</button>
+                <button class="btn btn-primary" onclick="appendOperator('-')">-</button>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn btn-outline-secondary" onclick="appendNumber('1')">1</button>
+                <button class="btn btn-outline-secondary" onclick="appendNumber('2')">2</button>
+                <button class="btn btn-outline-secondary" onclick="appendNumber('3')">3</button>
+                <button class="btn btn-primary" onclick="appendOperator('+')">+</button>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn
