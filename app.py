@@ -1353,7 +1353,7 @@ else:
         box-sizing: border-box !important; min-width: 0;
     }}
     .assistant-bubble {{
-        background-color: rgba(30, 30, 30, 0.82);
+        background-color: rgba(30,30,30,0.85) !important;
         padding: 8px 12px; border-radius: 12px; border-left: 4px solid gold;
         word-wrap: break-word !important; overflow-wrap: break-word !important;
         word-break: break-word !important; max-width: 80% !important;
@@ -1361,12 +1361,71 @@ else:
         width: fit-content;
     }}
     .user-bubble {{
-        background-color: rgba(255, 255, 255, 0.12);
+        background-color: rgba(255, 255, 255, 0.12) !important;
         padding: 8px 12px; border-radius: 12px;
         word-wrap: break-word !important; overflow-wrap: break-word !important;
         word-break: break-word !important; max-width: 80% !important;
         box-sizing: border-box !important;
         width: fit-content;
+    }}
+    .clickable-bubble-container {{
+        position: relative;
+        width: 100%;
+        display: block;
+    }}
+    .clickable-bubble-container div[data-testid="stButton"] {{
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        opacity: 0 !important;
+        z-index: 99 !important;
+    }}
+    .clickable-bubble-container div[data-testid="stButton"] button {{
+        width: 100% !important;
+        height: 100% !important;
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        cursor: pointer !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }}
+    .clickable-bubble-container:hover {{
+        filter: brightness(1.08) contrast(1.02);
+        cursor: pointer;
+    }}
+    div.msg-ops-container {{
+        width: 100%;
+        margin-top: -5px;
+        margin-bottom: 10px;
+    }}
+    div.msg-ops-container div[data-testid="stButton"] button {{
+        border-radius: 8px !important;
+        width: 32px !important;
+        height: 32px !important;
+        min-width: 32px !important;
+        max-width: 32px !important;
+        min-height: 32px !important;
+        max-height: 32px !important;
+        padding: 0 !important;
+        font-size: 14px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background-color: rgba(30,30,30,0.85) !important;
+        border: 1px solid #f39c12 !important;
+        box-shadow: 0 2px 6px rgba(243, 156, 18, 0.3) !important;
+        transition: transform 0.2s ease, background-color 0.2s ease !important;
+    }}
+    div.msg-ops-container div[data-testid="stButton"] button:hover {{
+        transform: scale(1.1) !important;
+        background-color: rgba(243, 156, 18, 0.25) !important;
+        border-color: #f39c12 !important;
+        box-shadow: 0 4px 10px rgba(243, 156, 18, 0.5) !important;
     }}
     .assistant-box *, .user-box *, .assistant-bubble *, .user-bubble * {{
         word-wrap: break-word !important; overflow-wrap: break-word !important;
@@ -2736,8 +2795,7 @@ Yapay zeka ve gerçek zamanlı iletişim teknolojilerini birleştirerek Türkiye
                         st.session_state.bildirim_panel_open = False
                         st.rerun()
 
-            # ── Bilgi Butonu kaldırıldı (Zaten en üstte bulunuyor)
-
+            # --- Fresh User Info and Display Name ---
             user_doc_fresh = user_ref.get().to_dict()
             kullanici_ismi_fresh = user_doc_fresh.get('isim', kullanici_ismi)
 
@@ -2756,66 +2814,6 @@ Yapay zeka ve gerçek zamanlı iletişim teknolojilerini birleştirerek Türkiye
                     u_tag_fresh = "KURUCU"
 
             display_name = get_styled_user_name(kullanici_ismi_fresh, u_color_fresh, u_glow_fresh, u_tag_fresh, u_rozet_fresh)
-
-            for idx, m in enumerate(st.session_state.messages):
-                if m["role"] == "assistant":
-                    content_rendered = detect_and_render_media(m["content"])
-                    st.markdown(
-                        f'''<div class="assistant-box"><img src="{AVATAR_URL}" class="avatar"><div class="assistant-bubble"><div class="header-box">Aslan Parçası</div><div style="color:white !important;">{content_rendered}</div></div></div>''',
-                        unsafe_allow_html=True
-                    )
-                else:
-                    msg_name = m.get("isim", kullanici_ismi_fresh)
-                    msg_color = m.get("color", u_color_fresh)
-                    msg_glow = m.get("glow", u_glow_fresh)
-                    msg_tag = m.get("tag", u_tag_fresh)
-                    msg_rozet = m.get("rozet", u_rozet_fresh)
-                    msg_display_name = get_styled_user_name(msg_name, msg_color, msg_glow, msg_tag, msg_rozet)
-                    content_rendered = detect_and_render_media(m["content"])
-                    
-                    col_space, col_msg, col_act = st.columns([1, 6, 1.2])
-                    with col_space:
-                        st.empty()
-                    with col_msg:
-                        st.markdown(
-                            f'''<div class="user-box"><div class="user-bubble"><div class="header-box" style="text-align: right; margin-bottom: 5px;">{msg_display_name}</div><div style="color:white !important; text-align: right;">{content_rendered}</div></div><img src="{_user_avatar_url}" class="avatar"></div>''',
-                            unsafe_allow_html=True
-                        )
-                    with col_act:
-                        col_act1, col_act2 = st.columns(2)
-                        with col_act1:
-                            if st.button("✏️", key=f"chat_edit_{idx}"):
-                                st.session_state.active_chat_edit_idx = idx
-                                st.session_state.active_chat_edit_text = m["content"]
-                                st.rerun()
-                        with col_act2:
-                            if st.button("🗑️", key=f"chat_delete_{idx}"):
-                                new_chat = list(st.session_state.messages)
-                                new_chat.pop(idx)
-                                st.session_state.messages = new_chat
-                                user_ref.update({"sohbet_gecmisi": new_chat})
-                                st.success("Mesaj silindi!")
-                                st.rerun()
-
-                    if st.session_state.get("active_chat_edit_idx") == idx:
-                        edit_val = st.text_input("Mesajı düzenle:", value=st.session_state.active_chat_edit_text, key=f"chat_edit_inp_{idx}")
-                        col_save, col_cancel = st.columns(2)
-                        with col_save:
-                            if st.button("Kaydet", key=f"chat_save_edit_{idx}"):
-                                if edit_val.strip():
-                                    new_chat = list(st.session_state.messages)
-                                    new_chat[idx]["content"] = edit_val.strip()
-                                    st.session_state.messages = new_chat
-                                    user_ref.update({"sohbet_gecmisi": new_chat})
-                                    st.session_state.pop("active_chat_edit_idx", None)
-                                    st.session_state.pop("active_chat_edit_text", None)
-                                    st.success("Mesaj güncellendi!")
-                                    st.rerun()
-                        with col_cancel:
-                            if st.button("Vazgeç", key=f"chat_cancel_edit_{idx}"):
-                                st.session_state.pop("active_chat_edit_idx", None)
-                                st.session_state.pop("active_chat_edit_text", None)
-                                st.rerun()
 
             def ai_cevap(mesajlar):
                 current_doc = user_ref.get().to_dict()
@@ -2864,6 +2862,132 @@ Yapay zeka ve gerçek zamanlı iletişim teknolojilerini birleştirerek Türkiye
                     f"2. Benimsemen gereken üslup yapısı: {uslub}\n"
                     f"3. Eğer karşındaki kişi Kurucun (Ayaz Kaplan) ise ona kesinlikle her fırsatta 'Kurucum' veya 'Reis' diye hitap et.\n"
                     f"4. Eğer karşındaki kişi bir Yönetici ise ona kesinlikle 'Yöneticim' şeklinde rütbeli ve saygılı hitaplar kullan.\n"
+                    f"5. Eğer normal bir kullanıcı ise ona samimi ve asil bir duruşla 'Reis', 'Dostum' veya doğrudan ismiyle hitap et.\n\n"
+                    "⚠️ EK KURALLAR:\n"
+                    "- Geçmiş sohbetlerdeki eski veya hatalı isimleri tamamen unut.\n"
+                    "- Her koşulda aslan gibi dik, asil, kararlı, zeki ve kurallara bağlı bir yapay zeka ol.\n\n"
+                    "📝 TÜRKÇE KARAKTER DÜZELTME TALİMATI:\n"
+                    "Kullanıcılar bazen Türkçe özel karakterleri kullanmadan yazar. Aşağıdaki dönüşümleri zihninde otomatik olarak yap ve mesajı düzgün Türkçe olarak anla:\n"
+                    "- 'u' yerine 'ü' olabilir (ornegin: 'guzul' → 'güzül/güzel', 'dusunuyorum' → 'düşünüyorum')\n"
+                    "- 'o' yerine 'ö' olabilir (ornegin: 'gormek' → 'görmek', 'donmek' → 'dönmek')\n"
+                    "- 'i' yerine 'ı' olabilir (ornegin: 'iyi' → 'ıyı' değil ama 'acik' → 'açık')\n"
+                    "- 's' yerine 'ş' olabilir (ornegin: 'seker' → 'şeker', 'dusunce' → 'düşünce')\n"
+                    "- 'c' yerine 'ç' olabilir (ornegin: 'cok' → 'çok', 'icmek' → 'içmek')\n"
+                    "- 'g' yerine 'ğ' olabilir (ornegin: 'dogru' → 'doğru', 'yagmur' → 'yağmur')\n"
+                    "Bu tür yazımlarda kullanıcıyı düzeltme, sadece mesajı doğru anla ve doğru Türkçe ile yanıt ver."
+                )
+                payload = {"model": MODEL, "messages": [{"role": "system", "content": sistem_mesaji}] + mesajlar}
+                headers = {"Authorization": f"Bearer {OPENROUTER_API_KEY}"}
+                try:
+                    res = requests.post(
+                        "https://openrouter.ai/api/v1/chat/completions",
+                        headers=headers, json=payload, timeout=30
+                    )
+                    res.raise_for_status()
+                    return res.json()['choices'][0]['message']['content']
+                except Exception as e:
+                    return "⚠️ Bir hata oluştu, lütfen tekrar dene Reis."
+
+            for idx, m in enumerate(st.session_state.messages):
+                if m["role"] == "assistant":
+                    content_rendered = detect_and_render_media(m["content"])
+                    with st.container():
+                        st.markdown(
+                            f'''<div class="clickable-bubble-container">
+                            <div class="assistant-box"><img src="{AVATAR_URL}" class="avatar"><div class="assistant-bubble"><div class="header-box">Aslan Parçası</div><div style="color:white !important;">{content_rendered}</div></div></div>
+                            ''',
+                            unsafe_allow_html=True
+                        )
+                        if st.button("", key=f"assistant_select_trigger_{idx}", help="Aslan parçasının cevabını seç"):
+                            if st.session_state.get("active_assistant_select_idx") == idx:
+                                st.session_state.active_assistant_select_idx = None
+                            else:
+                                st.session_state.active_assistant_select_idx = idx
+                                st.session_state.active_chat_select_idx = None
+                            st.rerun()
+                        st.markdown('</div>', unsafe_allow_html=True)
+
+                    if st.session_state.get("active_assistant_select_idx") == idx:
+                        st.markdown('<div class="msg-ops-container">', unsafe_allow_html=True)
+                        col_btn, col_empty = st.columns([0.4, 8.6])
+                        with col_btn:
+                            if st.button("🔄", key=f"assistant_regen_{idx}", help="Cevabı Yeniden Oluştur"):
+                                with st.spinner("Aslan Parçası analiz ediyor ve yeni bir yanıt oluşturuyor..."):
+                                    messages_context = st.session_state.messages[:idx]
+                                    yeni_cevap = ai_cevap(messages_context[-6:])
+                                    new_chat = list(st.session_state.messages)
+                                    new_chat[idx]["content"] = yeni_cevap
+                                    st.session_state.messages = new_chat
+                                    user_ref.update({"sohbet_gecmisi": new_chat})
+                                    st.session_state.active_assistant_select_idx = None
+                                    st.success("Yeni yanıt oluşturuldu!")
+                                    st.rerun()
+                        st.markdown('</div>', unsafe_allow_html=True)
+                else:
+                    msg_name = m.get("isim", kullanici_ismi_fresh)
+                    msg_color = m.get("color", u_color_fresh)
+                    msg_glow = m.get("glow", u_glow_fresh)
+                    msg_tag = m.get("tag", u_tag_fresh)
+                    msg_rozet = m.get("rozet", u_rozet_fresh)
+                    msg_display_name = get_styled_user_name(msg_name, msg_color, msg_glow, msg_tag, msg_rozet)
+                    content_rendered = detect_and_render_media(m["content"])
+                    
+                    with st.container():
+                        # Wrap user bubble in a clickable-bubble-container
+                        st.markdown(
+                            f'''<div class="clickable-bubble-container">
+                            <div class="user-box"><div class="user-bubble"><div class="header-box" style="text-align: right; margin-bottom: 5px;">{msg_display_name}</div><div style="color:white !important; text-align: right;">{content_rendered}</div></div><img src="{_user_avatar_url}" class="avatar"></div>
+                            ''',
+                            unsafe_allow_html=True
+                        )
+                        if st.button("", key=f"user_select_trigger_{idx}", help="Mesajınızı seçin"):
+                            if st.session_state.get("active_chat_select_idx") == idx:
+                                st.session_state.active_chat_select_idx = None
+                            else:
+                                st.session_state.active_chat_select_idx = idx
+                                st.session_state.active_assistant_select_idx = None
+                            st.rerun()
+                        st.markdown('</div>', unsafe_allow_html=True)
+
+                    if st.session_state.get("active_chat_select_idx") == idx:
+                        st.markdown('<div class="msg-ops-container">', unsafe_allow_html=True)
+                        col_space, col_btn1, col_btn2 = st.columns([7.8, 0.4, 0.4])
+                        with col_btn1:
+                            if st.button("✏️", key=f"chat_edit_{idx}", help="Mesajı Düzenle"):
+                                st.session_state.active_chat_edit_idx = idx
+                                st.session_state.active_chat_edit_text = m["content"]
+                                st.rerun()
+                        with col_btn2:
+                            if st.button("🗑️", key=f"chat_delete_{idx}", help="Mesajı Sil"):
+                                new_chat = list(st.session_state.messages)
+                                new_chat.pop(idx)
+                                st.session_state.messages = new_chat
+                                user_ref.update({"sohbet_gecmisi": new_chat})
+                                st.success("Mesaj silindi!")
+                                st.session_state.active_chat_select_idx = None
+                                st.rerun()
+                        st.markdown('</div>', unsafe_allow_html=True)
+
+                    if st.session_state.get("active_chat_edit_idx") == idx:
+                        edit_val = st.text_input("Mesajı düzenle:", value=st.session_state.active_chat_edit_text, key=f"chat_edit_inp_{idx}")
+                        col_save, col_cancel = st.columns(2)
+                        with col_save:
+                            if st.button("Kaydet", key=f"chat_save_edit_{idx}", use_container_width=True):
+                                if edit_val.strip():
+                                    new_chat = list(st.session_state.messages)
+                                    new_chat[idx]["content"] = edit_val.strip()
+                                    st.session_state.messages = new_chat
+                                    user_ref.update({"sohbet_gecmisi": new_chat})
+                                    st.session_state.pop("active_chat_edit_idx", None)
+                                    st.session_state.pop("active_chat_edit_text", None)
+                                    st.session_state.pop("active_chat_select_idx", None)
+                                    st.success("Mesaj güncellendi!")
+                                    st.rerun()
+                        with col_cancel:
+                            if st.button("Vazgeç", key=f"chat_cancel_edit_{idx}", use_container_width=True):
+                                st.session_state.pop("active_chat_edit_idx", None)
+                                st.session_state.pop("active_chat_edit_text", None)
+                                st.rerun()bir Yönetici ise ona kesinlikle 'Yöneticim' şeklinde rütbeli ve saygılı hitaplar kullan.\n"
                     f"5. Eğer normal bir kullanıcı ise ona samimi ve asil bir duruşla 'Reis', 'Dostum' veya doğrudan ismiyle hitap et.\n\n"
                     "⚠️ EK KURALLAR:\n"
                     "- Geçmiş sohbetlerdeki eski veya hatalı isimleri tamamen unut.\n"
