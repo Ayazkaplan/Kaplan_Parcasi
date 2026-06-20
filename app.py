@@ -1369,7 +1369,7 @@ else:
         width: fit-content;
     }}
     /* User Message Ops Sibling Styles (Edit & Delete side-by-side) */
-    div.element-container:has(.user-ops-marker) ~ div.element-container {
+    div.element-container:has(.user-ops-marker) ~ div.element-container {{
         display: flex !important;
         flex-direction: row !important;
         justify-content: flex-end !important;
@@ -1379,9 +1379,9 @@ else:
         margin-bottom: 12px !important;
         padding-right: 50px !important;
         box-sizing: border-box !important;
-    }
+    }}
     
-    div.element-container:has(.user-ops-marker) ~ div.element-container div[data-testid="stHorizontalBlock"] {
+    div.element-container:has(.user-ops-marker) ~ div.element-container div[data-testid="stHorizontalBlock"] {{
         display: flex !important;
         flex-direction: row !important;
         justify-content: flex-end !important;
@@ -1389,18 +1389,18 @@ else:
         gap: 8px !important;
         width: auto !important;
         flex-wrap: nowrap !important;
-    }
+    }}
     
-    div.element-container:has(.user-ops-marker) ~ div.element-container div[data-testid="column"] {
+    div.element-container:has(.user-ops-marker) ~ div.element-container div[data-testid="column"] {{
         width: auto !important;
         flex: none !important;
         min-width: unset !important;
         margin: 0 !important;
         padding: 0 !important;
-    }
+    }}
 
     /* Assistant Message Ops Sibling Styles (Regenerate on the left) */
-    div.element-container:has(.assistant-ops-marker) ~ div.element-container {
+    div.element-container:has(.assistant-ops-marker) ~ div.element-container {{
         display: flex !important;
         flex-direction: row !important;
         justify-content: flex-start !important;
@@ -1410,11 +1410,11 @@ else:
         margin-bottom: 12px !important;
         padding-left: 50px !important;
         box-sizing: border-box !important;
-    }
+    }}
 
     /* Style the actual button elements inside these siblings */
     div.element-container:has(.user-ops-marker) ~ div.element-container button,
-    div.element-container:has(.assistant-ops-marker) ~ div.element-container button {
+    div.element-container:has(.assistant-ops-marker) ~ div.element-container button {{
         border-radius: 8px !important;
         width: 38px !important;
         height: 38px !important;
@@ -1433,17 +1433,17 @@ else:
         color: #ffffff !important;
         cursor: pointer !important;
         transition: transform 0.2s ease, background-color 0.2s ease !important;
-    }
+    }}
     
-    @media (max-width: 768px) {
-        div.element-container:has(.user-ops-marker) ~ div.element-container {
+    @media (max-width: 768px) {{
+        div.element-container:has(.user-ops-marker) ~ div.element-container {{
             padding-right: 15px !important;
-        }
-        div.element-container:has(.assistant-ops-marker) ~ div.element-container {
+        }}
+        div.element-container:has(.assistant-ops-marker) ~ div.element-container {{
             padding-left: 15px !important;
-        }
+        }}
         div.element-container:has(.user-ops-marker) ~ div.element-container button,
-        div.element-container:has(.assistant-ops-marker) ~ div.element-container button {
+        div.element-container:has(.assistant-ops-marker) ~ div.element-container button {{
             width: 38px !important;
             height: 38px !important;
             min-width: 38px !important;
@@ -1451,32 +1451,25 @@ else:
             min-height: 38px !important;
             max-height: 38px !important;
             padding: 0 !important;
-        }
-    }
+        }}
+    }}
 
     div.element-container:has(.user-ops-marker) ~ div.element-container button:hover,
-    div.element-container:has(.assistant-ops-marker) ~ div.element-container button:hover {
+    div.element-container:has(.assistant-ops-marker) ~ div.element-container button:hover {{
         transform: scale(1.1) !important;
         background-color: rgba(243, 156, 18, 0.25) !important;
         border-color: #f39c12 !important;
         box-shadow: 0 4px 10px rgba(243, 156, 18, 0.5) !important;
-    }
+    }}
 
     /* Target direct children of button inside our operations area so writing displays correctly */
-    div.element-container:has(.user-ops-marker) ~ div.element-container button p,
-    div.element-container:has(.assistant-ops-marker) ~ div.element-container button p,
-    div.element-container:has(.user-ops-marker) ~ div.element-container button span,
-    div.element-container:has(.assistant-ops-marker) ~ div.element-container button span {
+    div.element-container:has(.user-ops-marker) ~ div.element-container button *,
+    div.element-container:has(.assistant-ops-marker) ~ div.element-container button * {{
         color: #ffffff !important;
         font-size: 18px !important;
         font-weight: bold !important;
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        margin: 0 !important;
-        padding: 0 !important;
-    }
-    .assistant-box *, .user-box *, .assistant-bubble *, .user-bubble * {
+    }}
+    .assistant-box *, .user-box *, .assistant-bubble *, .user-bubble * {{
         word-wrap: break-word !important; overflow-wrap: break-word !important;
         word-break: break-word !important; max-width: 100% !important;
         box-sizing: border-box !important; min-width: 0;
