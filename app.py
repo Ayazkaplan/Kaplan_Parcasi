@@ -2987,32 +2987,7 @@ Yapay zeka ve gerçek zamanlı iletişim teknolojilerini birleştirerek Türkiye
                             if st.button("Vazgeç", key=f"chat_cancel_edit_{idx}", use_container_width=True):
                                 st.session_state.pop("active_chat_edit_idx", None)
                                 st.session_state.pop("active_chat_edit_text", None)
-                                st.rerun()bir Yönetici ise ona kesinlikle 'Yöneticim' şeklinde rütbeli ve saygılı hitaplar kullan.\n"
-                    f"5. Eğer normal bir kullanıcı ise ona samimi ve asil bir duruşla 'Reis', 'Dostum' veya doğrudan ismiyle hitap et.\n\n"
-                    "⚠️ EK KURALLAR:\n"
-                    "- Geçmiş sohbetlerdeki eski veya hatalı isimleri tamamen unut.\n"
-                    "- Her koşulda aslan gibi dik, asil, kararlı, zeki ve kurallara bağlı bir yapay zeka ol.\n\n"
-                    "📝 TÜRKÇE KARAKTER DÜZELTME TALİMATI:\n"
-                    "Kullanıcılar bazen Türkçe özel karakterleri kullanmadan yazar. Aşağıdaki dönüşümleri zihninde otomatik olarak yap ve mesajı düzgün Türkçe olarak anla:\n"
-                    "- 'u' yerine 'ü' olabilir (ornegin: 'guzul' → 'güzül/güzel', 'dusunuyorum' → 'düşünüyorum')\n"
-                    "- 'o' yerine 'ö' olabilir (ornegin: 'gormek' → 'görmek', 'donmek' → 'dönmek')\n"
-                    "- 'i' yerine 'ı' olabilir (ornegin: 'iyi' → 'ıyı' değil ama 'acik' → 'açık')\n"
-                    "- 's' yerine 'ş' olabilir (ornegin: 'seker' → 'şeker', 'dusunce' → 'düşünce')\n"
-                    "- 'c' yerine 'ç' olabilir (ornegin: 'cok' → 'çok', 'icmek' → 'içmek')\n"
-                    "- 'g' yerine 'ğ' olabilir (ornegin: 'dogru' → 'doğru', 'yagmur' → 'yağmur')\n"
-                    "Bu tür yazımlarda kullanıcıyı düzeltme, sadece mesajı doğru anla ve doğru Türkçe ile yanıt ver."
-                )
-                payload = {"model": MODEL, "messages": [{"role": "system", "content": sistem_mesaji}] + mesajlar}
-                headers = {"Authorization": f"Bearer {OPENROUTER_API_KEY}"}
-                try:
-                    res = requests.post(
-                        "https://openrouter.ai/api/v1/chat/completions",
-                        headers=headers, json=payload, timeout=30
-                    )
-                    res.raise_for_status()
-                    return res.json()['choices'][0]['message']['content']
-                except Exception as e:
-                    return "⚠️ Bir hata oluştu, lütfen tekrar dene Reis."
+                                st.rerun()
 
             if "input_key" not in st.session_state: st.session_state.input_key = 0
             if "kufur_warning" in st.session_state: st.error(st.session_state.kufur_warning)
