@@ -307,17 +307,20 @@ components.html("""
       btns.forEach(function(p) {
         if (p.getAttribute('data-icons-done')) return;
         var origTxt = p.textContent || '';
-        var txt = origTxt;
-        var emojiRe = new RegExp('[\\uD83C-\\uDBFF][\\uDC00-\\uDFFF]|[\\u2600-\\u27BF]|\\uFE0F', 'g');
-        if (emojiRe.test(txt)) {
-          emojiRe.lastIndex = 0;
-          Array.from(p.childNodes).forEach(function(n) {
-            if (n.nodeType === 3) {
-              var cleanRe = new RegExp('[\\uD83C-\\uDBFF][\\uDC00-\\uDFFF]|[\\u2600-\\u27BF]|\\uFE0F', 'g');
-              n.textContent = n.textContent.replace(cleanRe, '').replace(/^ +/, '');
-            }
-          });
-          txt = p.textContent || '';
+        var txt = origTxt.trim();
+        var isUserOp = (txt === "✎" || txt === "✕");
+        if (!isUserOp) {
+          var emojiRe = new RegExp('[\\uD83C-\\uDBFF][\\uDC00-\\uDFFF]|[\\u2600-\\u27BF]|\\uFE0F', 'g');
+          if (emojiRe.test(txt)) {
+            emojiRe.lastIndex = 0;
+            Array.from(p.childNodes).forEach(function(n) {
+              if (n.nodeType === 3) {
+                var cleanRe = new RegExp('[\\uD83C-\\uDBFF][\\uDC00-\\uDFFF]|[\\u2600-\\u27BF]|\\uFE0F', 'g');
+                n.textContent = n.textContent.replace(cleanRe, '').replace(/^ +/, '');
+              }
+            });
+            txt = p.textContent || '';
+          }
         }
         for (var key in icons) {
           if (txt.indexOf(key) !== -1 || origTxt.indexOf(key) !== -1) {
