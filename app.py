@@ -2570,40 +2570,40 @@ else:
                 else:
                     user_query = db.collection("users").where("email", "==", search_email).limit(1).get()
                     if user_query:
-                    target_doc = user_query[0]
-                    target_id = target_doc.id
-                    target_data = target_doc.to_dict()
+                        target_doc = user_query[0]
+                        target_id = target_doc.id
+                        target_data = target_doc.to_dict()
 
-                    st.text_input("Kullanıcı İsmi (Salt Okunur):", value=target_data.get("isim", "Bilinmeyen"), disabled=True, key=f"am_name_{target_id}")
-                    st.text_input("Kullanıcı E-postası (Salt Okunur):", value=target_data.get("email", ""), disabled=True, key=f"am_email_{target_id}")
-                    isim_rengi = st.color_picker("İsim Rengi (Hex):", value=target_data.get("isim_rengi", "#FFFFFF"), key=f"am_color_{target_id}")
-                    ismin_parlakligi = st.checkbox("Yazı Parlaklığı (CSS Gölge Efekti):", value=target_data.get("ismin_parlakligi", False), key=f"am_glow_{target_id}")
-                    tag_val = st.text_input("Kullanıcı Tagı (Örn: Moderatör, Vip):", value=target_data.get("tag", ""), max_chars=20, key=f"am_tag_{target_id}")
-                    rozet_val = st.text_input("Kullanıcı Rozeti (Örn: 🛡️, 💎):", value=target_data.get("rozet", ""), max_chars=10, key=f"am_rozet_{target_id}")
-                    is_admin_flag = st.checkbox("Yönetici Yap (is_admin):", value=target_data.get("is_admin", False), key=f"am_adminflag_{target_id}")
+                        st.text_input("Kullanıcı İsmi (Salt Okunur):", value=target_data.get("isim", "Bilinmeyen"), disabled=True, key=f"am_name_{target_id}")
+                        st.text_input("Kullanıcı E-postası (Salt Okunur):", value=target_data.get("email", ""), disabled=True, key=f"am_email_{target_id}")
+                        isim_rengi = st.color_picker("İsim Rengi (Hex):", value=target_data.get("isim_rengi", "#FFFFFF"), key=f"am_color_{target_id}")
+                        ismin_parlakligi = st.checkbox("Yazı Parlaklığı (CSS Gölge Efekti):", value=target_data.get("ismin_parlakligi", False), key=f"am_glow_{target_id}")
+                        tag_val = st.text_input("Kullanıcı Tagı (Örn: Moderatör, Vip):", value=target_data.get("tag", ""), max_chars=20, key=f"am_tag_{target_id}")
+                        rozet_val = st.text_input("Kullanıcı Rozeti (Örn: 🛡️, 💎):", value=target_data.get("rozet", ""), max_chars=10, key=f"am_rozet_{target_id}")
+                        is_admin_flag = st.checkbox("Yönetici Yap (is_admin):", value=target_data.get("is_admin", False), key=f"am_adminflag_{target_id}")
 
-                    if st.button("💾 Değişiklikleri Kaydet", type="primary", use_container_width=True, key=f"am_save_{target_id}"):
-                        update_payload = {
-                            "isim_rengi": isim_rengi,
-                            "ismin_parlakligi": ismin_parlakligi,
-                            "tag": tag_val.strip(),
-                            "rozet": rozet_val.strip(),
-                            "is_admin": is_admin_flag
-                        }
-                        if not is_admin_flag and target_data.get("is_admin", False):
-                            update_payload["isim_rengi"] = "#FFFFFF"
-                            update_payload["ismin_parlakligi"] = False
-                            update_payload["tag"] = ""
-                            update_payload["rozet"] = ""
-                            st.info("ℹ️ Yöneticilik alındı, kullanıcı stili varsayılana sıfırlandı.")
+                        if st.button("💾 Değişiklikleri Kaydet", type="primary", use_container_width=True, key=f"am_save_{target_id}"):
+                            update_payload = {
+                                "isim_rengi": isim_rengi,
+                                "ismin_parlakligi": ismin_parlakligi,
+                                "tag": tag_val.strip(),
+                                "rozet": rozet_val.strip(),
+                                "is_admin": is_admin_flag
+                            }
+                            if not is_admin_flag and target_data.get("is_admin", False):
+                                update_payload["isim_rengi"] = "#FFFFFF"
+                                update_payload["ismin_parlakligi"] = False
+                                update_payload["tag"] = ""
+                                update_payload["rozet"] = ""
+                                st.info("ℹ️ Yöneticilik alındı, kullanıcı stili varsayılana sıfırlandı.")
 
-                        db.collection("users").document(target_id).update(update_payload)
-                        st.success("✅ Kullanıcı bilgileri başarıyla güncellendi!")
-                        st.session_state.valid_users_cache = None
-                        time.sleep(1)
-                        st.rerun()
-                else:
-                    st.error("❌ Eşleşen bir kullanıcı bulunamadı.")
+                            db.collection("users").document(target_id).update(update_payload)
+                            st.success("✅ Kullanıcı bilgileri başarıyla güncellendi!")
+                            st.session_state.valid_users_cache = None
+                            time.sleep(1)
+                            st.rerun()
+                    else:
+                        st.error("❌ Eşleşen bir kullanıcı bulunamadı.")
 
         with tab_normal:
             st.markdown("#### 👤 Normal Kullanıcı Profil Süsü")
