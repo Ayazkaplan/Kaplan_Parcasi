@@ -1369,7 +1369,7 @@ else:
         width: fit-content;
     }}
     /* User Message Ops Sibling Styles (Edit & Delete side-by-side) */
-    div.element-container:has(.user-ops-marker) ~ div.element-container {{
+    div.element-container:has(.user-ops-marker) + div.element-container {{
         display: flex !important;
         flex-direction: row !important;
         justify-content: flex-end !important;
@@ -1381,7 +1381,7 @@ else:
         box-sizing: border-box !important;
     }}
     
-    div.element-container:has(.user-ops-marker) ~ div.element-container div[data-testid="stHorizontalBlock"] {{
+    div.element-container:has(.user-ops-marker) + div.element-container div[data-testid="stHorizontalBlock"] {{
         display: flex !important;
         flex-direction: row !important;
         justify-content: flex-end !important;
@@ -1391,7 +1391,7 @@ else:
         flex-wrap: nowrap !important;
     }}
     
-    div.element-container:has(.user-ops-marker) ~ div.element-container div[data-testid="column"] {{
+    div.element-container:has(.user-ops-marker) + div.element-container div[data-testid="column"] {{
         width: auto !important;
         flex: none !important;
         min-width: unset !important;
@@ -1400,7 +1400,7 @@ else:
     }}
 
     /* Assistant Message Ops Sibling Styles (Regenerate on the left) */
-    div.element-container:has(.assistant-ops-marker) ~ div.element-container {{
+    div.element-container:has(.assistant-ops-marker) + div.element-container {{
         display: flex !important;
         flex-direction: row !important;
         justify-content: flex-start !important;
@@ -1413,61 +1413,53 @@ else:
     }}
 
     /* Style the actual button elements inside these siblings */
-    div.element-container:has(.user-ops-marker) ~ div.element-container button,
-    div.element-container:has(.assistant-ops-marker) ~ div.element-container button {{
+    div.element-container:has(.user-ops-marker) + div.element-container button,
+    div.element-container:has(.assistant-ops-marker) + div.element-container button {{
         border-radius: 8px !important;
-        width: 38px !important;
-        height: 38px !important;
-        min-width: 38px !important;
-        max-width: 38px !important;
-        min-height: 38px !important;
-        max-height: 38px !important;
-        padding: 0 !important;
+        height: 30px !important;
+        min-height: 30px !important;
+        max-height: 30px !important;
+        padding: 0 12px !important;
         margin: 0 !important;
         display: inline-flex !important;
         align-items: center !important;
         justify-content: center !important;
-        background-color: rgba(30,30,30,0.85) !important;
-        border: 1px solid #f39c12 !important;
-        box-shadow: 0 2px 6px rgba(243, 156, 18, 0.3) !important;
+        background-color: rgba(30, 30, 30, 0.85) !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
         color: #ffffff !important;
         cursor: pointer !important;
-        transition: transform 0.2s ease, background-color 0.2s ease !important;
+        transition: transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease !important;
     }}
     
     @media (max-width: 768px) {{
-        div.element-container:has(.user-ops-marker) ~ div.element-container {{
+        div.element-container:has(.user-ops-marker) + div.element-container {{
             padding-right: 15px !important;
         }}
-        div.element-container:has(.assistant-ops-marker) ~ div.element-container {{
+        div.element-container:has(.assistant-ops-marker) + div.element-container {{
             padding-left: 15px !important;
         }}
-        div.element-container:has(.user-ops-marker) ~ div.element-container button,
-        div.element-container:has(.assistant-ops-marker) ~ div.element-container button {{
-            width: 38px !important;
-            height: 38px !important;
-            min-width: 38px !important;
-            max-width: 38px !important;
-            min-height: 38px !important;
-            max-height: 38px !important;
-            padding: 0 !important;
+        div.element-container:has(.user-ops-marker) + div.element-container button,
+        div.element-container:has(.assistant-ops-marker) + div.element-container button {{
+            height: 30px !important;
+            padding: 0 10px !important;
         }}
     }}
 
-    div.element-container:has(.user-ops-marker) ~ div.element-container button:hover,
-    div.element-container:has(.assistant-ops-marker) ~ div.element-container button:hover {{
-        transform: scale(1.1) !important;
-        background-color: rgba(243, 156, 18, 0.25) !important;
+    div.element-container:has(.user-ops-marker) + div.element-container button:hover,
+    div.element-container:has(.assistant-ops-marker) + div.element-container button:hover {{
+        transform: scale(1.03) !important;
+        background-color: rgba(243, 156, 18, 0.15) !important;
         border-color: #f39c12 !important;
-        box-shadow: 0 4px 10px rgba(243, 156, 18, 0.5) !important;
+        box-shadow: 0 4px 10px rgba(243, 156, 18, 0.4) !important;
     }}
 
     /* Target direct children of button inside our operations area so writing displays correctly */
-    div.element-container:has(.user-ops-marker) ~ div.element-container button *,
-    div.element-container:has(.assistant-ops-marker) ~ div.element-container button * {{
+    div.element-container:has(.user-ops-marker) + div.element-container button *,
+    div.element-container:has(.assistant-ops-marker) + div.element-container button * {{
         color: #ffffff !important;
-        font-size: 18px !important;
-        font-weight: bold !important;
+        font-size: 12px !important;
+        font-weight: 500 !important;
     }}
     .assistant-box *, .user-box *, .assistant-bubble *, .user-bubble * {{
         word-wrap: break-word !important; overflow-wrap: break-word !important;
@@ -2941,7 +2933,7 @@ Yapay zeka ve gerçek zamanlı iletişim teknolojilerini birleştirerek Türkiye
 
                     with st.container():
                         st.markdown('<div class="assistant-ops-marker"></div>', unsafe_allow_html=True)
-                        if st.button("🔄", key=f"assistant_regen_{idx}", help="Cevabı Yeniden Oluştur"):
+                        if st.button("🔄 Tekrar Yaz", key=f"assistant_regen_{idx}", help="Cevabı Yeniden Oluştur"):
                             with st.spinner("Aslan Parçası analiz ediyor ve yeni bir yanıt oluşturuyor..."):
                                 messages_context = st.session_state.messages[:idx]
                                 yeni_cevap = ai_cevap(messages_context[-6:])
@@ -2970,12 +2962,12 @@ Yapay zeka ve gerçek zamanlı iletişim teknolojilerini birleştirerek Türkiye
                         st.markdown('<div class="user-ops-marker"></div>', unsafe_allow_html=True)
                         col_btn1, col_btn2 = st.columns([1, 1], gap="small")
                         with col_btn1:
-                            if st.button("✏️", key=f"chat_edit_{idx}", help="Mesajı Düzenle"):
+                            if st.button("✏️ Düzenle", key=f"chat_edit_{idx}", help="Mesajı Düzenle"):
                                 st.session_state.active_chat_edit_idx = idx
                                 st.session_state.active_chat_edit_text = m["content"]
                                 st.rerun()
                         with col_btn2:
-                            if st.button("🗑️", key=f"chat_delete_{idx}", help="Mesajı Sil"):
+                            if st.button("🗑️ Sil", key=f"chat_delete_{idx}", help="Mesajı Sil"):
                                 new_chat = list(st.session_state.messages)
                                 new_chat.pop(idx)
                                 st.session_state.messages = new_chat
