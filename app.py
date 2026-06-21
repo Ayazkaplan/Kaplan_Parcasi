@@ -1443,12 +1443,6 @@ else:
     }}
 
     /* Align the Streamlit button wrapper container to the right too */
-    div.element-container:has(.user-ops-marker) + div.element-container .stButton,
-    div.element-container:has(.user-ops-marker) + div.element-container .stButton > div {{
-        display: flex !important;
-        justify-content: flex-end !important;
-        width: 100% !important;
-    }}
 
     div.element-container:has(.user-ops-marker) + div.element-container button {{
         border-radius: 8px !important;
@@ -2973,7 +2967,7 @@ Yapay zeka ve gerçek zamanlı iletişim teknolojilerini birleştirerek Türkiye
 
                     if idx == last_assistant_idx:
                         st.markdown('<div class="assistant-ops-marker"></div>', unsafe_allow_html=True)
-                        if st.button("↻", key=f"assistant_regen_{idx}", help="Cevabı Yeniden Oluştur"):
+                        if st.button("↻", key=f"assistant_regen_{idx}"):
                             with st.spinner("Aslan Parçası analiz ediyor ve yeni bir yanıt oluşturuyor..."):
                                 messages_context = st.session_state.messages[:idx]
                                 yeni_cevap = ai_cevap(messages_context[-6:])
@@ -3000,7 +2994,7 @@ Yapay zeka ve gerçek zamanlı iletişim teknolojilerini birleştirerek Türkiye
 
                     if idx == last_user_idx:
                         st.markdown('<div class="user-ops-marker"></div>', unsafe_allow_html=True)
-                        if st.button("✎", key=f"user_edit_trigger_{idx}", help="Mesajı Düzenle"):
+                        if st.button("✎", key=f"user_edit_trigger_{idx}"):
                             st.session_state.active_chat_edit_idx = idx
                             st.session_state.active_chat_edit_text = m["content"]
                             st.rerun()
