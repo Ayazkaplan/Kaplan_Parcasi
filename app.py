@@ -307,9 +307,8 @@ components.html("""
       btns.forEach(function(p) {
         if (p.getAttribute('data-icons-done')) return;
         var origTxt = p.textContent || '';
-        var txt = origTxt.trim();
-        var isUserOp = (txt === "✎" || txt === "✕");
-        if (!isUserOp) {
+        var txt = origTxt;
+        if (txt.indexOf('✎') === -1) {
           var emojiRe = new RegExp('[\\uD83C-\\uDBFF][\\uDC00-\\uDFFF]|[\\u2600-\\u27BF]|\\uFE0F', 'g');
           if (emojiRe.test(txt)) {
             emojiRe.lastIndex = 0;
@@ -1431,7 +1430,7 @@ else:
         justify-content: center !important;
     }}
 
-    /* User Message Ops Sibling Styles (Edit button aligned directly beneath the right-hand profile photo) */
+    /* User Message Ops Sibling Styles (Edit button aligned to matching right-hand bubble boundary) */
     div.element-container:has(.user-ops-marker) + div.element-container {{
         display: flex !important;
         flex-direction: row !important;
@@ -1440,32 +1439,9 @@ else:
         width: 100% !important;
         margin-top: -19px !important; /* Sit aligned with the bottom of user bubble */
         margin-bottom: 12px !important;
-        padding-right: 4px !important; /* Mathematically aligned beneath the 40px profile photo (center-aligned: (40px avatar - 32px button) / 2 = 4px offset) */
+        padding-right: 50px !important; /* Pre-calculated to stay to the left of the 40px user avatar + 10px gap */
         box-sizing: border-box !important;
-        height: auto !important;
-    }}
-
-    /* Align columns wrapper inside columns container to right-end with gap */
-    div.element-container:has(.user-ops-marker) + div.element-container > div,
-    div.element-container:has(.user-ops-marker) + div.element-container [data-testid="stHorizontalBlock"] {{
-        display: flex !important;
-        flex-direction: row !important; /* Force side-by-side row on both mobile and desktop! */
-        justify-content: flex-end !important;
-        align-items: center !important;
-        gap: 8px !important;
-        width: auto !important;
-        margin-left: auto !important;
-        margin-right: 0 !important;
-    }}
-
-    /* Condense columns to tightly wrap our buttons and NEVER stack on mobile */
-    div.element-container:has(.user-ops-marker) + div.element-container [data-testid="column"] {{
-        flex: 0 0 32px !important;
-        width: 32px !important;
-        min-width: 32px !important;
-        max-width: 32px !important;
-        padding: 0 !important;
-        margin: 0 !important;
+        height: 32px !important;
     }}
 
     /* Align the Streamlit button wrapper container to the right too */
@@ -1490,18 +1466,16 @@ else:
         align-items: center !important;
         justify-content: center !important;
         background-color: rgba(30, 30, 30, 0.85) !important;
-        border: 1.5px solid #a855f7 !important; /* Purple border to match refresh button's golden accent but in purple */
+        border: 1.5px solid #a855f7 !important; /* Purple border to fit user theme aesthetics nicely */
         box-shadow: 0 2px 6px rgba(168, 85, 247, 0.3) !important;
         color: #ffffff !important;
         cursor: pointer !important;
         transition: transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease !important;
-        text-align: center !important;
-        overflow: hidden !important;
     }}
 
     @media (max-width: 768px) {{
         div.element-container:has(.user-ops-marker) + div.element-container {{
-            padding-right: 4px !important; /* Keep 4px on mobile which perfectly aligns with the smaller 32px/28px user avatar */
+            padding-right: 50px !important;
         }}
     }}
 
@@ -1512,22 +1486,14 @@ else:
         box-shadow: 0 4px 10px rgba(168, 85, 247, 0.5) !important;
     }}
 
-    /* Safe child element selectors to ensure icon rendering never collapses */
-    div.element-container:has(.user-ops-marker) + div.element-container button *,
-    div.element-container:has(.user-ops-marker) + div.element-container button p,
-    div.element-container:has(.user-ops-marker) + div.element-container button span,
-    div.element-container:has(.user-ops-marker) + div.element-container button div {{
+    div.element-container:has(.user-ops-marker) + div.element-container button * {{
         color: #ffffff !important;
-        font-size: 16px !important;
+        font-size: 20px !important;
         font-weight: bold !important;
         line-height: 1 !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        display: inline-flex !important;
+        display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        width: 100% !important;
-        height: 100% !important;
     }}
     .assistant-box *, .user-box *, .assistant-bubble *, .user-bubble * {{
         word-wrap: break-word !important; overflow-wrap: break-word !important;
@@ -3036,20 +3002,10 @@ Yapay zeka ve gerçek zamanlı iletişim teknolojilerini birleştirerek Türkiye
 
                     if idx == last_user_idx:
                         st.markdown('<div class="user-ops-marker"></div>', unsafe_allow_html=True)
-                        col_ops_1, col_ops_2 = st.columns([1, 1])
-                        with col_ops_1:
-                            if st.button("✕", key=f"user_delete_trigger_{idx}"):
-                                new_chat = list(st.session_state.messages)
-                                new_chat.pop(idx)
-                                st.session_state.messages = new_chat
-                                user_ref.update({"sohbet_gecmisi": new_chat})
-                                st.success("Mesaj silindi!")
-                                st.rerun()
-                        with col_ops_2:
-                            if st.button("✎", key=f"user_edit_trigger_{idx}"):
-                                st.session_state.active_chat_edit_idx = idx
-                                st.session_state.active_chat_edit_text = m["content"]
-                                st.rerun()
+                        if st.button("✎", key=f"user_edit_trigger_{idx}"):
+                            st.session_state.active_chat_edit_idx = idx
+                            st.session_state.active_chat_edit_text = m["content"]
+                            st.rerun()
 
                     if st.session_state.get("active_chat_edit_idx") == idx:
                         edit_val = st.text_input("Mesajı düzenle:", value=st.session_state.active_chat_edit_text, key=f"chat_edit_inp_{idx}")
