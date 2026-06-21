@@ -2395,18 +2395,6 @@ else:
                 except Exception as e:
                     st.error(f"❌ Duyuru gönderilirken teknik bir hata oluştu: {e}")
 
-    elif st.session_state.current_page == "admin_role_management" and is_kurucu:
-        st.title("🛡️ Yönetici Rol Yönetimi")
-        col_back_main, col_back_chat = st.columns([5, 5])
-        with col_back_main:
-            if st.button("⬅️ Yönetici Ana Paneline Dön", key="back_to_main_from_roles", use_container_width=True):
-                st.session_state.current_page = "admin_main"
-                st.rerun()
-        with col_back_chat:
-            if st.button("💬 Sohbet Ekranına Dön", key="back_to_chat_from_roles", use_container_width=True):
-                st.session_state.current_page = "chat"
-                st.rerun()
-
         st.divider()
 
         with st.expander("📢 Tepe Duyurusu (Herkesin Göreceği Yazı) Düzenle", expanded=False):
@@ -2539,6 +2527,20 @@ else:
                     st.success("✅ Tepe duyurusu varsayılan ayarlara başarıyla sıfırlandı!")
                     time.sleep(1.2)
                     st.rerun()
+
+    elif st.session_state.current_page == "admin_role_management" and is_kurucu:
+        st.title("🛡️ Yönetici Rol Yönetimi")
+        col_back_main, col_back_chat = st.columns([5, 5])
+        with col_back_main:
+            if st.button("⬅️ Yönetici Ana Paneline Dön", key="back_to_main_from_roles", use_container_width=True):
+                st.session_state.current_page = "admin_main"
+                st.rerun()
+        with col_back_chat:
+            if st.button("💬 Sohbet Ekranına Dön", key="back_to_chat_from_roles", use_container_width=True):
+                st.session_state.current_page = "chat"
+                st.rerun()
+
+        st.divider()
 
         with st.expander("👑 Kendi Profil Stilimi Düzenle", expanded=False):
             st.markdown("### 👑 Kendi Profil Stilimi Düzenle")
