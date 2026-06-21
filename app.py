@@ -2888,6 +2888,11 @@ Yapay zeka ve gerçek zamanlı iletişim teknolojilerini birleştirerek Türkiye
                 except Exception as e:
                     return "⚠️ Bir hata oluştu, lütfen tekrar dene Reis."
 
+            last_assistant_idx = -1
+            for i, msg in enumerate(st.session_state.messages):
+                if msg["role"] == "assistant":
+                    last_assistant_idx = i
+
             for idx, m in enumerate(st.session_state.messages):
                 if m["role"] == "assistant":
                     content_rendered = detect_and_render_media(m["content"])
@@ -2897,18 +2902,19 @@ Yapay zeka ve gerçek zamanlı iletişim teknolojilerini birleştirerek Türkiye
                             unsafe_allow_html=True
                         )
 
-                    with st.container():
-                        st.markdown('<div class="assistant-ops-marker"></div>', unsafe_allow_html=True)
-                        if st.button("↻", key=f"assistant_regen_{idx}", help="Cevabı Yeniden Oluştur"):
-                            with st.spinner("Aslan Parçası analiz ediyor ve yeni bir yanıt oluşturuyor..."):
-                                messages_context = st.session_state.messages[:idx]
-                                yeni_cevap = ai_cevap(messages_context[-6:])
-                                new_chat = list(st.session_state.messages)
-                                new_chat[idx]["content"] = yeni_cevap
-                                st.session_state.messages = new_chat
-                                user_ref.update({"sohbet_gecmisi": new_chat})
-                                st.success("Yeni yanıt oluşturuldu!")
-                                st.rerun()
+                    if idx == last_assistant_idx:
+                        with st.container():
+                            st.markdown('<div class="assistant-ops-marker"></div>', unsafe_allow_html=True)
+                            if st.button("↻", key=f"assistant_regen_{idx}", help="Cevabı Yeniden Oluştur"):
+                                with st.spinner("Aslan Parçası analiz ediyor ve yeni bir yanıt oluşturuyor..."):
+                                    messages_context = st.session_state.messages[:idx]
+                                    yeni_cevap = ai_cevap(messages_context[-6:])
+                                    new_chat = list(st.session_state.messages)
+                                    new_chat[idx]["content"] = yeni_cevap
+                                    st.session_state.messages = new_chat
+                                    user_ref.update({"sohbet_gecmisi": new_chat})
+                                    st.success("Yeni yanıt oluşturuldu!")
+                                    st.rerun()
                 else:
                     msg_name = m.get("isim", kullanici_ismi_fresh)
                     msg_color = m.get("color", u_color_fresh)
@@ -3042,6 +3048,21 @@ Yapay zeka ve gerçek zamanlı iletişim teknolojilerini birleştirerek Türkiye
                 k_glow = k_data.get("ismin_parlakligi", False)
                 k_tag = k_data.get("tag", "")
                 k_rozet = k_data.get("rozet", "")
+                
+                k_email_clean = kisi.get("email", "").strip().lower()
+                if k_email_clean == KURUCU_EMAIL:
+                    if not k_tag:
+                        k_color = "#FF0000"
+                        k_glow = True
+                        k_tag = "KURUCU"
+                        k_rozet = "🛠️"
+                elif k_data.get("is_admin", False):
+                    if not k_tag:
+                        k_color = "#9b59b6"
+                        k_glow = False
+                        k_tag = "YÖNETİCİ"
+                        k_rozet = "🛡️"
+
                 k_styled = get_styled_user_name(k_isim, k_color, k_glow, k_tag, k_rozet)
 
                 if k_foto:
@@ -3159,6 +3180,21 @@ Yapay zeka ve gerçek zamanlı iletişim teknolojilerini birleştirerek Türkiye
                             ark_glow = ark_d.get("ismin_parlakligi", False)
                             ark_tag = ark_d.get("tag", "")
                             ark_rozet = ark_d.get("rozet", "")
+                            
+                            ark_email = ark_d.get("email", "").strip().lower()
+                            if ark_email == KURUCU_EMAIL:
+                                if not ark_tag:
+                                    ark_color = "#FF0000"
+                                    ark_glow = True
+                                    ark_tag = "KURUCU"
+                                    ark_rozet = "🛠️"
+                            elif ark_d.get("is_admin", False):
+                                if not ark_tag:
+                                    ark_color = "#9b59b6"
+                                    ark_glow = False
+                                    ark_tag = "YÖNETİCİ"
+                                    ark_rozet = "🛡️"
+
                             ark_styled = get_styled_user_name(ark_isim, ark_color, ark_glow, ark_tag, ark_rozet)
                             ark_foto_src = f"data:image/jpeg;base64,{ark_foto}" if ark_foto else "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
                             col_af, col_an, col_dm, col_rem = st.columns([1, 4, 3, 2.5])
