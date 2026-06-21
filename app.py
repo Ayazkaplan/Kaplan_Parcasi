@@ -538,7 +538,45 @@ def get_global_announcement():
     try:
         doc = db.collection("settings").document("global_announcement").get()
         if doc.exists:
-            return doc.to_dict()
+            # Provide solid fallback values for any newly added fields
+            d = doc.to_dict()
+            defaults = {
+                "text": "",
+                "size": 20,
+                "font": "sans-serif",
+                "bg_type": "none",
+                "bg_color": "#111122",
+                "bg_gradient_end": "#1a1a3a",
+                "bg_image_url": "",
+                "bg_opacity": 100,
+                "glow_enabled": False,
+                "glow_intensity": 50,
+                "glow_color_mode": "auto",
+                "glow_color_fixed": "#FFC000",
+                "shadow_enabled": False,
+                "shadow_intensity": 50,
+                "shadow_color": "#000000",
+                "opacity": 100,
+                "font_weight": "normal",
+                "font_style": "normal",
+                "text_decoration": "none",
+                "displacement_x": 0,
+                "displacement_y": 0,
+                "animation_type": "none",
+                "media_url": "",
+                "media_size": 150,
+                "media_align": "bottom",
+                "padding_vertical": 10,
+                "padding_horizontal": 15,
+                "border_radius": 12,
+                "char_colors": [],
+                "align": "center",
+                "text_color": "#FFFFFF"
+            }
+            for k, v in defaults.items():
+                if k not in d:
+                    d[k] = v
+            return d
     except Exception:
         pass
     return {
@@ -548,14 +586,212 @@ def get_global_announcement():
         "bg_type": "none",
         "bg_color": "#111122",
         "bg_gradient_end": "#1a1a3a",
+        "bg_image_url": "",
+        "bg_opacity": 100,
         "glow_enabled": False,
         "glow_intensity": 50,
+        "glow_color_mode": "auto",
+        "glow_color_fixed": "#FFC000",
         "shadow_enabled": False,
         "shadow_intensity": 50,
+        "shadow_color": "#000000",
+        "opacity": 100,
+        "font_weight": "normal",
+        "font_style": "normal",
+        "text_decoration": "none",
+        "displacement_x": 0,
+        "displacement_y": 0,
+        "animation_type": "none",
+        "media_url": "",
+        "media_size": 150,
+        "media_align": "bottom",
+        "padding_vertical": 10,
+        "padding_horizontal": 15,
+        "border_radius": 12,
         "char_colors": [],
         "align": "center",
         "text_color": "#FFFFFF"
     }
+
+def render_custom_banner_html(ann_data):
+    # This returns safe, fully styled HTML of the banner
+    ann_text = ann_data.get("text", "")
+    font_family = ann_data.get("font", "sans-serif")
+    align = ann_data.get("align", "center")
+    size = ann_data.get("size", 20)
+    font_weight = ann_data.get("font_weight", "bold")
+    font_style = ann_data.get("font_style", "normal")
+    text_decoration = ann_data.get("text_decoration", "none")
+    opacity = ann_data.get("opacity", 100) / 100.0
+    
+    displacement_x = ann_data.get("displacement_x", 0)
+    displacement_y = ann_data.get("displacement_y", 0)
+    
+    glow_enabled = ann_data.get("glow_enabled", False)
+    glow_int = ann_data.get("glow_intensity", 50)
+    glow_color_mode = ann_data.get("glow_color_mode", "auto")
+    glow_color_fixed = ann_data.get("glow_color_fixed", "#FFC000")
+    
+    shadow_enabled = ann_data.get("shadow_enabled", False)
+    shadow_int = ann_data.get("shadow_intensity", 50)
+    shadow_color = ann_data.get("shadow_color", "#000000")
+    
+    bg_type = ann_data.get("bg_type", "none")
+    bg_color = ann_data.get("bg_color", "#111122")
+    bg_end = ann_data.get("bg_gradient_end", "#1a1a3a")
+    bg_image_url = ann_data.get("bg_image_url", "")
+    bg_opacity = ann_data.get("bg_opacity", 100) / 100.0
+    padding_v = ann_data.get("padding_vertical", 10)
+    padding_h = ann_data.get("padding_horizontal", 15)
+    border_radius = ann_data.get("border_radius", 12)
+    
+    media_url = ann_data.get("media_url", "")
+    media_size = ann_data.get("media_size", 150)
+    media_align = ann_data.get("media_align", "bottom")
+    
+    animation_type = ann_data.get("animation_type", "none")
+    
+    # CSS Keyframes and styling wrapper
+    css_definitions = """
+    <style>
+      @keyframes neonPulse {
+        0%, 100% { opacity: 0.95; filter: drop-shadow(0 0 calc(var(--gl-blur) * 0.3) var(--glow-color)) drop-shadow(0 0 var(--gl-blur) var(--glow-color)); }
+        50% { opacity: 1; filter: drop-shadow(0 0 var(--gl-blur) var(--glow-color)) drop-shadow(0 0 calc(var(--gl-blur) * 1.8) var(--glow-color)); }
+      }
+      @keyframes wiggle {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-8px); }
+      }
+      @keyframes neonFlicker {
+        0%, 18%, 22%, 25%, 53%, 57%, 100% { filter: drop-shadow(0 0 var(--gl-blur) var(--glow-color)); opacity: 1; }
+        20%, 24%, 55% { filter: none; opacity: 0.4; }
+      }
+      @keyframes rainbowShift {
+        0% { filter: hue-rotate(0deg); }
+        100% { filter: hue-rotate(360deg); }
+      }
+      @keyframes softPulse {
+        0%, 100% { transform: scale(0.98); }
+        50% { transform: scale(1.04); }
+      }
+      @keyframes blurFade {
+        0%, 100% { filter: blur(0px); }
+        50% { filter: blur(3px); }
+      }
+      .ann-animate-wiggle {
+        display: inline-block;
+        animation: wiggle 1.2s ease-in-out infinite;
+      }
+      .ann-animate-neon_pulse {
+        animation: neonPulse 2s infinite ease-in-out;
+      }
+      .ann-animate-neon_flicker {
+        animation: neonFlicker 3s infinite;
+      }
+      .ann-animate-rainbow {
+        animation: rainbowShift 6s infinite linear;
+      }
+      .ann-animate-pulse {
+        display: inline-block;
+        animation: softPulse 2.5s infinite ease-in-out;
+      }
+      .ann-animate-blur_fade {
+        animation: blurFade 3s infinite ease-in-out;
+      }
+    </style>
+    """
+    
+    # Shadows CSS
+    shadow_css = ""
+    if shadow_enabled:
+        off = shadow_int * 0.08
+        blur_s = shadow_int * 0.16
+        shadow_css = f"{off:.1f}px {off:.1f}px {blur_s:.1f}px {shadow_color}"
+        
+    bg_css = "background: transparent; border: none; padding: 0;"
+    if bg_type == "flat":
+        bg_css = f"background: {bg_color}; border: 1px solid rgba(255,255,255,0.1); border-radius: {border_radius}px; padding: {padding_v}px {padding_h}px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.25);"
+    elif bg_type == "gradient":
+        bg_css = f"background: linear-gradient(135deg, {bg_color}, {bg_end}); border: 1px solid rgba(255,255,255,0.15); border-radius: {border_radius}px; padding: {padding_v}px {padding_h}px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.25);"
+    elif bg_type == "image":
+        overlay_op = 1.0 - (bg_opacity)
+        bg_css = f"background: linear-gradient(rgba(17,17,34,{overlay_op:.2f}), rgba(17,17,34,{overlay_op:.2f})), url('{bg_image_url}'); background-size: cover; background-position: center; border: 1px solid rgba(255,255,255,0.15); border-radius: {border_radius}px; padding: {padding_v}px {padding_h}px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.25);"
+
+    # Render characters
+    char_colors = ann_data.get("char_colors", [])
+    text_color_global = ann_data.get("text_color", "#FFFFFF")
+    
+    rendered_chars = []
+    for char_idx, char in enumerate(ann_text):
+        char_color = text_color_global
+        if char_idx < len(char_colors) and char_colors[char_idx]:
+            char_color = char_colors[char_idx]
+            
+        local_glow_color = char_color
+        if glow_color_mode == "fixed":
+            local_glow_color = glow_color_fixed
+            
+        glow_css = ""
+        if glow_enabled:
+            blur_1 = glow_int * 0.2
+            blur_2 = glow_int * 0.4
+            glow_css = f"0 0 {blur_1:.1f}px {local_glow_color}, 0 0 {blur_2:.1f}px {local_glow_color}"
+            
+        combined_shadows = ", ".join(filter(None, [glow_css, shadow_css]))
+        shadow_style = f"text-shadow: {combined_shadows};" if combined_shadows else ""
+        glow_val_style = f"--glow-color: {local_glow_color}; --gl-blur: {glow_int * 0.4:.1f}px;" if glow_enabled else ""
+        
+        italic_bold_style = f"font-weight: {font_weight}; font-style: {font_style}; text-decoration: {text_decoration};"
+        anim_delay_style = f"animation-delay: {char_idx * 0.08:.2f}s;" if animation_type == "wiggle" else ""
+        
+        span_class = ""
+        if animation_type in ["neon_pulse", "wiggle", "neon_flicker", "rainbow", "pulse", "blur_fade"]:
+            span_class = f"ann-animate-{animation_type}"
+            
+        html_item = f'<span class="{span_class}" style="display: inline-block; white-space: pre-wrap; color: {char_color}; {glow_val_style} {shadow_style} {italic_bold_style} {anim_delay_style}">{char}</span>'
+        rendered_chars.append(html_item)
+        
+    ann_content_html = "".join(rendered_chars)
+    
+    # Media HTML
+    media_html = ""
+    if media_url:
+        media_html = f'<img src="{media_url}" style="width: {media_size}px; height: auto; border-radius: 8px; margin: 8px; vertical-align: middle; max-width: 100%; box-shadow: 0 4px 12px rgba(0,0,0,0.4);" />'
+        
+    # Combine content based on media alignment
+    if media_html:
+        if media_align == "above":
+            body_html = f'<div style="margin-bottom: 8px;">{media_html}</div><div>{ann_content_html}</div>'
+        elif media_align == "below":
+            body_html = f'<div>{ann_content_html}</div><div style="margin-top: 8px;">{media_html}</div>'
+        elif media_align == "left":
+            body_html = f'<div style="display: flex; align-items: center; justify-content: {align}; flex-wrap: wrap; gap: 15px;"><div>{media_html}</div><div style="flex: 1; text-align: {align};">{ann_content_html}</div></div>'
+        elif media_align == "right":
+            body_html = f'<div style="display: flex; align-items: center; justify-content: {align}; flex-wrap: wrap; gap: 15px;"><div style="flex: 1; text-align: {align};">{ann_content_html}</div><div>{media_html}</div></div>'
+    else:
+        body_html = f'<div>{ann_content_html}</div>'
+        
+    # Displacement style mapping
+    displacement_style = f"transform: translate({displacement_x}px, {displacement_y}px); opacity: {opacity};"
+    
+    # Create web fonts if they are cursive/google-based
+    font_import = ""
+    if font_family == "Space Grotesk":
+        font_import = '<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&display=swap" rel="stylesheet">'
+    elif font_family == "Cinzel":
+        font_import = '<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&display=swap" rel="stylesheet">'
+        
+    final_html = f"""
+    {font_import}
+    {css_definitions}
+    <div style="{bg_css} text-align: {align}; font-family: '{font_family}', sans-serif; font-size: {size}px; line-height: 1.4; width: 100%; box-sizing: border-box; overflow: visible;">
+        <div style="{displacement_style}">
+            {body_html}
+        </div>
+    </div>
+    """
+    return final_html
+
 
 def get_styled_user_name(u_name, u_color, u_glow, u_tag, u_rozet):
     color_val = u_color if u_color else "#FFFFFF"
@@ -2397,136 +2633,298 @@ else:
 
         st.divider()
 
-        with st.expander("📢 Tepe Duyurusu (Herkesin Göreceği Yazı) Düzenle", expanded=False):
-            st.markdown("### 📢 Tepe Duyuru Bandı Editörü")
-            st.write("Bu alandan ekranın en üstünde, 'Aslan Parçası' başlığı üstünde yer alan ortak duyuru yazısını her harfi harfine biçimlendirerek düzenleyebilirsiniz.")
-            
-            # Read current values
-            ann_raw = get_global_announcement()
-            
-            # Fields
-            ann_new_text = st.text_input("Duyuru Metni:", value=ann_raw.get("text", ""))
-            
-            st.markdown("#### 🎨 Genel Biçimlendirme")
-            col_ann1, col_ann2, col_ann3 = st.columns(3)
-            with col_ann1:
-                ann_new_size = st.number_input("Yazı Boyutu (px):", min_value=12, max_value=80, value=ann_raw.get("size", 20))
-                ann_new_align = st.selectbox("Hizalama:", options=["center", "left", "right"], index=["center", "left", "right"].index(ann_raw.get("align", "center")))
-            with col_ann2:
-                font_options = ["sans-serif", "Space Grotesk", "monospace", "cursive", "serif", "Georgia"]
-                current_font = ann_raw.get("font", "sans-serif")
-                if current_font not in font_options: current_font = "sans-serif"
-                ann_new_font = st.selectbox("Yazı Tipi:", options=font_options, index=font_options.index(current_font))
-                ann_new_text_color = st.color_picker("Varsayılan Yazı Rengi:", value=ann_raw.get("text_color", "#FFFFFF"))
-            with col_ann3:
-                bg_options = ["none", "flat", "gradient"]
-                current_bg = ann_raw.get("bg_type", "none")
-                if current_bg not in bg_options: current_bg = "none"
-                ann_new_bg_type = st.selectbox("Arka Plan Tipi:", options=bg_options, index=bg_options.index(current_bg))
-            
-            # Background colors config
-            ann_new_bg_color = ann_raw.get("bg_color", "#111122")
-            ann_new_bg_gradient_end = ann_raw.get("bg_gradient_end", "#1a1a3a")
-            if ann_new_bg_type in ["flat", "gradient"]:
-                col_bg_colors = st.columns(2)
-                with col_bg_colors[0]:
-                    ann_new_bg_color = st.color_picker("Arka Plan Rengi 1 / Düz Renk:", value=ann_raw.get("bg_color", "#111122"))
-                with col_bg_colors[1]:
-                    if ann_new_bg_type == "gradient":
-                        ann_new_bg_gradient_end = st.color_picker("Arka Plan Rengi 2 (Gradient Bitiş):", value=ann_raw.get("bg_gradient_end", "#1a1a3a"))
-            
-            st.markdown("#### ✨ Parlaklık & Gölge Efektleri")
-            # Glow Config
-            st.write("**Parlaklık (Neon/Glow) Ayarları**")
-            col_glow1, col_glow2 = st.columns([1, 4])
-            with col_glow1:
-                ann_glow_enabled = st.checkbox("Aç / Kapa", value=ann_raw.get("glow_enabled", False), key="ann_glow_en")
-            with col_glow2:
-                ann_glow_intensity = st.slider("Parlaklık Gücü (Görünüm Yoğunluğu):", min_value=0, max_value=100, value=ann_raw.get("glow_intensity", 50), help="Varsayılan değer 50'dir.")
+        if is_kurucu:
+            with st.expander("📢 Tepe Duyurusu (Herkesin Göreceği Yazı) Düzenle", expanded=False):
+                st.markdown("### 👑 Kurucu Özel: Tepe Duyuru Bandı Editörü")
+                st.info("Bu özel panel yalnızca Kurucu olarak sizin tarafınızdan görüntülenebilir ve düzenlenebilir. Diğer yöneticiler de dahil olmak üzere hiç kimse bu ayarları değiştiremez.")
                 
-            # Shadow Config
-            st.write("**Gölge Ayarları (Derinlik)**")
-            col_sh1, col_sh2 = st.columns([1, 4])
-            with col_sh1:
-                ann_sh_enabled = st.checkbox("Aç / Kapa", value=ann_raw.get("shadow_enabled", False), key="ann_sh_en")
-            with col_sh2:
-                ann_sh_intensity = st.slider("Gölge Gücü:", min_value=0, max_value=100, value=ann_raw.get("shadow_intensity", 50), help="Varsayılan değer 50'dir.")
+                # Read current values
+                ann_raw = get_global_announcement()
+                
+                # Text Input
+                ann_new_text = st.text_input("Duyuru Metni:", value=ann_raw.get("text", ""))
+                
+                st.markdown("#### 🎨 Genel Biçimlendirme")
+                col_ann1, col_ann2, col_ann3 = st.columns(3)
+                with col_ann1:
+                    ann_new_size = st.number_input("Yazı Boyutu (px):", min_value=8, max_value=120, value=ann_raw.get("size", 20))
+                    ann_new_align = st.selectbox("Hizalama:", options=["center", "left", "right"], index=["center", "left", "right"].index(ann_raw.get("align", "center")))
+                
+                with col_ann2:
+                    font_options = ["sans-serif", "Space Grotesk", "monospace", "cursive", "serif", "Georgia", "Arial", "Impact", "Comic Sans MS", "Cinzel", "Trebuchet MS"]
+                    current_font = ann_raw.get("font", "sans-serif")
+                    if current_font not in font_options: current_font = "sans-serif"
+                    ann_new_font = st.selectbox("Yazı Tipi:", options=font_options, index=font_options.index(current_font))
+                    ann_new_text_color = st.color_picker("Varsayılan / Genel Yazı Rengi:", value=ann_raw.get("text_color", "#FFFFFF"))
+                
+                with col_ann3:
+                    font_weight_options = ["normal", "bold", "bolder", "900"]
+                    current_weight = ann_raw.get("font_weight", "bold")
+                    if current_weight not in font_weight_options: current_weight = "bold"
+                    ann_new_weight = st.selectbox("Yazı Kalınlığı (Weight):", options=font_weight_options, index=font_weight_options.index(current_weight))
+                    
+                    font_style_options = ["normal", "italic"]
+                    current_style = ann_raw.get("font_style", "normal")
+                    if current_style not in font_style_options: current_style = "normal"
+                    ann_new_font_style = st.selectbox("Yazı Tarzı (Style):", options=font_style_options, index=font_style_options.index(current_style))
 
-            # Letter-by-letter custom colors picker
-            st.markdown("#### 🔠 Harf Harf Özel Renk Belirleme")
-            st.info("Her harfin altına tıklayarak o harfe ait özel rengi tanımlayabilirsiniz. Eğer değiştirmek istemezseniz kutucuk rengini varsayılan renkle aynı bırakabilirsiniz.")
-            
-            current_char_colors = list(ann_raw.get("char_colors", []))
-            # Pad or truncate list of character colors to match new text duration
-            if len(current_char_colors) < len(ann_new_text):
-                current_char_colors += [ann_new_text_color] * (len(ann_new_text) - len(current_char_colors))
-            else:
-                current_char_colors = current_char_colors[:len(ann_new_text)]
-            
-            new_char_colors = []
-            if ann_new_text:
-                char_cols_count = len(ann_new_text)
-                for chunk_start in range(0, char_cols_count, 8):
-                    chunk_end = min(chunk_start + 8, char_cols_count)
-                    cols_chunk = st.columns(max(1, chunk_end - chunk_start))
-                    for col_idx, char_pos in enumerate(range(chunk_start, chunk_end)):
-                        with cols_chunk[col_idx]:
-                            char_label = ann_new_text[char_pos] or " "
-                            if char_label.strip() == "":
-                                char_label = f"Boşluk ({char_pos+1})"
+                col_extra_st1, col_extra_st2 = st.columns(2)
+                with col_extra_st1:
+                    dec_options = ["none", "underline", "line-through", "overline"]
+                    current_dec = ann_raw.get("text_decoration", "none")
+                    if current_dec not in dec_options: current_dec = "none"
+                    ann_new_decoration = st.selectbox("Yazı Süslemesi (Decoration):", options=dec_options, index=dec_options.index(current_dec))
+                with col_extra_st2:
+                    ann_new_opacity = st.slider("Yazı Genel Görünürlüğü (Opaklık - %):", min_value=10, max_value=100, value=ann_raw.get("opacity", 100))
+
+                st.markdown("#### ↕️ Konumlandırma & Kaydırma (Movable)")
+                col_disp1, col_disp2 = st.columns(2)
+                with col_disp1:
+                    ann_displacement_x = st.slider("Yatay Kaydırma (X Ekseni Mesafe px):", min_value=-500, max_value=500, value=ann_raw.get("displacement_x", 0), step=5, help="Metni sağa (+) veya sola (-) kaydırır.")
+                with col_disp2:
+                    ann_displacement_y = st.slider("Düşey Kaydırma (Y Ekseni Mesafe px):", min_value=-100, max_value=100, value=ann_raw.get("displacement_y", 0), step=2, help="Metni aşağı (+) veya yukarı (-) kaydırır.")
+
+                st.markdown("#### ✨ Parlaklık & Gölge Efektleri")
+                col_effect1, col_effect2 = st.columns(2)
+                with col_effect1:
+                    st.write("**🌌 Parlaklık (Neon / Glow) Ayarları**")
+                    ann_glow_enabled = st.checkbox("Parlaklığı Aç / Kapa", value=ann_raw.get("glow_enabled", False), key="ann_glow_en")
+                    ann_glow_intensity = st.slider("Parlaklık Gücü (Yoğunluk):", min_value=0, max_value=100, value=ann_raw.get("glow_intensity", 50))
+                    
+                    glow_mode_options = ["auto", "fixed"]
+                    current_glow_mode = ann_raw.get("glow_color_mode", "auto")
+                    if current_glow_mode not in glow_mode_options: current_glow_mode = "auto"
+                    ann_glow_color_mode = st.radio("Parlaklık Rengi Seçeneği:", options=glow_mode_options, format_func=lambda x: "Harf Rengiyle Aynı (Otomatik)" if x=="auto" else "Tüm Yazıya Özel Sabit Parlaklık Rengi", index=glow_mode_options.index(current_glow_mode), key="ann_glow_mode")
+                    
+                    ann_glow_color_fixed = "#FFC000"
+                    if ann_glow_color_mode == "fixed":
+                        ann_glow_color_fixed = st.color_picker("Özel Sabit Parlaklık Rengi Seçin:", value=ann_raw.get("glow_color_fixed", "#FFC000"))
+                
+                with col_effect2:
+                    st.write("**🖤 Gölge Ayarları (Derinlik)**")
+                    ann_sh_enabled = st.checkbox("Gölgelendirmeyi Aç / Kapa", value=ann_raw.get("shadow_enabled", False), key="ann_sh_en")
+                    ann_sh_intensity = st.slider("Gölge Gücü:", min_value=0, max_value=100, value=ann_raw.get("shadow_intensity", 50))
+                    ann_shadow_color = st.color_picker("Gölge Rengi:", value=ann_raw.get("shadow_color", "#000000"))
+
+                st.markdown("#### 🎞️ Duyuru Animasyonu")
+                anim_options = ["none", "neon_pulse", "wiggle", "neon_flicker", "rainbow", "pulse", "blur_fade"]
+                anim_labels = {
+                    "none": "Animasyon Yok",
+                    "neon_pulse": "Neon Nefes Alma (Pulsing)",
+                    "wiggle": "Dalgalanma (Wave/Wiggle)",
+                    "neon_flicker": "Retro Neon Titremesi (Flicker)",
+                    "rainbow": "Gökkuşağı Renk Akışı (Rainbow Flow)",
+                    "pulse": "Genişleyip Küçülme (Pulse)",
+                    "blur_fade": "Sıklaşan Bulanıklık (Blur/Focus Fade)"
+                }
+                current_anim = ann_raw.get("animation_type", "none")
+                if current_anim not in anim_options: current_anim = "none"
+                ann_animation_type = st.selectbox("Yazı Animasyonu Seçin:", options=anim_options, format_func=lambda x: anim_labels[x], index=anim_options.index(current_anim))
+
+                st.markdown("#### 🖼️ Arka Plan ve Çerçeve Tasarımı")
+                col_bg1, col_bg2 = st.columns(2)
+                with col_bg1:
+                    bg_options = ["none", "flat", "gradient", "image"]
+                    bg_labels = {"none": "Arka Plan Yok", "flat": "Düz Renk", "gradient": "Renk Geçişi (Gradient)", "image": "Özel Resim veya GIF Görseli"}
+                    current_bg = ann_raw.get("bg_type", "none")
+                    if current_bg not in bg_options: current_bg = "none"
+                    ann_new_bg_type = st.selectbox("Arka Plan Tipi:", options=bg_options, format_func=lambda x: bg_labels[x], index=bg_options.index(current_bg))
+                    
+                    ann_new_bg_color = ann_raw.get("bg_color", "#111122")
+                    ann_new_bg_gradient_end = ann_raw.get("bg_gradient_end", "#1a1a3a")
+                    ann_bg_image_url = ann_raw.get("bg_image_url", "")
+                    ann_bg_opacity = ann_raw.get("bg_opacity", 100)
+                    
+                    if ann_new_bg_type in ["flat", "gradient"]:
+                        ann_new_bg_color = st.color_picker("Arka Plan Rengi / Başlangıç Rengi:", value=ann_raw.get("bg_color", "#111122"))
+                        if ann_new_bg_type == "gradient":
+                            ann_new_bg_gradient_end = st.color_picker("Gradient Bitiş Rengi:", value=ann_raw.get("bg_gradient_end", "#1a1a3a"))
+                    elif ann_new_bg_type == "image":
+                        ann_bg_image_url = st.text_input("Arka Plan Görsel/GIF Web URL'si:", value=ann_raw.get("bg_image_url", ""), placeholder="https://example.com/pattern.gif")
+                        ann_bg_opacity = st.slider("Arka Plan Görsel Görünürlüğü/Opaklığı (%):", min_value=10, max_value=100, value=ann_raw.get("bg_opacity", 100))
+                
+                with col_bg2:
+                    ann_padding_vertical = st.number_input("İç Boşluk Düşey (Padding Y - px):", min_value=0, max_value=100, value=ann_raw.get("padding_vertical", 10))
+                    ann_padding_horizontal = st.number_input("İç Boşluk Yatay (Padding X - px):", min_value=0, max_value=100, value=ann_raw.get("padding_horizontal", 15))
+                    ann_border_radius = st.number_input("Çerçeve Köşe Ovalleşmesi (Border-Radius px):", min_value=0, max_value=100, value=ann_raw.get("border_radius", 12))
+
+                st.markdown("#### 📷 Görsel & GIF Ekleme (Duyuru İçi Medya)")
+                col_media1, col_media2 = st.columns(2)
+                with col_media1:
+                    ann_media_url = st.text_input("Görsel / GIF URL'si:", value=ann_raw.get("media_url", ""), placeholder="Sosyal resim, emoji GIF'i veya logo URL'si")
+                    media_align_options = ["above", "below", "left", "right"]
+                    media_align_labels = {"above": "Yazının Üstünde", "below": "Yazının Altında", "left": "Yazının Solunda", "right": "Yazının Sağında"}
+                    current_media_align = ann_raw.get("media_align", "bottom")
+                    if current_media_align not in media_align_options: current_media_align = "below"
+                    ann_media_align = st.selectbox("Eklenen Görselin Konumu:", options=media_align_options, format_func=lambda x: media_align_labels[x], index=media_align_options.index(current_media_align))
+                with col_media2:
+                    ann_media_size = st.slider("Görsel Genişliği (px):", min_value=20, max_value=500, value=ann_raw.get("media_size", 150))
+
+                st.markdown("#### 🔠 Harf Harf Özel Renk Belirleme & Hızlı Boyama Araçları")
+                
+                # Dynamic States tracking
+                if "temp_char_colors" not in st.session_state or st.session_state.get("temp_ann_text_tracker", "") != ann_new_text:
+                    stored_char_colors = list(ann_raw.get("char_colors", []))
+                    if len(stored_char_colors) < len(ann_new_text):
+                        stored_char_colors += [ann_new_text_color] * (len(ann_new_text) - len(stored_char_colors))
+                    else:
+                        stored_char_colors = stored_char_colors[:len(ann_new_text)]
+                    st.session_state.temp_char_colors = stored_char_colors
+                    st.session_state.temp_ann_text_tracker = ann_new_text
+                
+                # Inline paint tool helper
+                with st.container():
+                    st.markdown("<div style='background: rgba(255, 165, 0, 0.05); border: 1px dashed #f39c12; border-radius: 8px; padding: 12px; margin-bottom: 12px;'>", unsafe_allow_html=True)
+                    st.write("🎨 **Akıllı Toplu Renklendirme Aracı**")
+                    col_paint1, col_paint2 = st.columns(2)
+                    with col_paint1:
+                        toplu_renk = st.color_picker("Tümünü Boyanacak Renk:", value=ann_new_text_color, key="bulk_color_picker")
+                        if st.button("🔴 Tüm Harfleri Bu Renge Boya", use_container_width=True, key="bulk_paint_btn"):
+                            st.session_state.temp_char_colors = [toplu_renk] * len(ann_new_text)
+                            st.success("Tüm harflerin geçici rengi başarıyla güncellendi!")
+                            st.rerun()
+                    with col_paint2:
+                        paint_target_text = st.text_input("Boya Kelimesi/Cümlesi:", key="paint_text_input", placeholder="Örn: Merhaba")
+                        paint_target_color = st.color_picker("Seçili Kısmın Özel Rengi:", value="#FFD700", key="paint_color_input")
+                        if st.button("🔮 Sadece Belirtilen Kelimeyi Boya", use_container_width=True, key="word_paint_btn"):
+                            if paint_target_text and paint_target_text in ann_new_text:
+                                target_len = len(paint_target_text)
+                                temp_list = list(st.session_state.temp_char_colors)
+                                start_pos = 0
+                                count_paint = 0
+                                while True:
+                                    idx = ann_new_text.find(paint_target_text, start_pos)
+                                    if idx == -1:
+                                        break
+                                    for i in range(idx, idx + target_len):
+                                        if i < len(temp_list):
+                                            temp_list[i] = paint_target_color
+                                    count_paint += 1
+                                    start_pos = idx + target_len
+                                st.session_state.temp_char_colors = temp_list
+                                st.success(f"'{paint_target_text}' kelimesi/cümlesi {count_paint} yerde başarıyla boyandı!")
+                                time.sleep(0.5)
+                                st.rerun()
                             else:
-                                char_label = f"'{char_label}' ({char_pos+1})"
-                            char_color_val = current_char_colors[char_pos] if char_pos < len(current_char_colors) else ann_new_text_color
-                            assigned_col = st.color_picker(char_label, value=char_color_val, key=f"char_col_pick_{char_pos}")
-                            new_char_colors.append(assigned_col)
-            
-            # Action Buttons
-            st.markdown("---")
-            col_act1, col_act2 = st.columns(2)
-            with col_act1:
-                if st.button("💾 Değişiklikleri ve Tepe Duyurusunu Kaydet", type="primary", use_container_width=True):
-                    ann_payload = {
-                        "text": ann_new_text,
-                        "size": ann_new_size,
-                        "font": ann_new_font,
-                        "align": ann_new_align,
-                        "bg_type": ann_new_bg_type,
-                        "bg_color": ann_new_bg_color,
-                        "bg_gradient_end": ann_new_bg_gradient_end,
-                        "glow_enabled": ann_glow_enabled,
-                        "glow_intensity": ann_glow_intensity,
-                        "shadow_enabled": ann_sh_enabled,
-                        "shadow_intensity": ann_sh_intensity,
-                        "char_colors": new_char_colors,
-                        "text_color": ann_new_text_color
-                    }
-                    db.collection("settings").document("global_announcement").set(ann_payload)
-                    st.success("✅ Tepe duyurusu başarıyla kaydedildi ve tüm kullanıcılarda güncellendi!")
-                    time.sleep(1)
-                    st.rerun()
-            with col_act2:
-                st.write("**Varsayılana Sıfırla**")
-                reset_confirm = st.checkbox("Sıfırlamayı onaylıyorum", key="reset_ann_confirm")
-                if st.button("🔄 Tümünü Varsayılana Sıfırla", type="secondary", use_container_width=True, disabled=not reset_confirm):
-                    default_payload = {
-                        "text": "",
-                        "size": 20,
-                        "font": "sans-serif",
-                        "align": "center",
-                        "bg_type": "none",
-                        "bg_color": "#111122",
-                        "bg_gradient_end": "#1a1a3a",
-                        "glow_enabled": False,
-                        "glow_intensity": 50,
-                        "shadow_enabled": False,
-                        "shadow_intensity": 50,
-                        "char_colors": [],
-                        "text_color": "#FFFFFF"
-                    }
-                    db.collection("settings").document("global_announcement").set(default_payload)
-                    st.success("✅ Tepe duyurusu varsayılan ayarlara başarıyla sıfırlandı!")
-                    time.sleep(1.2)
-                    st.rerun()
+                                st.warning("Aranan kelime/cümle mevcut duyuru metninde bulunamadı.")
+                    st.markdown("</div>", unsafe_allow_html=True)
+
+                st.write("👇 Her harfin altına tıklayarak harfleri dilerseniz teker teker de boyayabilirsiniz:")
+                new_char_colors = []
+                if ann_new_text:
+                    char_cols_count = len(ann_new_text)
+                    for chunk_start in range(0, char_cols_count, 8):
+                        chunk_end = min(chunk_start + 8, char_cols_count)
+                        cols_chunk = st.columns(max(1, chunk_end - chunk_start))
+                        for col_idx, char_pos in enumerate(range(chunk_start, chunk_end)):
+                            with cols_chunk[col_idx]:
+                                char_label = ann_new_text[char_pos] or " "
+                                if char_label.strip() == "":
+                                    char_label = f"Boşluk ({char_pos+1})"
+                                else:
+                                    char_label = f"'{char_label}' ({char_pos+1})"
+                                
+                                char_color_val = st.session_state.temp_char_colors[char_pos] if char_pos < len(st.session_state.temp_char_colors) else ann_new_text_color
+                                assigned_col = st.color_picker(char_label, value=char_color_val, key=f"char_col_pick_{char_pos}")
+                                st.session_state.temp_char_colors[char_pos] = assigned_col
+                                new_char_colors.append(assigned_col)
+                else:
+                    new_char_colors = list(st.session_state.temp_char_colors)
+
+                # RENDER LIVE PREVIEW
+                st.markdown("---")
+                st.markdown("### 👀 CANLI ÖNİZLEME (KAYDETMEDEN ÖNCEKİ HALİ)")
+                st.write("Değişikliklerinizi kaydetmeden önce bandın nasıl görüneceğini buradan canlı olarak izleyebilirsiniz:")
+                
+                preview_payload = {
+                    "text": ann_new_text,
+                    "size": ann_new_size,
+                    "font": ann_new_font,
+                    "align": ann_new_align,
+                    "font_weight": ann_new_weight,
+                    "font_style": ann_new_font_style,
+                    "text_decoration": ann_new_decoration,
+                    "opacity": ann_new_opacity,
+                    "displacement_x": ann_displacement_x,
+                    "displacement_y": ann_displacement_y,
+                    "bg_type": ann_new_bg_type,
+                    "bg_color": ann_new_bg_color,
+                    "bg_gradient_end": ann_new_bg_gradient_end,
+                    "bg_image_url": ann_bg_image_url,
+                    "bg_opacity": ann_bg_opacity,
+                    "padding_vertical": ann_padding_vertical,
+                    "padding_horizontal": ann_padding_horizontal,
+                    "border_radius": ann_border_radius,
+                    "glow_enabled": ann_glow_enabled,
+                    "glow_intensity": ann_glow_intensity,
+                    "glow_color_mode": ann_glow_color_mode,
+                    "glow_color_fixed": ann_glow_color_fixed,
+                    "shadow_enabled": ann_sh_enabled,
+                    "shadow_intensity": ann_sh_intensity,
+                    "shadow_color": ann_shadow_color,
+                    "animation_type": ann_animation_type,
+                    "media_url": ann_media_url,
+                    "media_size": ann_media_size,
+                    "media_align": ann_media_align,
+                    "char_colors": new_char_colors,
+                    "text_color": ann_new_text_color
+                }
+                
+                preview_html = render_custom_banner_html(preview_payload)
+                st.markdown(f'<div style="border: 2px dashed rgba(255,165,0,0.4); border-radius: 12px; padding: 15px; background: rgba(0,0,0,0.3); margin-bottom: 25px; overflow: visible;">{preview_html}</div>', unsafe_allow_html=True)
+
+                # Action Buttons
+                st.markdown("---")
+                col_act1, col_act2 = st.columns(2)
+                with col_act1:
+                    if st.button("💾 Değişiklikleri ve Tepe Duyurusunu Kaydet", type="primary", use_container_width=True):
+                        db.collection("settings").document("global_announcement").set(preview_payload)
+                        st.success("✅ Tepe duyurusu başarıyla kaydedildi ve tüm kullanıcılarda güncellendi!")
+                        time.sleep(1)
+                        st.rerun()
+                with col_act2:
+                    st.write("**Varsayılana Sıfırla**")
+                    reset_confirm = st.checkbox("Sıfırlamayı onaylıyorum", key="reset_ann_confirm")
+                    if st.button("🔄 Tümünü Varsayılana Sıfırla", type="secondary", use_container_width=True, disabled=not reset_confirm):
+                        default_payload = {
+                            "text": "",
+                            "size": 20,
+                            "font": "sans-serif",
+                            "align": "center",
+                            "font_weight": "normal",
+                            "font_style": "normal",
+                            "text_decoration": "none",
+                            "opacity": 100,
+                            "displacement_x": 0,
+                            "displacement_y": 0,
+                            "bg_type": "none",
+                            "bg_color": "#111122",
+                            "bg_gradient_end": "#1a1a3a",
+                            "bg_image_url": "",
+                            "bg_opacity": 100,
+                            "glow_enabled": False,
+                            "glow_intensity": 50,
+                            "glow_color_mode": "auto",
+                            "glow_color_fixed": "#FFC000",
+                            "shadow_enabled": False,
+                            "shadow_intensity": 50,
+                            "shadow_color": "#000000",
+                            "animation_type": "none",
+                            "media_url": "",
+                            "media_size": 150,
+                            "media_align": "bottom",
+                            "padding_vertical": 10,
+                            "padding_horizontal": 15,
+                            "border_radius": 12,
+                            "char_colors": [],
+                            "text_color": "#FFFFFF"
+                        }
+                        db.collection("settings").document("global_announcement").set(default_payload)
+                        if "temp_char_colors" in st.session_state:
+                            del st.session_state.temp_char_colors
+                        st.success("✅ Tepe duyurusu varsayılan ayarlara başarıyla sıfırlandı!")
+                        time.sleep(1.2)
+                        st.rerun()
 
     elif st.session_state.current_page == "admin_role_management" and is_kurucu:
         st.title("🛡️ Yönetici Rol Yönetimi")
@@ -2960,64 +3358,10 @@ else:
 
             # RENDER GLOBAL ANNOUNCEMENT ABOVE MAIN TITLE
             ann_data = get_global_announcement()
-            ann_text = ann_data.get("text", "")
-            if ann_text:
-                font_family = ann_data.get("font", "sans-serif")
-                align = ann_data.get("align", "center")
-                size = ann_data.get("size", 20)
-                
-                # Glow
-                glow_enabled = ann_data.get("glow_enabled", False)
-                glow_int = ann_data.get("glow_intensity", 50)
-                glow_css = ""
-                if glow_enabled:
-                    blur_1 = glow_int * 0.2
-                    blur_2 = glow_int * 0.4
-                    glow_css = f"0 0 {blur_1:.1f}px var(--glow-color), 0 0 {blur_2:.1f}px var(--glow-color)"
-                
-                # Drop shadow
-                shadow_enabled = ann_data.get("shadow_enabled", False)
-                shadow_int = ann_data.get("shadow_intensity", 50)
-                shadow_css = ""
-                if shadow_enabled:
-                    off = shadow_int * 0.06
-                    blur_s = shadow_int * 0.12
-                    shadow_css = f"{off:.1f}px {off:.1f}px {blur_s:.1f}px rgba(0,0,0,0.8)"
-                
-                effects_css = ""
-                if glow_css or shadow_css:
-                    combined_shadows = ", ".join(filter(None, [glow_css, shadow_css]))
-                    effects_css = f"text-shadow: {combined_shadows};"
-
-                # Background
-                bg_type = ann_data.get("bg_type", "none")
-                bg_color = ann_data.get("bg_color", "#111122")
-                bg_end = ann_data.get("bg_gradient_end", "#1a1a3a")
-                bg_css = "background: transparent; border: none; padding: 0;"
-                if bg_type == "flat":
-                    bg_css = f"background: {bg_color}; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 12px 18px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.25);"
-                elif bg_type == "gradient":
-                    bg_css = f"background: linear-gradient(135deg, {bg_color}, {bg_end}); border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; padding: 12px 18px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.25);"
-                
-                char_colors = ann_data.get("char_colors", [])
-                text_color_global = ann_data.get("text_color", "#FFFFFF")
-                
-                rendered_chars = []
-                for char_idx, char in enumerate(ann_text):
-                    char_color = text_color_global
-                    if char_idx < len(char_colors) and char_colors[char_idx]:
-                        char_color = char_colors[char_idx]
-                    
-                    glow_col_style = f"--glow-color: {char_color}; color: {char_color};" if glow_enabled else f"color: {char_color};"
-                    html_item = f'<span style="display: inline-block; white-space: pre-wrap; {glow_col_style} {effects_css}">{char}</span>'
-                    rendered_chars.append(html_item)
-                
-                ann_content_html = "".join(rendered_chars)
-                st.markdown(f'''
-                <div style="{bg_css} text-align: {align}; font-family: \'{font_family}\', sans-serif; font-size: {size}px; line-height: 1.4; width: 100%; box-sizing: border-box;">
-                    {ann_content_html}
-                </div>
-                ''', unsafe_allow_html=True)
+            if ann_data.get("text", "") or ann_data.get("media_url", ""):
+                ann_rendered_html = render_custom_banner_html(ann_data)
+                # Outer wrapper designed with high safety standards
+                st.markdown(f'<div style="width: 100%; overflow: visible; margin-bottom: 25px;">{ann_rendered_html}</div>', unsafe_allow_html=True)
 
             col_title, col_bildirim = st.columns([6, 1])
             with col_title:
