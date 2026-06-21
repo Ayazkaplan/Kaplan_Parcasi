@@ -2972,18 +2972,17 @@ Yapay zeka ve gerçek zamanlı iletişim teknolojilerini birleştirerek Türkiye
                         )
 
                     if idx == last_assistant_idx:
-                        with st.container():
-                            st.markdown('<div class="assistant-ops-marker"></div>', unsafe_allow_html=True)
-                            if st.button("↻", key=f"assistant_regen_{idx}", help="Cevabı Yeniden Oluştur"):
-                                with st.spinner("Aslan Parçası analiz ediyor ve yeni bir yanıt oluşturuyor..."):
-                                    messages_context = st.session_state.messages[:idx]
-                                    yeni_cevap = ai_cevap(messages_context[-6:])
-                                    new_chat = list(st.session_state.messages)
-                                    new_chat[idx]["content"] = yeni_cevap
-                                    st.session_state.messages = new_chat
-                                    user_ref.update({"sohbet_gecmisi": new_chat})
-                                    st.success("Yeni yanıt oluşturuldu!")
-                                    st.rerun()
+                        st.markdown('<div class="assistant-ops-marker"></div>', unsafe_allow_html=True)
+                        if st.button("↻", key=f"assistant_regen_{idx}", help="Cevabı Yeniden Oluştur"):
+                            with st.spinner("Aslan Parçası analiz ediyor ve yeni bir yanıt oluşturuyor..."):
+                                messages_context = st.session_state.messages[:idx]
+                                yeni_cevap = ai_cevap(messages_context[-6:])
+                                new_chat = list(st.session_state.messages)
+                                new_chat[idx]["content"] = yeni_cevap
+                                st.session_state.messages = new_chat
+                                user_ref.update({"sohbet_gecmisi": new_chat})
+                                st.success("Yeni yanıt oluşturuldu!")
+                                st.rerun()
                 else:
                     msg_name = m.get("isim", kullanici_ismi_fresh)
                     msg_color = m.get("color", u_color_fresh)
@@ -3000,12 +2999,11 @@ Yapay zeka ve gerçek zamanlı iletişim teknolojilerini birleştirerek Türkiye
                         )
 
                     if idx == last_user_idx:
-                        with st.container():
-                            st.markdown('<div class="user-ops-marker"></div>', unsafe_allow_html=True)
-                            if st.button("✎", key=f"user_edit_trigger_{idx}", help="Mesajı Düzenle"):
-                                st.session_state.active_chat_edit_idx = idx
-                                st.session_state.active_chat_edit_text = m["content"]
-                                st.rerun()
+                        st.markdown('<div class="user-ops-marker"></div>', unsafe_allow_html=True)
+                        if st.button("✎", key=f"user_edit_trigger_{idx}", help="Mesajı Düzenle"):
+                            st.session_state.active_chat_edit_idx = idx
+                            st.session_state.active_chat_edit_text = m["content"]
+                            st.rerun()
 
                     if st.session_state.get("active_chat_edit_idx") == idx:
                         edit_val = st.text_input("Mesajı düzenle:", value=st.session_state.active_chat_edit_text, key=f"chat_edit_inp_{idx}")
