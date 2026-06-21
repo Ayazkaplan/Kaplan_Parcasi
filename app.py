@@ -1368,29 +1368,32 @@ else:
         box-sizing: border-box !important;
         width: fit-content;
     }}
+    /* Hide the marker containers entirely so they occupy no vertical height */
+    div[data-testid="element-container"]:has(.assistant-ops-container-marker),
+    div[data-testid="element-container"]:has(.user-ops-container-marker) {{
+        display: none !important;
+    }}
+
     /* Assistant Message Ops Container Styles (Regenerate aligned under the left yellow line) */
-    div[data-testid="stVerticalBlock"]:has(.assistant-ops-container-marker) {{
+    div[data-testid="element-container"]:has(.assistant-ops-container-marker) + div[data-testid="element-container"] {{
         display: flex !important;
-        flex-direction: row !important;
         justify-content: flex-start !important;
-        align-items: center !important;
         width: 100% !important;
         margin-top: -19px !important; /* Sit aligned with bottom of assistant bubble */
         margin-bottom: 12px !important;
         padding-left: 50px !important; /* Align exactly with the gold border left edge (avatar 40px + gap 10px) */
         box-sizing: border-box !important;
-        height: 32px !important;
     }}
 
-    div[data-testid="stVerticalBlock"]:has(.assistant-ops-container-marker) .stButton,
-    div[data-testid="stVerticalBlock"]:has(.assistant-ops-container-marker) .stButton > div {{
+    div[data-testid="element-container"]:has(.assistant-ops-container-marker) + div[data-testid="element-container"] .stButton,
+    div[data-testid="element-container"]:has(.assistant-ops-container-marker) + div[data-testid="element-container"] .stButton > div {{
         display: flex !important;
         justify-content: flex-start !important;
         width: 100% !important;
     }}
 
     /* Style the actual square regenerate button */
-    div[data-testid="stVerticalBlock"]:has(.assistant-ops-container-marker) button {{
+    div[data-testid="element-container"]:has(.assistant-ops-container-marker) + div[data-testid="element-container"] button {{
         border-radius: 8px !important;
         width: 32px !important;
         height: 32px !important;
@@ -1412,19 +1415,19 @@ else:
     }}
 
     @media (max-width: 768px) {{
-        div[data-testid="stVerticalBlock"]:has(.assistant-ops-container-marker) {{
+        div[data-testid="element-container"]:has(.assistant-ops-container-marker) + div[data-testid="element-container"] {{
             padding-left: 50px !important;
         }}
     }}
 
-    div[data-testid="stVerticalBlock"]:has(.assistant-ops-container-marker) button:hover {{
+    div[data-testid="element-container"]:has(.assistant-ops-container-marker) + div[data-testid="element-container"] button:hover {{
         transform: scale(1.1) !important;
         background-color: rgba(243, 156, 18, 0.25) !important;
         border-color: #f39c12 !important;
         box-shadow: 0 4px 10px rgba(243, 156, 18, 0.5) !important;
     }}
 
-    div[data-testid="stVerticalBlock"]:has(.assistant-ops-container-marker) button * {{
+    div[data-testid="element-container"]:has(.assistant-ops-container-marker) + div[data-testid="element-container"] button * {{
         color: #ffffff !important;
         font-size: 20px !important;
         font-weight: bold !important;
@@ -1435,28 +1438,25 @@ else:
     }}
 
     /* User Message Ops Container Styles (Edit button aligned to matching right-hand bubble boundary) */
-    div[data-testid="stVerticalBlock"]:has(.user-ops-container-marker) {{
+    div[data-testid="element-container"]:has(.user-ops-container-marker) + div[data-testid="element-container"] {{
         display: flex !important;
-        flex-direction: row !important;
         justify-content: flex-end !important;
-        align-items: center !important;
         width: 100% !important;
         margin-top: -19px !important; /* Sit aligned with the bottom of user bubble */
         margin-bottom: 12px !important;
         padding-right: 50px !important; /* Pre-calculated to stay to the left of the 40px user avatar + 10px gap */
         box-sizing: border-box !important;
-        height: 32px !important;
     }}
 
     /* Align the Streamlit button wrapper container to the right too */
-    div[data-testid="stVerticalBlock"]:has(.user-ops-container-marker) .stButton,
-    div[data-testid="stVerticalBlock"]:has(.user-ops-container-marker) .stButton > div {{
+    div[data-testid="element-container"]:has(.user-ops-container-marker) + div[data-testid="element-container"] .stButton,
+    div[data-testid="element-container"]:has(.user-ops-container-marker) + div[data-testid="element-container"] .stButton > div {{
         display: flex !important;
         justify-content: flex-end !important;
         width: 100% !important;
     }}
 
-    div[data-testid="stVerticalBlock"]:has(.user-ops-container-marker) button {{
+    div[data-testid="element-container"]:has(.user-ops-container-marker) + div[data-testid="element-container"] button {{
         border-radius: 8px !important;
         width: 32px !important;
         height: 32px !important;
@@ -1478,19 +1478,19 @@ else:
     }}
 
     @media (max-width: 768px) {{
-        div[data-testid="stVerticalBlock"]:has(.user-ops-container-marker) {{
+        div[data-testid="element-container"]:has(.user-ops-container-marker) + div[data-testid="element-container"] {{
             padding-right: 50px !important;
         }}
     }}
 
-    div[data-testid="stVerticalBlock"]:has(.user-ops-container-marker) button:hover {{
+    div[data-testid="element-container"]:has(.user-ops-container-marker) + div[data-testid="element-container"] button:hover {{
         transform: scale(1.1) !important;
         background-color: rgba(168, 85, 247, 0.25) !important;
         border-color: #a855f7 !important;
         box-shadow: 0 4px 10px rgba(168, 85, 247, 0.5) !important;
     }}
 
-    div[data-testid="stVerticalBlock"]:has(.user-ops-container-marker) button * {{
+    div[data-testid="element-container"]:has(.user-ops-container-marker) + div[data-testid="element-container"] button * {{
         color: #ffffff !important;
         font-size: 20px !important;
         font-weight: bold !important;
