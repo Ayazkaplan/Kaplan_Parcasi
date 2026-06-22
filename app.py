@@ -40,7 +40,10 @@ def render_tepe_editor_page(db, is_kurucu, get_global_announcement):
     disp_y_sb = ts.get("displacement_y", 0)
     disp_rot_sb = ts.get("rotation", 0)
     disp_size_sb = ts.get("size", 20)
-    ann_text_sb = ts.get("text", "").replace('"', '\\"') # escape quotes
+    ann_text_raw = ts.get("text", "")
+    ann_text_html_escaped = ann_text_raw.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('"', '&quot;').replace("'", '&#x27;')
+    ann_text_sb = ann_text_raw.replace('"', '\\"') # escape quotes backup
+    js_ann_text = json.dumps(ann_text_raw)
     ann_font_sb = ts.get("font", "sans-serif")
     ann_align_sb = ts.get("align", "center")
     ann_weight_sb = ts.get("font_weight", "bold")
@@ -171,6 +174,18 @@ def render_tepe_editor_page(db, is_kurucu, get_global_announcement):
             overflow: hidden;
             cursor: grab;
             box-shadow: inset 0 3px 15px rgba(0,0,0,0.8);
+        }}
+        .canvas-area:active {{
+            cursor: grabbing;
+        }}
+        #drag-item {{
+            position: absolute;
+            transform-origin: center center;
+            transition: none;
+            will-change: transform;
+            display: inline-block;
+            text-align: center;
+            white-space: nowrap;
         }}
         
         .tabs-header {{
@@ -449,7 +464,7 @@ def render_tepe_editor_page(db, is_kurucu, get_global_announcement):
 <body>
     <div class="stage-container">
         <input type="hidden" id="inp-size" value="{disp_size_sb}" />
-        <input type="hidden" id="inp-text" value="{ann_text_sb}" />
+        <input type="hidden" id="inp-text" value="{ann_text_html_escaped}" />
 
         <div class="stage-header">
             <span class="stage-title">🎯 KAPLAN PARÇASI - TEPE DUYURU EDİTÖRÜ</span>
@@ -792,11 +807,13 @@ def render_tepe_editor_page(db, is_kurucu, get_global_announcement):
                 lockBadge.style.borderColor = 'rgba(46, 204, 113, 0.7)';
                 lockBadge.style.color = '#2ecc71';
                 lockBadge.style.boxShadow = '0 0 12px rgba(46, 204, 113, 0.4)';
+                canvasArea.style.touchAction = 'none';
             }} else {{
                 lockBadge.innerHTML = '🔒 HAREKET KİLİTLİ (Açmak için Çift Tıkla)';
                 lockBadge.style.borderColor = 'rgba(230, 126, 34, 0.5)';
                 lockBadge.style.color = '#e67e22';
                 lockBadge.style.boxShadow = '0 4px 15px rgba(0,0,0,0.6)';
+                canvasArea.style.touchAction = 'auto';
             }}
         }}
 
@@ -866,7 +883,7 @@ def render_tepe_editor_page(db, is_kurucu, get_global_announcement):
         }}
 
         function initMultiTextFields() {{
-            const initialText = `{ann_text_sb}`;
+            const initialText = {js_ann_text};
             if (initialText.trim()) {{
                 // Fallback splitting if there is any custom marker or just take as single initial part
                 addTextPartInput(initialText, false);
@@ -1277,6 +1294,7 @@ def render_tepe_editor_page(db, is_kurucu, get_global_announcement):
         
         canvasArea.addEventListener('touchstart', (e) => {{
             if (!dragUnlocked) return;
+            e.preventDefault();
             
             if (e.touches.length === 1) {{
                 isDragging = true;
@@ -1294,17 +1312,17 @@ def render_tepe_editor_page(db, is_kurucu, get_global_announcement):
                 initTouchAngle = Math.atan2(touch2.clientY - touch1.clientY, touch2.clientX - touch1.clientX);
                 initRotationAngle = rot;
             }}
-        }});
+        }}, {{ passive: false }});
         
         canvasArea.addEventListener('touchmove', (e) => {{
             if (!dragUnlocked) return;
+            e.preventDefault();
             
             if (isDragging && e.touches.length === 1) {{
                 x = Math.round(e.touches[0].clientX - startTouchX);
                 y = Math.round(e.touches[0].clientY - startTouchY);
                 applyTransforms();
             }} else if (isPinching && e.touches.length === 2) {{
-                e.preventDefault();
                 const touch1 = e.touches[0];
                 const touch2 = e.touches[1];
                 
@@ -1344,6 +1362,7 @@ def render_tepe_editor_page(db, is_kurucu, get_global_announcement):
             startMouseX = e.clientX - x;
             startMouseY = e.clientY - y;
             e.stopPropagation();
+            e.preventDefault();
         }});
         
         document.addEventListener('mousemove', (e) => {{
@@ -2440,17 +2459,17 @@ def get_styled_user_name(u_name, u_color=None, u_glow=False, u_tag=None, u_rozet
     clean_email = str(email).strip().lower() if email else ""
     
     # 🌟 FORCE FOUNDER STYLING Rules
-    if clean_email == "ayazscma92@gmail.com" or clean_name == "ayaz kaplan":
-        color_val = "#FF0000"
+    if clean_email == "ayazscma92@gmail.com" or clean_name == "ayaz kaplan" or u_tag == "KURUCU":
+        color_val = u_color if (u_color and u_color != "#FFFFFF") else "#FF0000"
         u_glow = True
-        u_tag = "KURUCU"
-        u_rozet = "🛠️"
+        u_tag = u_tag if u_tag else "KURUCU"
+        u_rozet = u_rozet if u_rozet else "🛠️"
     # 🌟 FORCE ADMIN STYLING Rules
     elif is_admin or u_tag == "YÖNETİCİ" or clean_name == "yönetici":
-        color_val = u_color if u_color else "#9b59b6"
+        color_val = u_color if (u_color and u_color != "#FFFFFF") else "#9b59b6"
         u_glow = True
-        u_tag = "YÖNETİCİ"
-        u_rozet = "🛡️"
+        u_tag = u_tag if u_tag else "YÖNETİCİ"
+        u_rozet = u_rozet if u_rozet else "🛡️"
     else:
         color_val = u_color if u_color else "#FFFFFF"
     
@@ -3591,7 +3610,7 @@ else:
             u_rozet = "🛠️"
             u_tag = "KURUCU"
 
-    isim_stili = get_styled_user_name(kullanici_ismi, u_color, u_glow, u_tag, u_rozet)
+    isim_stili = get_styled_user_name(kullanici_ismi, u_color, u_glow, u_tag, u_rozet, email=email, is_admin=user_doc.get("is_admin", False))
 
     @st.fragment(run_every=60)
     def saat_gosterici():
@@ -4180,7 +4199,7 @@ else:
                             _u_glow = u_data.get("ismin_parlakligi", False)
                             _u_tag = u_data.get("tag", "")
                             _u_rozet = u_data.get("rozet", "")
-                            _u_styled = get_styled_user_name(u_isim, _u_color, _u_glow, _u_tag, _u_rozet)
+                            _u_styled = get_styled_user_name(u_isim, _u_color, _u_glow, _u_tag, _u_rozet, email=u_email, is_admin=u_data.get("is_admin", False))
                             st.markdown(f"### {_u_styled}", unsafe_allow_html=True)
                             st.markdown(f"📧 **E-posta:** `{u_email}`")
 
@@ -4365,7 +4384,7 @@ else:
                             if b_tarih.tzinfo is None: b_tarih = b_tarih.replace(tzinfo=timezone.utc)
                             tarih_str_b = b_tarih.strftime("%Y-%m-%d %H:%M:%S")
 
-                        styled_reporter = get_styled_user_name(b_isim, b_color, b_glow, b_tag, b_rozet)
+                        styled_reporter = get_styled_user_name(b_isim, b_color, b_glow, b_tag, b_rozet, email=b_email, is_admin=b_data.get("is_admin", False))
 
                         with st.container(border=True):
                             col_rep_info, col_rep_btn = st.columns([8, 2])
@@ -6124,7 +6143,7 @@ else:
                             with col_m_info:
                                 _m_color = m_data.get("isim_rengi", "#FFFFFF")
                                 _m_glow = m_data.get("ismin_parlakligi", False)
-                                _m_styled = get_styled_user_name(m_name, _m_color, _m_glow, m_tag, m_rozet)
+                                _m_styled = get_styled_user_name(m_name, _m_color, _m_glow, m_tag, m_rozet, email=m_email, is_admin=m_data.get("is_admin", False))
                                 st.markdown(f"**Kullanıcı:** {_m_styled} ({m_email})", unsafe_allow_html=True)
                                 st.markdown(f"🏷️ **Tag:** `{m_tag}` | 🏆 **Rozet:** `{m_rozet}`")
                             with col_m_act:
@@ -6179,7 +6198,7 @@ else:
                         with col_adm_info:
                             _a_color = a_data.get("isim_rengi", "#FFFFFF")
                             _a_glow = a_data.get("ismin_parlakligi", False)
-                            _a_styled = get_styled_user_name(a_name, _a_color, _a_glow, a_tag, a_rozet)
+                            _a_styled = get_styled_user_name(a_name, _a_color, _a_glow, a_tag, a_rozet, email=a_email, is_admin=True)
                             st.markdown(f"**Yönetici:** {_a_styled} ({a_email})", unsafe_allow_html=True)
                             st.markdown(f"🏷️ **Tag:** `{a_tag}` | 🏆 **Rozet:** `{a_rozet}`")
                         with col_adm_act:
@@ -6331,10 +6350,12 @@ else:
                         sender_name if sender_name else "Ayaz Kaplan",
                         sender_color if sender_color else "#FF0000",
                         sender_glow, sender_tag if sender_tag else "KURUCU",
-                        sender_rozet if sender_rozet else "🛠️"
+                        sender_rozet if sender_rozet else "🛠️",
+                        email=sender_email,
+                        is_admin=False
                     )
                 else:
-                    display_sender = get_styled_user_name(sender_name, sender_color, sender_glow, sender_tag, sender_rozet if sender_rozet else "🛡️")
+                    display_sender = get_styled_user_name(sender_name, sender_color, sender_glow, sender_tag, sender_rozet if sender_rozet else "🛡️", email=sender_email, is_admin=True)
 
                 st.markdown(f"""
                 <div style="background-color: rgba(255, 0, 0, 0.15); border-left: 5px solid red; padding: 15px; border-radius: 5px; margin-bottom: 10px; box-shadow: 0 0 10px rgba(255, 0, 0, 0.4);">
@@ -6468,7 +6489,7 @@ Yapay zeka ve gerçek zamanlı iletişim teknolojilerini birleştirerek Türkiye
                                                 istek_tag = "KURUCU"
                                                 istek_rozet = "🛠️"
                                         
-                                        istek_styled = get_styled_user_name(istek_isim, istek_color, istek_glow, istek_tag, istek_rozet)
+                                        istek_styled = get_styled_user_name(istek_isim, istek_color, istek_glow, istek_tag, istek_rozet, email=istek_d.get("email"), is_admin=istek_d.get("is_admin", False))
                                         istek_foto = istek_d.get("profil_foto", "")
                                         istek_foto_src = f"data:image/jpeg;base64,{istek_foto}" if istek_foto else "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
                                         col_bf, col_bn, col_ba = st.columns([1, 4, 3])
@@ -6521,7 +6542,7 @@ Yapay zeka ve gerçek zamanlı iletişim teknolojilerini birleştirerek Türkiye
                                                     s_glow = True
                                                     s_tag = "KURUCU"
                                                     s_rozet = "🛠️"
-                                            ym_styled_gonderen = get_styled_user_name(ym_gonderen, s_color, s_glow, s_tag, s_rozet)
+                                            ym_styled_gonderen = get_styled_user_name(ym_gonderen, s_color, s_glow, s_tag, s_rozet, email=s_d.get("email"), is_admin=s_d.get("is_admin", False))
                                     except Exception:
                                         pass
                                 ym_icerik = ym.get("icerik", "")
@@ -6565,7 +6586,7 @@ Yapay zeka ve gerçek zamanlı iletişim teknolojilerini birleştirerek Türkiye
                     u_rozet_fresh = "🛠️"
                     u_tag_fresh = "KURUCU"
 
-            display_name = get_styled_user_name(kullanici_ismi_fresh, u_color_fresh, u_glow_fresh, u_tag_fresh, u_rozet_fresh)
+            display_name = get_styled_user_name(kullanici_ismi_fresh, u_color_fresh, u_glow_fresh, u_tag_fresh, u_rozet_fresh, email=email, is_admin=is_admin_user)
 
             def ai_cevap(mesajlar):
                 current_doc = user_ref.get().to_dict()
@@ -6695,7 +6716,7 @@ Yapay zeka ve gerçek zamanlı iletişim teknolojilerini birleştirerek Türkiye
                     msg_glow = m.get("glow", u_glow_fresh)
                     msg_tag = m.get("tag", u_tag_fresh)
                     msg_rozet = m.get("rozet", u_rozet_fresh)
-                    msg_display_name = get_styled_user_name(msg_name, msg_color, msg_glow, msg_tag, msg_rozet)
+                    msg_display_name = get_styled_user_name(msg_name, msg_color, msg_glow, msg_tag, msg_rozet, email=email, is_admin=is_admin_user)
                     content_rendered = detect_and_render_media(m["content"])
                     
                     with st.container():
@@ -6759,6 +6780,12 @@ Yapay zeka ve gerçek zamanlı iletişim teknolojilerini birleştirerek Türkiye
                             u_glow_send = True
                             u_rozet_send = "🛠️"
                             u_tag_send = "KURUCU"
+                    elif user_doc_fresh.get("is_admin", False):
+                        if not user_doc_fresh.get("tag"):
+                            u_color_send = u_color_send if (u_color_send and u_color_send != "#FFFFFF") else "#9b59b6"
+                            u_glow_send = True
+                            u_rozet_send = "🛡️"
+                            u_tag_send = "YÖNETİCİ"
 
                     user_msg = {
                         "role": "user",
@@ -6842,7 +6869,7 @@ Yapay zeka ve gerçek zamanlı iletişim teknolojilerini birleştirerek Türkiye
                         k_tag = "YÖNETİCİ"
                         k_rozet = "🛡️"
 
-                k_styled = get_styled_user_name(k_isim, k_color, k_glow, k_tag, k_rozet)
+                k_styled = get_styled_user_name(k_isim, k_color, k_glow, k_tag, k_rozet, email=k_email_clean, is_admin=k_data.get("is_admin", False))
 
                 if k_foto:
                     k_foto_src = f"data:image/jpeg;base64,{k_foto}"
@@ -6949,7 +6976,7 @@ Yapay zeka ve gerçek zamanlı iletişim teknolojilerini birleştirerek Türkiye
                 h_foto_src = "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
             st.markdown(f'<div style="text-align:center;"><img src="{h_foto_src}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid #f39c12;"/></div>', unsafe_allow_html=True)
 
-            h_isim_stili = get_styled_user_name(kullanici_ismi, u_color, u_glow, u_tag, u_rozet)
+            h_isim_stili = get_styled_user_name(kullanici_ismi, u_color, u_glow, u_tag, u_rozet, email=email, is_admin=is_admin_user)
             st.markdown(f"<div style='text-align:center; margin-top:8px;'>{h_isim_stili}</div>", unsafe_allow_html=True)
 
             st.divider()
@@ -6984,7 +7011,7 @@ Yapay zeka ve gerçek zamanlı iletişim teknolojilerini birleştirerek Türkiye
                                     ark_tag = "YÖNETİCİ"
                                     ark_rozet = "🛡️"
 
-                            ark_styled = get_styled_user_name(ark_isim, ark_color, ark_glow, ark_tag, ark_rozet)
+                            ark_styled = get_styled_user_name(ark_isim, ark_color, ark_glow, ark_tag, ark_rozet, email=ark_d.get("email"), is_admin=ark_d.get("is_admin", False))
                             ark_foto_src = f"data:image/jpeg;base64,{ark_foto}" if ark_foto else "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
                             col_af, col_an, col_dm, col_rem = st.columns([1, 4, 3, 2.5])
                             with col_af:
@@ -7083,7 +7110,7 @@ Yapay zeka ve gerçek zamanlı iletişim teknolojilerini birleştirerek Türkiye
                                                 sub_tag = "YÖNETİCİ"
                                                 sub_rozet = "🛡️"
 
-                                        sub_styled_name = get_styled_user_name(sub_isim, sub_color, sub_glow, sub_tag, sub_rozet)
+                                        sub_styled_name = get_styled_user_name(sub_isim, sub_color, sub_glow, sub_tag, sub_rozet, email=sub_data.get("email"), is_admin=sub_data.get("is_admin", False))
                                         sub_foto = sub_data.get("profil_foto", "")
                                         sub_foto_src = f"data:image/jpeg;base64,{sub_foto}" if sub_foto else "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
 
@@ -7185,7 +7212,7 @@ Yapay zeka ve gerçek zamanlı iletişim teknolojilerini birleştirerek Türkiye
                     partner_tag = "ADMIN"
                     partner_rozet = "🛡️"
 
-            partner_styled_name = get_styled_user_name(partner_isim, partner_color, partner_glow, partner_tag, partner_rozet)
+            partner_styled_name = get_styled_user_name(partner_isim, partner_color, partner_glow, partner_tag, partner_rozet, email=partner_email, is_admin=partner_is_admin)
 
             partner_online = False
             partner_son_gorulme = partner_data.get("son_gorulme_zamani")
@@ -7258,7 +7285,7 @@ Yapay zeka ve gerçek zamanlı iletişim teknolojilerini birleştirerek Türkiye
                         u_rozet_fresh_dm = "🛠️"
                         u_tag_fresh_dm = "KURUCU"
 
-                display_name_dm = get_styled_user_name(user_doc_fresh_dm.get('isim', kullanici_ismi), u_color_fresh_dm, u_glow_fresh_dm, u_tag_fresh_dm, u_rozet_fresh_dm)
+                display_name_dm = get_styled_user_name(user_doc_fresh_dm.get('isim', kullanici_ismi), u_color_fresh_dm, u_glow_fresh_dm, u_tag_fresh_dm, u_rozet_fresh_dm, email=email, is_admin=is_admin_user)
 
                 with dm_container:
                     if not dm_mesajlar:
