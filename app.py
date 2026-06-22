@@ -2636,56 +2636,56 @@ else:
         st.divider()
 
         if is_kurucu:
-            with st.expander("📢 Tepe Duyurusu (Herkesin Göreceği Yazı) Düzenle", expanded=False):
-                st.markdown("### 👑 Kurucu Özel: Tepe Duyuru Bandı Editörü")
-                st.info("Bu özel panel yalnızca Kurucu olarak sizin tarafınızdan görüntülenebilir ve düzenlenebilir. Diğer yöneticiler de dahil olmak üzere hiç kimse bu ayarları değiştiremez.")
+            with st.expander("📢 Tepe Duyurusu (Herkesin Göreceği Yazı) Düzenle", expanded=True):
+                st.markdown("### 👑 Kurucu Özel: Tepe Duyuru Bandı Editörü (CapCut Editör)")
+                st.info("Bu özel panel yalnızca Kurucu olarak sizin tarafınızdan görüntülenebilir ve düzenlenebilir. Tüm tepe duyurusu nitelikleri, kaydırma ve renk seçenekleriyle modern, tam genişlikte CapCut-benzeri interaktif editörde tek pencereli olarak birleştirilmiştir!")
                 
                 # Setup session memory for smooth preview without saving
                 if "temp_ann_settings" not in st.session_state:
                     st.session_state.temp_ann_settings = get_global_announcement()
                 
                 ts = st.session_state.temp_ann_settings
-                
-                # RENDER LIVE PREVIEW (reads from session state, completely isolated from Firestore until manually saved)
-                st.markdown("### 👀 CANLI ÖNİZLEME (KAYDETMEDEN ÖNCEKİ HALİ)")
-                st.write("Değişikliklerinizi kaydetmeden önce bandın nasıl görüneceğini buradan canlı olarak izleyebilirsiniz. Aşağıdaki ayarları yaptıktan sonra fomu göndererek önizlemeyi güncelleyin:")
-                
-                preview_html = render_custom_banner_html(ts)
-                st.markdown(f'<div style="border: 2px dashed rgba(255,165,0,0.4); border-radius: 12px; padding: 15px; background: rgba(0,0,0,0.3); margin-bottom: 25px; overflow: visible;">{preview_html}</div>', unsafe_allow_html=True)
 
-                st.markdown("### 🎮 DOKUNMATİK OYUN PARKI (YAZIYI TUT-SÜRÜKLE, SIKIŞTIR-BÜYÜT, ÇEVİR!)")
-                st.info("Bu alandaki duyuruyu parmağınızla/mouse ile basılı tutup dilediğiniz gibi sürükleyebilir, pinch (iki parmak kıstırma) yaparak veya farenin tekerleğiyle boyutunu (+/-) ayarlayabilir, döndürebilirsiniz. Sağlanan kolay butonlarla da ayarlama yaptıktan sonra, sayfa altında yer alan 'Movable' alanlar otomatik olarak senkronize olacaktır.")
-
-                # Calculate background styling for dynamic display inside the canvas
-                bg_type_sb = ts.get("bg_type", "none")
-                bg_color_sb = ts.get("bg_color", "#111122")
-                bg_end_sb = ts.get("bg_gradient_end", "#1a1a3a")
-                bg_image_url_sb = ts.get("bg_image_url", "")
-                bg_opacity_sb = ts.get("bg_opacity", 100) / 100.0
-                padding_v_sb = ts.get("padding_vertical", 10)
-                padding_h_sb = ts.get("padding_horizontal", 15)
-                border_radius_sb = ts.get("border_radius", 12)
-                
-                bg_css_sb = "background: transparent; border: 1px dashed rgba(255,255,255,0.15); padding: 15px;"
-                if bg_type_sb == "flat":
-                    bg_css_sb = f"background: {bg_color_sb}; border: 1px solid rgba(255,255,255,0.1); border-radius: {border_radius_sb}px; padding: {padding_v_sb}px {padding_h_sb}px;"
-                elif bg_type_sb == "gradient":
-                    bg_css_sb = f"background: linear-gradient(135deg, {bg_color_sb}, {bg_end_sb}); border: 1px solid rgba(255,255,255,0.15); border-radius: {border_radius_sb}px; padding: {padding_v_sb}px {padding_h_sb}px;"
-                elif bg_type_sb == "image":
-                    overlay_op_sb = 1.0 - bg_opacity_sb
-                    bg_css_sb = f"background: linear-gradient(rgba(17,17,34,{overlay_op_sb:.2f}), rgba(17,17,34,{overlay_op_sb:.2f})), url('{bg_image_url_sb}'); background-size: cover; background-position: center; border: 1px solid rgba(255,255,255,0.15); border-radius: {border_radius_sb}px; padding: {padding_v_sb}px {padding_h_sb}px;"
-
-                clean_ts = ts.copy()
-                clean_ts["displacement_x"] = 0
-                clean_ts["displacement_y"] = 0
-                clean_ts["rotation"] = 0
-                clean_ts["bg_type"] = "none"
-                clean_ts_inner_html = render_custom_banner_html(clean_ts)
-
+                # Package and serialize initial values for the CapCut dashboard template
                 disp_x_sb = ts.get("displacement_x", 0)
                 disp_y_sb = ts.get("displacement_y", 0)
                 disp_rot_sb = ts.get("rotation", 0)
                 disp_size_sb = ts.get("size", 20)
+                ann_text_sb = ts.get("text", "").replace('"', '\\"') # escape quotes
+                ann_font_sb = ts.get("font", "sans-serif")
+                ann_align_sb = ts.get("align", "center")
+                ann_weight_sb = ts.get("font_weight", "bold")
+                ann_style_sb = ts.get("font_style", "normal")
+                ann_decoration_sb = ts.get("text_decoration", "none")
+                ann_opacity_sb = ts.get("opacity", 100)
+                ann_text_color_sb = ts.get("text_color", "#FFFFFF")
+
+                ann_glow_enabled_sb = "true" if ts.get("glow_enabled", False) else "false"
+                ann_glow_intensity_sb = ts.get("glow_intensity", 50)
+                ann_glow_color_mode_sb = ts.get("glow_color_mode", "auto")
+                ann_glow_color_fixed_sb = ts.get("glow_color_fixed", "#FFC000")
+
+                ann_shadow_enabled_sb = "true" if ts.get("shadow_enabled", False) else "false"
+                ann_shadow_intensity_sb = ts.get("shadow_intensity", 50)
+                ann_shadow_color_sb = ts.get("shadow_color", "#000000")
+
+                ann_animation_type_sb = ts.get("animation_type", "none")
+
+                ann_bg_type_sb = ts.get("bg_type", "none")
+                ann_bg_color_sb = ts.get("bg_color", "#111122")
+                ann_bg_gradient_end_sb = ts.get("bg_gradient_end", "#1a1a3a")
+                ann_bg_image_url_sb = ts.get("bg_image_url", "")
+                ann_bg_opacity_sb = ts.get("bg_opacity", 100)
+                ann_padding_vertical_sb = ts.get("padding_vertical", 10)
+                ann_padding_horizontal_sb = ts.get("padding_horizontal", 15)
+                ann_border_radius_sb = ts.get("border_radius", 12)
+
+                ann_media_url_sb = ts.get("media_url", "")
+                ann_media_align_sb = ts.get("media_align", "below")
+                ann_media_size_sb = ts.get("media_size", 150)
+
+                import json
+                char_colors_json = json.dumps(list(ts.get("char_colors", [])))
 
                 sandbox_code = f"""<!DOCTYPE html>
 <html>
@@ -2702,7 +2702,8 @@ else:
         body {{
             background: transparent;
             color: #ffffff;
-            overflow: hidden;
+            overflow-x: hidden;
+            overflow-y: auto;
             user-select: none;
             -webkit-user-select: none;
             padding: 5px;
@@ -2712,19 +2713,19 @@ else:
             border: 2px solid #e67e22;
             border-radius: 12px;
             box-shadow: 0 8px 32px rgba(0,0,0,0.6), inset 0 0 20px rgba(230, 126, 34, 0.15);
-            padding: 12px;
+            padding: 15px;
             overflow: visible;
         }}
         .stage-header {{
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 12px;
+            margin-bottom: 15px;
             border-bottom: 1px dashed rgba(230, 126, 34, 0.3);
-            padding-bottom: 8px;
+            padding-bottom: 10px;
         }}
         .stage-title {{
-            font-size: 13px;
+            font-size: 14px;
             font-weight: 700;
             color: #e67e22;
             display: flex;
@@ -2736,23 +2737,53 @@ else:
             font-size: 10px;
             background: rgba(46, 204, 113, 0.2);
             border: 1px solid rgba(46, 204, 113, 0.4);
-            padding: 2px 7px;
+            padding: 3px 9px;
             border-radius: 20px;
             color: #2ecc71;
             font-weight: bold;
         }}
+        
+        /* Two columns editor workspace style like CapCut */
+        .editor-wrapper {{
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 10px;
+        }}
+        @media (max-width: 800px) {{
+            .editor-wrapper {{
+                grid-template-columns: 1fr;
+            }}
+        }}
+
+        .editor-panel-left {{
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }}
+        .editor-panel-right {{
+            display: flex;
+            flex-direction: column;
+            background: #131326;
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 10px;
+            padding: 15px;
+        }}
+
+        /* PREVIEW CANVAS AREA */
         .canvas-area {{
             position: relative;
             width: 100%;
-            height: 250px;
+            height: 280px;
             border-radius: 10px;
-            overflow: hidden;
-            cursor: grab;
+            border: 1px dashed rgba(255,165,0,0.25);
+            background-color: #07070f;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: inset 0 3px 10px rgba(0,0,0,0.5);
-            background-color: #111122;
+            overflow: hidden;
+            cursor: grab;
+            box-shadow: inset 0 3px 15px rgba(0,0,0,0.8);
         }}
         .canvas-area:active {{
             cursor: grabbing;
@@ -2761,79 +2792,275 @@ else:
             position: absolute;
             transform-origin: center center;
             transition: none;
-            will-change: transform, font-size;
+            will-change: transform;
             display: inline-block;
             text-align: center;
             white-space: nowrap;
         }}
+        
+        /* REALTIME ANN KEYFRAMES */
+        @keyframes neonPulse {{
+            0%, 100% {{ opacity: 0.95; filter: drop-shadow(0 0 calc(var(--gl-blur) * 0.3) var(--glow-color)) drop-shadow(0 0 var(--gl-blur) var(--glow-color)); }}
+            50% {{ opacity: 1; filter: drop-shadow(0 0 var(--gl-blur) var(--glow-color)) drop-shadow(0 0 calc(var(--gl-blur) * 1.8) var(--glow-color)); }}
+        }}
+        @keyframes wiggle {{
+            0%, 100% {{ transform: translateY(0); }}
+            50% {{ transform: translateY(-8px); }}
+        }}
+        @keyframes neonFlicker {{
+            0%, 18%, 22%, 25%, 53%, 57%, 100% {{ filter: drop-shadow(0 0 var(--gl-blur) var(--glow-color)); opacity: 1; }}
+            20%, 24%, 55% {{ filter: none; opacity: 0.4; }}
+        }}
+        @keyframes rainbowShift {{
+            0% {{ filter: hue-rotate(0deg); }}
+            100% {{ filter: hue-rotate(360deg); }}
+        }}
+        @keyframes softPulse {{
+            0%, 100% {{ transform: scale(0.98); }}
+            50% {{ transform: scale(1.04); }}
+        }}
+        @keyframes blurFade {{
+            0%, 100% {{ filter: blur(0px); }}
+            50% {{ filter: blur(3px); }}
+        }}
+        .ann-animate-wiggle {{
+            display: inline-block;
+            animation: wiggle 1.2s ease-in-out infinite;
+        }}
+        .ann-animate-neon_pulse {{
+            animation: neonPulse 2s infinite ease-in-out;
+        }}
+        .ann-animate-neon_flicker {{
+            animation: neonFlicker 3s infinite;
+        }}
+        .ann-animate-rainbow {{
+            animation: rainbowShift 6s infinite linear;
+        }}
+        .ann-animate-pulse {{
+            display: inline-block;
+            animation: softPulse 2.5s infinite ease-in-out;
+        }}
+        .ann-animate-blur_fade {{
+            animation: blurFade 3s infinite ease-in-out;
+        }}
+
+        /* PROPERTY SHEETS TABS */
+        .tabs-header {{
+            display: flex;
+            overflow-x: auto;
+            border-bottom: 2px solid rgba(255,255,255,0.06);
+            gap: 5px;
+            margin-bottom: 15px;
+            padding-bottom: 5px;
+        }}
+        .tabs-header::-webkit-scrollbar {{
+            height: 3px;
+        }}
+        .tabs-header::-webkit-scrollbar-thumb {{
+            background: #e67e22;
+            border-radius: 10px;
+        }}
+        .tab-btn {{
+            background: rgba(255,255,255,0.02);
+            color: #94a3b8;
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 8px 8px 0 0;
+            padding: 8px 12px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+        }}
+        .tab-btn:hover {{
+            color: #ffffff;
+            background: rgba(255,255,255,0.06);
+        }}
+        .tab-btn.active {{
+            background: #e67e22;
+            color: white;
+            border-color: #e67e22;
+        }}
+        .tab-content {{
+            display: none;
+            overflow-y: auto;
+            height: 400px;
+            padding-right: 5px;
+        }}
+        .tab-content.active {{
+            display: block;
+        }}
+
+        /* FORM CONTROLS */
+        .form-group {{
+            margin-bottom: 12px;
+        }}
+        .form-group label {{
+            display: block;
+            font-size: 10px;
+            color: #94a3b8;
+            margin-bottom: 5px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }}
+        .form-control {{
+            width: 100%;
+            background: #090914;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 6px;
+            padding: 7px 10px;
+            color: white;
+            font-size: 12px;
+            outline: none;
+            transition: all 0.2s ease;
+        }}
+        .form-control:focus {{
+            border-color: #e67e22;
+            box-shadow: 0 0 8px rgba(230,126,34,0.3);
+        }}
+        .flex-row {{
+            display: flex;
+            gap: 8px;
+        }}
+        .flex-item {{
+            flex: 1;
+        }}
+        
+        /* TOGGLE INPUTS */
+        .toggle-container {{
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            user-select: none;
+            padding: 4px 0;
+        }}
+        .toggle-switch {{
+            position: relative;
+            width: 32px;
+            height: 18px;
+            background: #202030;
+            border-radius: 9px;
+            transition: all 0.25s ease;
+        }}
+        .toggle-switch::after {{
+            content: '';
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #ffffff;
+            top: 2px;
+            left: 2px;
+            transition: all 0.25s ease;
+        }}
+        input[type="checkbox"]:checked + .toggle-switch {{
+            background: #e67e22;
+        }}
+        input[type="checkbox"]:checked + .toggle-switch::after {{
+            left: 16px;
+        }}
+        .hidden-checkbox {{
+            display: none;
+        }}
+
+        /* CHAR COLOR PILLS */
+        .char-color-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+            gap: 6px;
+            margin-top: 5px;
+        }}
+        .char-color-box {{
+            background: #090914;
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 6px;
+            padding: 4px;
+            text-align: center;
+        }}
+        .char-color-box span {{
+            font-size: 10px;
+            color: #94a3b8;
+            display: block;
+            margin-bottom: 2px;
+        }}
+        .char-color-box input[type="color"] {{
+            width: 100%;
+            height: 22px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+        }}
+
+        /* STATS INDICATORS ROW */
         .indicators-row {{
             display: flex;
             justify-content: space-between;
-            gap: 8px;
-            margin-top: 12px;
+            gap: 6px;
         }}
         .indicator {{
             flex: 1;
             background: rgba(0,0,0,0.5);
-            border: 1px solid rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.06);
             border-radius: 8px;
-            padding: 6px 4px;
+            padding: 5px 3px;
             text-align: center;
-            font-size: 11px;
+            font-size: 10px;
             color: #bdc3c7;
         }}
         .indicator span {{
             display: block;
             color: #f39c12;
             font-weight: bold;
-            font-size: 13px;
-            margin-top: 2px;
+            font-size: 12px;
+            margin-top: 1px;
         }}
+
+        /* BUTTONS */
         .toolbar {{
             display: flex;
-            gap: 6px;
-            margin-top: 12px;
+            gap: 4px;
             flex-wrap: wrap;
         }}
         .action-btn {{
             flex: 1;
-            min-width: 90px;
-            background: #2c3e50;
+            min-width: 75px;
+            background: #252538;
             color: white;
-            border: 1px solid rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.08);
             border-radius: 6px;
-            padding: 8px;
-            font-size: 11px;
+            padding: 6px;
+            font-size: 10px;
             font-weight: bold;
             cursor: pointer;
             transition: all 0.15s ease;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 4px;
-            box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+            gap: 2px;
         }}
         .action-btn:hover {{
-            background: #34495e;
-            border-color: rgba(255,255,255,0.25);
+            background: #31314a;
+            border-color: rgba(255,255,255,0.2);
         }}
         .action-btn:active {{
             transform: scale(0.96);
         }}
         .action-btn.danger {{
-            background: #7f8c8d;
+            background: #5d6d7e;
         }}
         .action-btn.danger:hover {{
-            background: #95a5a6;
+            background: #7f8c8d;
         }}
+
         .bottom-action-bar {{
             display: flex;
             gap: 8px;
-            margin-top: 10px;
         }}
         .bottom-btn {{
             flex: 1;
-            padding: 10px;
+            padding: 11px;
             border: none;
             border-radius: 8px;
             font-size: 12px;
@@ -2849,7 +3076,7 @@ else:
             transition: all 0.2s ease;
         }}
         .bottom-btn.preview-btn {{
-            background: linear-gradient(135deg, #1abc9c, #16a085);
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
         }}
         .bottom-btn.preview-btn:hover {{
             filter: brightness(1.1);
@@ -2869,100 +3096,623 @@ else:
 <body>
     <div class="stage-container">
         <div class="stage-header">
-            <span class="stage-title">🎯 INTERAKTİF AYARLAMA EKRANI (Duyuruyu Görsel Sürükle-Büyüt)</span>
-            <span class="status-badge">MOBİL DOKUNMATİK AKTİF</span>
+            <span class="stage-title">🎯 TEPE DUYURU BANDI - CAPCUT PREMIUM EDİTÖR</span>
+            <span class="status-badge">MOBİL / DESKTOP AKTİF</span>
         </div>
         
-        <!-- Canvas area mimicking real design -->
-        <div class="canvas-area" id="canvas-area" style="{bg_css_sb}">
-            <div id="drag-item" style="font-size: {disp_size_sb}px; transform: translate({disp_x_sb}px, {disp_y_sb}px) rotate({disp_rot_sb}deg);">
-                {clean_ts_inner_html}
+        <div class="editor-wrapper">
+            <!-- LEFTPANEL: Preview & Coordinates -->
+            <div class="editor-panel-left">
+                <div class="canvas-area" id="canvas-area">
+                    <div id="drag-item" style="transform: translate({disp_x_sb}px, {disp_y_sb}px) rotate({disp_rot_sb}deg);">
+                        <div id="banner-wrapper"></div>
+                    </div>
+                </div>
+                
+                <!-- Live statistics badge meters -->
+                <div class="indicators-row">
+                    <div class="indicator">X Kaydırma<span id="badge-x">{disp_x_sb}px</span></div>
+                    <div class="indicator">Y Kaydırma<span id="badge-y">{disp_y_sb}px</span></div>
+                    <div class="indicator">Yazı Boyutu<span id="badge-size">{disp_size_sb}px</span></div>
+                    <div class="indicator">Döndürme<span id="badge-rot">{disp_rot_sb}°</span></div>
+                </div>
+                
+                <!-- Manual toolbar adjustments -->
+                <div class="toolbar">
+                    <button class="action-btn" id="btn-size-minus" title="Çift parmak pinch veya fare tekerleğiyle de ayarlanabilir">📏 Boyut (-2)</button>
+                    <button class="action-btn" id="btn-size-plus" title="Çift parmak pinch veya fare tekerleğiyle de ayarlanabilir">📏 Boyut (+2)</button>
+                    <button class="action-btn" id="btn-rot-left">↺ Çevir (-15°)</button>
+                    <button class="action-btn" id="btn-rot-right">↻ Çevir (+15°)</button>
+                    <button class="action-btn danger" id="btn-reset">🎯 Sıfırla (Merkez)</button>
+                </div>
+                
+                <!-- Bottom submission triggers -->
+                <div class="bottom-action-bar">
+                    <button class="bottom-btn preview-btn" id="btn-preview">👀 ANLIK ÖNİZLEME YAP</button>
+                    <button class="bottom-btn save-btn" id="btn-save">💾 CANLIYA KAYDET VE YAYINLA 🚀</button>
+                </div>
             </div>
-        </div>
-        
-        <!-- Live status indicators -->
-        <div class="indicators-row">
-            <div class="indicator">X Kaydırma<span id="badge-x">{disp_x_sb}px</span></div>
-            <div class="indicator">Y Kaydırma<span id="badge-y">{disp_y_sb}px</span></div>
-            <div class="indicator">Yazı Boyutu<span id="badge-size">{disp_size_sb}px</span></div>
-            <div class="indicator">Döndürme<span id="badge-rot">{disp_rot_sb}°</span></div>
-        </div>
-        
-        <!-- Buttons toolbar -->
-        <div class="toolbar">
-            <button class="action-btn" id="btn-size-minus" title="Çift parmak pinch/kıstırma veya tekerlek de kullanılabilir">📏 Boyut (-2px)</button>
-            <button class="action-btn" id="btn-size-plus" title="Çift parmak pinch/kıstırma veya tekerlek de kullanılabilir">📏 Boyut (+2px)</button>
-            <button class="action-btn" id="btn-rot-left" title="Çift parmakla çevirme hareketi de yapılabilir">↺ Çevir (-15°)</button>
-            <button class="action-btn" id="btn-rot-right" title="Çift parmakla çevirme hareketi de yapılabilir">↻ Çevir (+15°)</button>
-            <button class="action-btn danger" id="btn-reset">🎯 Sıfırla (Merkez)</button>
-        </div>
-        
-        <!-- Synchronised submit buttons directly loaded in UI -->
-        <div class="bottom-action-bar">
-            <button class="bottom-btn preview-btn" id="btn-preview">👀 Değişiklikleri Önizle</button>
-            <button class="bottom-btn save-btn" id="btn-save">💾 CANLIYA KAYDET VE YAYINLA 🚀</button>
+
+            <!-- RIGHT PANEL: Integrated configuration tabsheets -->
+            <div class="editor-panel-right">
+                <div class="tabs-header">
+                    <button class="tab-btn active" onclick="switchTab('tab-metin')">📝 Yazı & Biçim</button>
+                    <button class="tab-btn" onclick="switchTab('tab-renk')">🎨 Harf Boyama</button>
+                    <button class="tab-btn" onclick="switchTab('tab-arka')">🖼️ Arka Plan</button>
+                    <button class="tab-btn" onclick="switchTab('tab-efekt')">✨ Neon & Gölge</button>
+                    <button class="tab-btn" onclick="switchTab('tab-gorsel')">📷 Medya</button>
+                </div>
+
+                <!-- TAB 1: Yazı & Biçim -->
+                <div id="tab-metin" class="tab-content active">
+                    <div class="form-group">
+                        <label>Duyuru Metni</label>
+                        <input type="text" id="inp-text" value="{ann_text_sb}" class="form-control" oninput="handleTextChange()" />
+                    </div>
+                    
+                    <div class="flex-row">
+                        <div class="form-group flex-item">
+                            <label>Hizalama</label>
+                            <select id="inp-align" class="form-control" onchange="renderPreview()">
+                                <option value="center">Orta</option>
+                                <option value="left">Sol</option>
+                                <option value="right">Sağ</option>
+                            </select>
+                        </div>
+                        <div class="form-group flex-item">
+                            <label>Yazı Tipi</label>
+                            <select id="inp-font" class="form-control" onchange="renderPreview()">
+                                <option value="sans-serif">Sans-Serif (Varsayılan)</option>
+                                <option value="Space Grotesk">Space Grotesk (Teknolojik)</option>
+                                <option value="Cinzel">Cinzel (Klasik Roma)</option>
+                                <option value="monospace">Retro Blok (Monospace)</option>
+                                <option value="cursive">El Yazısı (Cursive)</option>
+                                <option value="Georgia">Georgia</option>
+                                <option value="Arial">Arial</option>
+                                <option value="Impact">Impact (Dar-Kalın)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="flex-row">
+                        <div class="form-group flex-item">
+                            <label>Kalınlık (Weight)</label>
+                            <select id="inp-font-weight" class="form-control" onchange="renderPreview()">
+                                <option value="bold">Kalın (Bold)</option>
+                                <option value="normal">Normal</option>
+                                <option value="bolder">Çok Kalın (Bolder)</option>
+                                <option value="900">Devasa Kalın (900)</option>
+                            </select>
+                        </div>
+                        <div class="form-group flex-item">
+                            <label>Stil (Style)</label>
+                            <select id="inp-font-style" class="form-control" onchange="renderPreview()">
+                                <option value="normal">Normal</option>
+                                <option value="italic">İtalik (Eğik)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="flex-row">
+                        <div class="form-group flex-item">
+                            <label>Süsleme (Decoration)</label>
+                            <select id="inp-text-decoration" class="form-control" onchange="renderPreview()">
+                                <option value="none">Süsleme Yok</option>
+                                <option value="underline">Altı Çizili</option>
+                                <option value="line-through">Üstü Çizili</option>
+                                <option value="overline">Üst Çizgili</option>
+                            </select>
+                        </div>
+                        <div class="form-group flex-item">
+                            <label>Varsayılan Yazı Rengi</label>
+                            <input type="color" id="inp-text-color" value="{ann_text_color_sb}" class="form-control" style="height:35px; padding:2px;" oninput="handleTextGlobalColorChange(this.value)" />
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Yazı Görünürlüğü (Saydamlık - %)</label>
+                        <div class="flex-row" style="align-items: center;">
+                            <input type="range" id="inp-opacity" min="10" max="100" value="{ann_opacity_sb}" class="form-control" style="flex:3;" oninput="document.getElementById('v-opacity').innerText=this.value+'%'; renderPreview()" />
+                            <span id="v-opacity" style="flex:1; text-align:right; font-size:11px; color:#e67e22; font-weight:bold;">{ann_opacity_sb}%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: Harf Boyama -->
+                <div id="tab-renk" class="tab-content">
+                    <div class="form-group" style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.03); margin-bottom: 12px;">
+                        <label>⚡ Toplu & Hızlı Boyama Araçları</label>
+                        <div class="flex-row" style="margin-bottom:8px;">
+                            <input type="color" id="bulk-color-pick" value="#FFFFFF" class="form-control" style="flex:1; height:32px; padding:2px;" />
+                            <button type="button" class="action-btn" style="flex:2.2; background:#2980b9;" onclick="applyBulkColor()">Tüm Harfleri Boya</button>
+                        </div>
+                        <div class="flex-row">
+                            <input type="text" id="paint-word-target" placeholder="Boyanacak Kelime..." class="form-control" style="flex:2;" />
+                            <input type="color" id="paint-word-color" value="#FFD700" class="form-control" style="flex:1; height:32px; padding:2px;" />
+                            <button type="button" class="action-btn" style="flex:1.5; background:#8e44ad;" onclick="applyWordHighlight()">Kelimeli Boya</button>
+                        </div>
+                    </div>
+                    
+                    <label style="margin-bottom:6px; display:block; font-size:10px; font-weight:bold; color:#f39c12;">🔠 Tek Tek Harf Harf Renklendir</label>
+                    <div class="char-color-grid" id="char-colors-grid"></div>
+                </div>
+
+                <!-- TAB 3: Arka Plan -->
+                <div id="tab-arka" class="tab-content">
+                    <div class="form-group">
+                        <label>Arka Plan Tasarım Tipi</label>
+                        <select id="inp-bg-type" class="form-control" onchange="toggleBgFields(); renderPreview();">
+                            <option value="none">Arka Plan Yok</option>
+                            <option value="flat">Düz Renk</option>
+                            <option value="gradient">Renk Geçişli (Gradient)</option>
+                            <option value="image">Görsel / Hareketli GIF</option>
+                        </select>
+                    </div>
+
+                    <div id="bg-color-fields" class="flex-row">
+                        <div class="form-group flex-item">
+                            <label>Arka Plan Rengi</label>
+                            <input type="color" id="inp-bg-color" value="{ann_bg_color_sb}" class="form-control" style="height:35px; padding:2px;" oninput="renderPreview()" />
+                        </div>
+                        <div class="form-group flex-item" id="bg-gradient-field">
+                            <label>Gradient Bitiş Rengi</label>
+                            <input type="color" id="inp-bg-gradient-end" value="{ann_bg_gradient_end_sb}" class="form-control" style="height:35px; padding:2px;" oninput="renderPreview()" />
+                        </div>
+                    </div>
+
+                    <div id="bg-image-fields" class="form-group">
+                        <div class="form-group">
+                            <label>Web Görsel / GIF Linki</label>
+                            <input type="text" id="inp-bg-image-url" value="{ann_bg_image_url_sb}" placeholder="https://..." class="form-control" oninput="renderPreview()" />
+                        </div>
+                        <div class="form-group">
+                            <label>Görsel Şeffaflığı / Opaklığı</label>
+                            <div class="flex-row" style="align-items: center;">
+                                <input type="range" id="inp-bg-opacity" min="10" max="100" value="{ann_bg_opacity_sb}" class="form-control" style="flex:3;" oninput="document.getElementById('v-bg-opacity').innerText=this.value+'%'; renderPreview()" />
+                                <span id="v-bg-opacity" style="flex:1; text-align:right; font-size:11px; color:#e67e22; font-weight:bold;">{ann_bg_opacity_sb}%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex-row">
+                        <div class="form-group flex-item">
+                            <label>İç Düşey Boşluk (Padding Y)</label>
+                            <input type="number" id="inp-padding-vertical" value="{ann_padding_vertical_sb}" min="0" max="100" class="form-control" oninput="renderPreview()" />
+                        </div>
+                        <div class="form-group flex-item">
+                            <label>İç Yatay Boşluk (Padding X)</label>
+                            <input type="number" id="inp-padding-horizontal" value="{ann_padding_horizontal_sb}" min="0" max="100" class="form-control" oninput="renderPreview()" />
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Çerçeve Köşe Ovalleşmesi (Border Radius px)</label>
+                        <input type="number" id="inp-border-radius" value="{ann_border_radius_sb}" min="0" max="100" class="form-control" oninput="renderPreview()" />
+                    </div>
+                </div>
+
+                <!-- TAB 4: Neon & Gölge -->
+                <div id="tab-efekt" class="tab-content">
+                    <div class="form-group" style="background: rgba(0,243,255,0.02); padding: 10px; border-radius: 8px; border: 1px solid rgba(0,243,255,0.06); margin-bottom: 12px;">
+                        <label class="toggle-container">
+                            <input type="checkbox" id="inp-glow-enabled" class="hidden-checkbox" onchange="toggleGlowFields(); renderPreview();" />
+                            <div class="toggle-switch"></div>
+                            <span style="font-size:11px; color:#ffffff; font-weight:bold;">🌌 NEON PARLAKLIK (GLOW)</span>
+                        </label>
+                        
+                        <div id="glow-intensity-wrapper" class="form-group" style="margin-top:8px;">
+                            <label>Neon Yoğunluk Gücü</label>
+                            <div class="flex-row" style="align-items: center;">
+                                <input type="range" id="inp-glow-intensity" min="0" max="100" value="{ann_glow_intensity_sb}" class="form-control" style="flex:3;" oninput="document.getElementById('v-glow-intensity').innerText=this.value; renderPreview();" />
+                                <span id="v-glow-intensity" style="flex:1; text-align:right; font-size:11px; color:#e67e22; font-weight:bold;">{ann_glow_intensity_sb}</span>
+                            </div>
+                        </div>
+                        
+                        <div id="glow-color-wrapper" class="form-group">
+                            <label>Glow Rengi Modu</label>
+                            <div style="display:flex; gap:12px; margin-bottom:8px; font-size:11px;">
+                                <label style="cursor:pointer; display:flex; align-items:center; gap:4px; text-transform:none;">
+                                    <input type="radio" name="glow_color_mode" value="auto" onchange="toggleGlowFields(); renderPreview();" /> Harf Rengiyle Aynı (Auto)
+                                </label>
+                                <label style="cursor:pointer; display:flex; align-items:center; gap:4px; text-transform:none;">
+                                    <input type="radio" name="glow_color_mode" value="fixed" onchange="toggleGlowFields(); renderPreview();" /> Özel Sabit Renk
+                                </label>
+                            </div>
+                            
+                            <div id="glow-color-fixed-picker" class="form-group" style="margin-bottom:0;">
+                                <label>Neon Sabit Rengi</label>
+                                <input type="color" id="inp-glow-color-fixed" value="{ann_glow_color_fixed_sb}" class="form-control" style="height:35px; padding:2px;" oninput="renderPreview()" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.03); margin-bottom: 12px;">
+                        <label class="toggle-container">
+                            <input type="checkbox" id="inp-shadow-enabled" class="hidden-checkbox" onchange="toggleShadowFields(); renderPreview();" />
+                            <div class="toggle-switch"></div>
+                            <span style="font-size:11px; color:#ffffff; font-weight:bold;">🖤 DERİNLİK GÖLGESİ (SHADOW)</span>
+                        </label>
+                        
+                        <div id="shadow-intensity-wrapper" class="form-group" style="margin-top:8px;">
+                            <label>Gölge Derinlik Gücü</label>
+                            <div class="flex-row" style="align-items: center;">
+                                <input type="range" id="inp-shadow-intensity" min="0" max="100" value="{ann_shadow_intensity_sb}" class="form-control" style="flex:3;" oninput="document.getElementById('v-shadow-intensity').innerText=this.value; renderPreview();" />
+                                <span id="v-shadow-intensity" style="flex:1; text-align:right; font-size:11px; color:#e67e22; font-weight:bold;">{ann_shadow_intensity_sb}</span>
+                            </div>
+                        </div>
+                        
+                        <div id="shadow-color-wrapper" class="form-group" style="margin-bottom:0;">
+                            <label>Gölge Rengi</label>
+                            <input type="color" id="inp-shadow-color" value="{ann_shadow_color_sb}" class="form-control" style="height:35px; padding:2px;" oninput="renderPreview()" />
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>🎬 Yazı Animasyon Tipi</label>
+                        <select id="inp-animation-type" class="form-control" onchange="renderPreview()">
+                            <option value="none">Animasyon Yok</option>
+                            <option value="neon_pulse">Neon Nefes Girişi (Pulse)</option>
+                            <option value="wiggle">Dalgalanma (Wiggle Wave)</option>
+                            <option value="neon_flicker">Retro Neon Titremesi (Flicker)</option>
+                            <option value="rainbow">Gökkuşağı Renk Akışı (Rainbow)</option>
+                            <option value="pulse">Yumuşak Genişleme</option>
+                            <option value="blur_fade">Bulanıklaşan Odaklama (Blur Fade)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- TAB 5: Medya -->
+                <div id="tab-gorsel" class="tab-content">
+                    <div class="form-group">
+                        <label>Ek Görsel / Hareketli GIF URL</label>
+                        <input type="text" id="inp-media-url" value="{ann_media_url_sb}" placeholder="https://..." class="form-control" oninput="renderPreview()" />
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Görsel Konumu (Align)</label>
+                        <select id="inp-media-align" class="form-control" onchange="renderPreview()">
+                            <option value="below">Yazının Altında</option>
+                            <option value="above">Yazının Üstünde</option>
+                            <option value="left">Yazının Solunda</option>
+                            <option value="right">Yazının Sağında</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Görsel Genişliği (px)</label>
+                        <div class="flex-row" style="align-items: center;">
+                            <input type="range" id="inp-media-size" min="20" max="500" value="{ann_media_size_sb}" class="form-control" style="flex:3;" oninput="document.getElementById('v-media-size').innerText=this.value+'px'; renderPreview()" />
+                            <span id="v-media-size" style="flex:1; text-align:right; font-size:11px; color:#e67e22; font-weight:bold;">{ann_media_size_sb}px</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
         const parentDoc = window.parent.document;
         
-        // Setup initial configuration variables
+        // Touch & Drag Position state
         let x = {disp_x_sb};
         let y = {disp_y_sb};
         let size = {disp_size_sb};
         let rot = {disp_rot_sb};
         
+        // Global colors array
+        let charColorsArray = {char_colors_json};
+        
         const dragItem = document.getElementById('drag-item');
         const canvasArea = document.getElementById('canvas-area');
         
-        // Update visible badge indicators in real-time
+        // Tab switching controller
+        function switchTab(tabId) {{
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            const btn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.getAttribute('onclick').includes(tabId));
+            if (btn) btn.classList.add('active');
+            
+            const content = document.getElementById(tabId);
+            if (content) content.classList.add('active');
+        }}
+
+        // Dynamic show/hide of specific background fields
+        function toggleBgFields() {{
+            const bgType = document.getElementById('inp-bg-type').value;
+            const colorFields = document.getElementById('bg-color-fields');
+            const gradientField = document.getElementById('bg-gradient-field');
+            const imageFields = document.getElementById('bg-image-fields');
+            
+            if (bgType === "none") {{
+                colorFields.style.display = "none";
+                imageFields.style.display = "none";
+            }} else if (bgType === "flat") {{
+                colorFields.style.display = "flex";
+                gradientField.style.display = "none";
+                imageFields.style.display = "none";
+            }} else if (bgType === "gradient") {{
+                colorFields.style.display = "flex";
+                gradientField.style.display = "block";
+                imageFields.style.display = "none";
+            }} else if (bgType === "image") {{
+                colorFields.style.display = "none";
+                imageFields.style.display = "block";
+            }}
+        }}
+
+        // Dynamic show/hide of Neon Glow fields
+        function toggleGlowFields() {{
+            const glowEnabled = document.getElementById('inp-glow-enabled').checked;
+            const intensityWrapper = document.getElementById('glow-intensity-wrapper');
+            const colorWrapper = document.getElementById('glow-color-wrapper');
+            
+            if (glowEnabled) {{
+                intensityWrapper.style.display = "block";
+                colorWrapper.style.display = "block";
+                
+                const glowMode = document.querySelector('input[name="glow_color_mode"]:checked').value;
+                const fixedPicker = document.getElementById('glow-color-fixed-picker');
+                if (glowMode === "fixed") {{
+                    fixedPicker.style.display = "block";
+                }} else {{
+                    fixedPicker.style.display = "none";
+                }}
+            }} else {{
+                intensityWrapper.style.display = "none";
+                colorWrapper.style.display = "none";
+            }}
+        }}
+
+        // Dynamic show/hide of Shadow fields
+        function toggleShadowFields() {{
+            const shadowEnabled = document.getElementById('inp-shadow-enabled').checked;
+            const intensityWrapper = document.getElementById('shadow-intensity-wrapper');
+            const colorWrapper = document.getElementById('shadow-color-wrapper');
+            
+            if (shadowEnabled) {{
+                intensityWrapper.style.display = "block";
+                colorWrapper.style.display = "block";
+            }} else {{
+                intensityWrapper.style.display = "none";
+                colorWrapper.style.display = "none";
+            }}
+        }}
+
+        // Rebuild character list & handle character color bindings
+        function syncCharColorsCount(textLength) {{
+            const textColor = document.getElementById('inp-text-color').value;
+            
+            if (charColorsArray.length < textLength) {{
+                while (charColorsArray.length < textLength) {{
+                    charColorsArray.push(textColor);
+                }}
+            }} else if (charColorsArray.length > textLength) {{
+                charColorsArray = charColorsArray.slice(0, textLength);
+            }}
+            
+            const grid = document.getElementById('char-colors-grid');
+            if (!grid) return;
+            
+            const textValue = document.getElementById('inp-text').value;
+            let html = "";
+            for (let i = 0; i < textLength; i++) {{
+                let charStr = textValue[i] || " ";
+                if (charStr.trim() === "") charStr = "Boşluk";
+                html += `
+                <div class="char-color-box">
+                    <span>'${{charStr}}'</span>
+                    <input type="color" id="char-color-pick-${{i}}" value="${{charColorsArray[i]}}" oninput="updateSingleCharColor(${{i}}, this.value)" />
+                </div>`;
+            }
+            grid.innerHTML = html;
+        }}
+
+        function updateSingleCharColor(index, colorVal) {{
+            charColorsArray[index] = colorVal;
+            renderPreview();
+        }}
+
+        function handleTextChange() {{
+            const text = document.getElementById('inp-text').value;
+            syncCharColorsCount(text.length);
+            renderPreview();
+        }}
+
+        function handleTextGlobalColorChange(newColor) {{
+            const textVal = document.getElementById('inp-text').value;
+            charColorsArray = Array(textVal.length).fill(newColor);
+            syncCharColorsCount(textVal.length);
+            renderPreview();
+        }}
+
+        // Bulk paint helpers
+        function applyBulkColor() {{
+            const bulkColor = document.getElementById('bulk-color-pick').value;
+            const text = document.getElementById('inp-text').value;
+            charColorsArray = Array(text.length).fill(bulkColor);
+            syncCharColorsCount(text.length);
+            renderPreview();
+        }}
+
+        function applyWordHighlight() {{
+            const textVal = document.getElementById('inp-text').value;
+            const target = document.getElementById('paint-word-target').value;
+            const color = document.getElementById('paint-word-color').value;
+            if (!target) return;
+            
+            let startPos = 0;
+            while (true) {{
+                const idx = textVal.indexOf(target, startPos);
+                if (idx === -1) break;
+                for (let i = idx; i < idx + target.length; i++) {{
+                    if (i < charColorsArray.length) {{
+                        charColorsArray[i] = color;
+                    }}
+                }}
+                startPos = idx + target.length;
+            }}
+            syncCharColorsCount(textVal.length);
+            renderPreview();
+        }}
+
+        // Dynamic render module: mimics python side rendering
+        const loadedGoogleFonts = new Set();
+        function loadGoogleFontIfNeeded(fontName) {{
+            if (fontName === "Space Grotesk" && !loadedGoogleFonts.has("Space Grotesk")) {{
+                const link = document.createElement('link');
+                link.href = "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&display=swap";
+                link.rel = "stylesheet";
+                document.head.appendChild(link);
+                loadedGoogleFonts.add("Space Grotesk");
+            }} else if (fontName === "Cinzel" && !loadedGoogleFonts.has("Cinzel")) {{
+                const link = document.createElement('link');
+                link.href = "https://fonts.googleapis.com/css2?family=Cinzel:wght@700&display=swap";
+                link.rel = "stylesheet";
+                document.head.appendChild(link);
+                loadedGoogleFonts.add("Cinzel");
+            }}
+        }}
+
+        function renderPreview() {{
+            const text = document.getElementById('inp-text').value;
+            const font = document.getElementById('inp-font').value;
+            const align = document.getElementById('inp-align').value;
+            const sizeInp = parseInt(document.getElementById('inp-size').value) || 20;
+            const font_weight = document.getElementById('inp-font-weight').value;
+            const font_style = document.getElementById('inp-font-style').value;
+            const text_decoration = document.getElementById('inp-text-decoration').value;
+            const opacity = (parseInt(document.getElementById('inp-opacity').value) || 100) / 100;
+            
+            const glow_enabled = document.getElementById('inp-glow-enabled').checked;
+            const glow_intensity = parseInt(document.getElementById('inp-glow-intensity').value) || 50;
+            const glow_color_mode = document.querySelector('input[name="glow_color_mode"]:checked').value;
+            const glow_color_fixed = document.getElementById('inp-glow-color-fixed').value;
+            
+            const shadow_enabled = document.getElementById('inp-shadow-enabled').checked;
+            const shadow_intensity = parseInt(document.getElementById('inp-shadow-intensity').value) || 50;
+            const shadow_color = document.getElementById('inp-shadow-color').value;
+            
+            const animation_type = document.getElementById('inp-animation-type').value;
+            const bg_type = document.getElementById('inp-bg-type').value;
+            const bg_color = document.getElementById('inp-bg-color').value;
+            const bg_gradient_end = document.getElementById('inp-bg-gradient-end').value;
+            const bg_image_url = document.getElementById('inp-bg-image-url').value;
+            const bg_opacity = (parseInt(document.getElementById('inp-bg-opacity').value) || 100) / 100;
+            const padding_vertical = parseInt(document.getElementById('inp-padding-vertical').value) || 0;
+            const padding_horizontal = parseInt(document.getElementById('inp-padding-horizontal').value) || 0;
+            const border_radius = parseInt(document.getElementById('inp-border-radius').value) || 0;
+            
+            const media_url = document.getElementById('inp-media-url').value;
+            const media_align = document.getElementById('inp-media-align').value;
+            const media_size = parseInt(document.getElementById('inp-media-size').value) || 150;
+            
+            const text_color = document.getElementById('inp-text-color').value;
+
+            // 1. BG css decoration
+            let bg_css = "background: transparent; border: 1px dashed rgba(255,255,255,0.1); padding: 5px;";
+            if (bg_type === "flat") {{
+                bg_css = `background: ${bg_color}; border: 1px solid rgba(255,255,255,0.1); border-radius: ${border_radius}px; padding: ${padding_vertical}px ${padding_horizontal}px;`;
+            }} else if (bg_type === "gradient") {{
+                bg_css = `background: linear-gradient(135deg, ${bg_color}, ${bg_gradient_end}); border: 1px solid rgba(255,255,255,0.15); border-radius: ${border_radius}px; padding: ${padding_vertical}px ${padding_horizontal}px;`;
+            }} else if (bg_type === "image") {{
+                const overlay_op = 1.0 - bg_opacity;
+                bg_css = `background: linear-gradient(rgba(17,17,34,${overlay_op.toFixed(2)}), rgba(17,17,34,${overlay_op.toFixed(2)})), url('${bg_image_url}'); background-size: cover; background-position: center; border: 1px solid rgba(255,255,255,0.15); border-radius: ${border_radius}px; padding: ${padding_vertical}px ${padding_horizontal}px;`;
+            }}
+            
+            const bannerWrapper = document.getElementById('banner-wrapper');
+            bannerWrapper.className = "";
+            bannerWrapper.style.cssText = bg_css + ` text-align: ${align}; font-family: '${font}', sans-serif; transition: all 0.15s ease; width: 100%;`;
+
+            // 2. Shadows
+            let shadow_css = "";
+            if (shadow_enabled) {{
+                const off = shadow_intensity * 0.08;
+                const blur_s = shadow_intensity * 0.16;
+                shadow_css = `${off.toFixed(1)}px ${off.toFixed(1)}px ${blur_s.toFixed(1)}px ${shadow_color}`;
+            }}
+
+            // 3. Characters
+            let rendered_chars_html = "";
+            for (let i = 0; i < text.length; i++) {{
+                const char = text[i];
+                let char_color = charColorsArray[i] || text_color;
+                
+                let local_glow_color = char_color;
+                if (glow_color_mode === "fixed") {{
+                    local_glow_color = glow_color_fixed;
+                }}
+                
+                let glow_css = "";
+                if (glow_enabled) {{
+                    const blur_1 = glow_intensity * 0.2;
+                    const blur_2 = glow_intensity * 0.4;
+                    glow_css = `0 0 ${blur_1.toFixed(1)}px ${local_glow_color}, 0 0 ${blur_2.toFixed(1)}px ${local_glow_color}`;
+                }}
+                
+                let combined_shadows = [glow_css, shadow_css].filter(Boolean).join(", ");
+                let shadow_style = combined_shadows ? `text-shadow: ${combined_shadows};` : "";
+                let glow_val_style = glow_enabled ? `--glow-color: ${local_glow_color}; --gl-blur: ${(glow_intensity * 0.4).toFixed(1)}px;` : "";
+                let italic_bold_style = `font-weight: ${font_weight}; font-style: ${font_style}; text-decoration: ${text_decoration};`;
+                let anim_delay_style = (animation_type === 'wiggle') ? `animation-delay: ${(i * 0.08).toFixed(2)}s;` : "";
+                
+                let span_class = "";
+                if (["neon_pulse", "wiggle", "neon_flicker", "rainbow", "pulse", "blur_fade"].includes(animation_type)) {{
+                    span_class = `ann-animate-${animation_type}`;
+                }}
+                
+                rendered_chars_html += `<span class="${span_class}" style="display: inline-block; white-space: pre-wrap; color: ${char_color}; ${glow_val_style} ${shadow_style} ${italic_bold_style} ${anim_delay_style}">${char}</span>`;
+            }}
+
+            // 4. Media Render
+            let media_html = "";
+            if (media_url) {{
+                media_html = `<img src="${media_url}" style="width: ${media_size}px; height: auto; border-radius: 8px; margin: 8px; vertical-align: middle; max-width: 100%; box-shadow: 0 4px 12px rgba(0,0,0,0.4);" />`;
+            }}
+
+            // 5. Connect media & layout
+            let body_html = "";
+            if (media_html) {{
+                if (media_align === "above") {{
+                    body_html = `<div style="margin-bottom: 8px;">${media_html}</div><div>${rendered_chars_html}</div>`;
+                }} else if (media_align === "below") {{
+                    body_html = `<div>${rendered_chars_html}</div><div style="margin-top: 8px;">${media_html}</div>`;
+                }} else if (media_align === "left") {{
+                    body_html = `<div style="display: flex; align-items: center; justify-content: ${align}; flex-wrap: wrap; gap: 15px;"><div>${media_html}</div><div style="flex: 1; text-align: ${align};">${rendered_chars_html}</div></div>`;
+                }} else if (media_align === "right") {{
+                    body_html = `<div style="display: flex; align-items: center; justify-content: ${align}; flex-wrap: wrap; gap: 15px;"><div style="flex: 1; text-align: ${align};">${rendered_chars_html}</div><div>${media_html}</div></div>`;
+                }}
+            }} else {{
+                body_html = `<div>${rendered_chars_html}</div>`;
+            }}
+
+            // Overwrite children HTML
+            bannerWrapper.innerHTML = `
+                <div style="opacity: ${opacity}; display: inline-block; width: 100%;">
+                    ${body_html}
+                </div>
+            `;
+
+            loadGoogleFontIfNeeded(font);
+        }}
+
+        // Format and display coordinates values
         function updateDisplay() {{
             document.getElementById('badge-x').innerText = x + 'px';
             document.getElementById('badge-y').innerText = y + 'px';
             document.getElementById('badge-size').innerText = size + 'px';
             document.getElementById('badge-rot').innerText = rot + '°';
+            
+            // Sync current size into Property Input Value
+            document.getElementById('inp-size').value = size;
         }}
         
-        // Update styling layout
         function applyTransforms() {{
-            dragItem.style.transform = `translate(${{x}}px, ${{y}}px) rotate(${{rot}}deg)`;
-            dragItem.style.fontSize = size + 'px';
+            dragItem.style.transform = `translate(${x}px, ${y}px) rotate(${rot}deg)`;
             updateDisplay();
         }}
         
-        // Inject and synchronize variables with Streamlit parent input elements
-        function writeToStreamlitInputs() {{
-            if (!parentDoc) return;
-            
-            const writeValue = (labelText, val) => {{
-                // Robust selector: match label or container containing precisely the label text
-                const searchBlocks = Array.from(parentDoc.querySelectorAll('label, p, div'));
-                for (const block of searchBlocks) {{
-                    if (block.innerText && block.innerText.trim().includes(labelText)) {{
-                        const container = block.closest('[data-testid="stNumberInput"], [data-testid="stTextInput"]');
-                        if (container) {{
-                            const input = container.querySelector('input');
-                            if (input) {{
-                                input.value = val;
-                                // Dispatch changes to trigger updates inside Streamlit framework
-                                input.dispatchEvent(new Event('input', {{ bubbles: true }}));
-                                input.dispatchEvent(new Event('change', {{ bubbles: true }}));
-                                return true;
-                            }}
-                        }}
-                    }}
-                }}
-                return false;
-            }};
-            
-            writeValue("Yazı Boyutu (px)", size);
-            writeValue("Yatay Kaydırma (Yön X px)", x);
-            writeValue("Düşey Kaydırma (Yön Y px)", y);
-            writeValue("Döndürme Açısı (Derece)", rot);
-        }}
-        
-        // MULTI-TOUCH INTERACTIONS (Pinch-to-zoom and Rotation)
+        // TWO-FINGER MULTI TOUCH GESTURES (Pinch, Scaling, Rotate & Zoom)
         let isDragging = false;
         let isPinching = false;
         let startTouchX = 0;
@@ -2973,13 +3723,12 @@ else:
         let initTouchAngle = 0;
         let initRotationAngle = 0;
         
-        // Touch events supporting 2-finger gesture pinching and rotation
         canvasArea.addEventListener('touchstart', (e) => {{
             if (e.touches.length === 1) {{
                 isDragging = true;
                 startTouchX = e.touches[0].clientX - x;
                 startTouchY = e.touches[0].clientY - y;
-            }} else if (e.touches.length === 2) {{
+            }} else if (e.touches.length === e.touches.length) {{
                 isDragging = false;
                 isPinching = true;
                 const touch1 = e.touches[0];
@@ -2999,37 +3748,33 @@ else:
                 y = Math.round(e.touches[0].clientY - startTouchY);
                 applyTransforms();
             }} else if (isPinching && e.touches.length === 2) {{
-                e.preventDefault(); // Stop mobile dragging viewport
+                e.preventDefault();
                 const touch1 = e.touches[0];
                 const touch2 = e.touches[1];
                 
-                // Real-time Pinch Scaling
                 const currentDist = Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
                 const scaleFactor = currentDist / initTouchDist;
                 size = Math.max(8, Math.min(120, Math.round(initFontSize * scaleFactor)));
                 
-                // Real-time Rotate
                 const currentAngle = Math.atan2(touch2.clientY - touch1.clientY, touch2.clientX - touch1.clientX);
                 const angleDifference = (currentAngle - initTouchAngle) * (180 / Math.PI);
                 rot = Math.round(initRotationAngle + angleDifference);
                 
                 applyTransforms();
+                renderPreview();
             }}
         }}, {{ passive: false }});
         
         canvasArea.addEventListener('touchend', () => {{
             isDragging = false;
             isPinching = false;
-            writeToStreamlitInputs();
         }});
-        
         canvasArea.addEventListener('touchcancel', () => {{
             isDragging = false;
             isPinching = false;
-            writeToStreamlitInputs();
         }});
         
-        // MOUSE AND DESKTOP INTERACTIONS
+        // MOUSE ACTIONS (Desktop Drag supports)
         let isMouseDown = false;
         let startMouseX = 0;
         let startMouseY = 0;
@@ -3050,13 +3795,10 @@ else:
         }});
         
         document.addEventListener('mouseup', () => {{
-            if (isMouseDown) {{
-                isMouseDown = false;
-                writeToStreamlitInputs();
-            }}
+            isMouseDown = false;
         }});
         
-        // MOUSE WHEEL ROTATE/SCALING
+        // MOUSE WHEEL ROTATE/SCALING SUPPORT
         canvasArea.addEventListener('wheel', (e) => {{
             e.preventDefault();
             if (e.deltaY < 0) {{
@@ -3065,278 +3807,231 @@ else:
                 size = Math.max(8, size - 1);
             }}
             applyTransforms();
-            writeToStreamlitInputs();
+            renderPreview();
         }}, {{ passive: false }});
         
-        // TOOLBAR CONTROL HANDLERS
+        // MANUAL BUTTONS HANDLERS
         document.getElementById('btn-size-minus').addEventListener('click', () => {{
             size = Math.max(8, size - 2);
             applyTransforms();
-            writeToStreamlitInputs();
+            renderPreview();
         }});
-        
         document.getElementById('btn-size-plus').addEventListener('click', () => {{
             size = Math.min(120, size + 2);
             applyTransforms();
-            writeToStreamlitInputs();
+            renderPreview();
         }});
-        
         document.getElementById('btn-rot-left').addEventListener('click', () => {{
             rot = (rot - 15) % 360;
             applyTransforms();
-            writeToStreamlitInputs();
+            renderPreview();
         }});
-        
         document.getElementById('btn-rot-right').addEventListener('click', () => {{
             rot = (rot + 15) % 360;
             applyTransforms();
-            writeToStreamlitInputs();
+            renderPreview();
         }});
-        
         document.getElementById('btn-reset').addEventListener('click', () => {{
             x = 0;
             y = 0;
             size = 20;
             rot = 0;
             applyTransforms();
-            writeToStreamlitInputs();
+            renderPreview();
         }});
         
-        // PREVIEW / SUBMIT HANDLERS
-        document.getElementById('btn-preview').addEventListener('click', () => {{
-            writeToStreamlitInputs();
+        // POPULATE DROPDOWNS AND OPTIONS FROM MODEL
+        document.getElementById('inp-font').value = "{ann_font_sb}";
+        document.getElementById('inp-align').value = "{ann_align_sb}";
+        document.getElementById('inp-font-weight').value = "{ann_weight_sb}";
+        document.getElementById('inp-font-style').value = "{ann_style_sb}";
+        document.getElementById('inp-text-decoration').value = "{ann_decoration_sb}";
+        document.getElementById('inp-animation-type').value = "{ann_animation_type_sb}";
+        document.getElementById('inp-bg-type').value = "{ann_bg_type_sb}";
+        document.getElementById('inp-media-align').value = "{ann_media_align_sb}";
+        
+        document.getElementById('inp-glow-enabled').checked = {ann_glow_enabled_sb};
+        document.getElementById('inp-shadow-enabled').checked = {ann_shadow_enabled_sb};
+
+        // radios
+        const glowModeVal = "{ann_glow_color_mode_sb}";
+        const radioBtn = document.querySelector(`input[name="glow_color_mode"][value="${{glowModeVal}}"]`);
+        if (radioBtn) radioBtn.checked = true;
+
+        // SUBMIT & SYNC PIPELINES
+        function buildFullPayloadJSON() {{
+            const text = document.getElementById('inp-text').value;
+            const font = document.getElementById('inp-font').value;
+            const align = document.getElementById('inp-align').value;
+            const sizeInp = parseInt(document.getElementById('inp-size').value) || 20;
+            const font_weight = document.getElementById('inp-font-weight').value;
+            const font_style = document.getElementById('inp-font-style').value;
+            const text_decoration = document.getElementById('inp-text-decoration').value;
+            const opacity = parseInt(document.getElementById('inp-opacity').value) || 100;
+            
+            const glow_enabled = document.getElementById('inp-glow-enabled').checked;
+            const glow_intensity = parseInt(document.getElementById('inp-glow-intensity').value) || 50;
+            const glow_color_mode = document.querySelector('input[name="glow_color_mode"]:checked').value;
+            const glow_color_fixed = document.getElementById('inp-glow-color-fixed').value;
+            
+            const shadow_enabled = document.getElementById('inp-shadow-enabled').checked;
+            const shadow_intensity = parseInt(document.getElementById('inp-shadow-intensity').value) || 50;
+            const shadow_color = document.getElementById('inp-shadow-color').value;
+            
+            const animation_type = document.getElementById('inp-animation-type').value;
+            const bg_type = document.getElementById('inp-bg-type').value;
+            const bg_color = document.getElementById('inp-bg-color').value;
+            const bg_gradient_end = document.getElementById('inp-bg-gradient-end').value;
+            const bg_image_url = document.getElementById('inp-bg-image-url').value;
+            const bg_opacity = parseInt(document.getElementById('inp-bg-opacity').value) || 100;
+            const padding_vertical = parseInt(document.getElementById('inp-padding-vertical').value) || 0;
+            const padding_horizontal = parseInt(document.getElementById('inp-padding-horizontal').value) || 0;
+            const border_radius = parseInt(document.getElementById('inp-border-radius').value) || 0;
+            
+            const media_url = document.getElementById('inp-media-url').value;
+            const media_align = document.getElementById('inp-media-align').value;
+            const media_size = parseInt(document.getElementById('inp-media-size').value) || 150;
+            
+            const text_color = document.getElementById('inp-text-color').value;
+
+            return JSON.stringify({{
+                "text": text,
+                "size": sizeInp,
+                "font": font,
+                "align": align,
+                "font_weight": font_weight,
+                "font_style": font_style,
+                "text_decoration": text_decoration,
+                "opacity": opacity,
+                "displacement_x": x,
+                "displacement_y": y,
+                "rotation": rot,
+                "bg_type": bg_type,
+                "bg_color": bg_color,
+                "bg_gradient_end": bg_gradient_end,
+                "bg_image_url": bg_image_url,
+                "bg_opacity": bg_opacity,
+                "padding_vertical": padding_vertical,
+                "padding_horizontal": padding_horizontal,
+                "border_radius": border_radius,
+                "glow_enabled": glow_enabled,
+                "glow_intensity": glow_intensity,
+                "glow_color_mode": glow_color_mode,
+                "glow_color_fixed": glow_color_fixed,
+                "shadow_enabled": shadow_enabled,
+                "shadow_intensity": shadow_intensity,
+                "shadow_color": shadow_color,
+                "animation_type": animation_type,
+                "media_url": media_url,
+                "media_size": media_size,
+                "media_align": media_align,
+                "char_colors": charColorsArray,
+                "text_color": text_color
+            }});
+        }}
+
+        function pushAndSubmit(action) {{
             if (!parentDoc) return;
-            // Fetch form submit buttons inside parent document
-            const parentButtons = Array.from(parentDoc.querySelectorAll('button'));
-            const pmBtn = parentButtons.find(btn => btn.innerText && btn.innerText.includes("Önizle"));
-            if (pmBtn) {{
-                pmBtn.click();
+            const jsonStr = buildFullPayloadJSON();
+            
+            // Find hidden Streamlit textarea matching JSON label
+            const textAreas = Array.from(parentDoc.querySelectorAll('textarea'));
+            const pmTextArea = textAreas.find(ta => ta.value && ta.value.startsWith('{"text":') || ta.ariaLabel === "advanced_json_payload");
+            if (pmTextArea) {{
+                pmTextArea.value = jsonStr;
+                pmTextArea.dispatchEvent(new Event('input', {{ bubbles: true }}));
+                pmTextArea.dispatchEvent(new Event('change', {{ bubbles: true }}));
+            }} else {{
+                // fallback selectors
+                const backupTa = parentDoc.querySelector('[data-testid="stTextArea"] textarea');
+                if (backupTa) {{
+                    backupTa.value = jsonStr;
+                    backupTa.dispatchEvent(new Event('input', {{ bubbles: true }}));
+                    backupTa.dispatchEvent(new Event('change', {{ bubbles: true }}));
+                }}
             }}
-        }});
-        
-        document.getElementById('btn-save').addEventListener('click', () => {{
-            writeToStreamlitInputs();
-            if (!parentDoc) return;
-            const parentButtons = Array.from(parentDoc.querySelectorAll('button'));
-            const svBtn = parentButtons.find(btn => btn.innerText && btn.innerText.includes("Tepe Duyurusunu Kaydet"));
-            if (svBtn) {{
-                svBtn.click();
-            }}
-        }});
-        
-        // Initial application setup
+
+            // Let Streamlit register values prior to click
+            setTimeout(() => {{
+                const parentButtons = Array.from(parentDoc.querySelectorAll('button'));
+                let btn;
+                if (action === 'save') {{
+                    btn = parentButtons.find(b => b.innerText && b.innerText.includes("Tepe Duyurusunu Kaydet"));
+                }} else {{
+                    btn = parentButtons.find(b => b.innerText && b.innerText.includes("Düzenlemeyi Önizle"));
+                }}
+                if (btn) {{
+                    btn.click();
+                }}
+            }}, 150);
+        }}
+
+        document.getElementById('btn-preview').addEventListener('click', () => pushAndSubmit('preview'));
+        document.getElementById('btn-save').addEventListener('click', () => pushAndSubmit('save'));
+
+        // Bootstrap on startup
+        syncCharColorsCount(document.getElementById('inp-text').value.length);
+        toggleBgFields();
+        toggleGlowFields();
+        toggleShadowFields();
+        renderPreview();
         applyTransforms();
     </script>
 </body>
 </html>"""
 
-                st.components.v1.html(sandbox_code, height=470, scrolling=False)
+                st.components.v1.html(sandbox_code, height=920, scrolling=True)
                 st.markdown("---")
                 
-                # Form structure - None of these inputs triggers page rerun on drag or click anymore!
+                # Dynamic stream sync form structure - completely processed via the CapCut JS pipeline
                 with st.form("ann_edit_form", clear_on_submit=False):
-                    st.markdown("#### ✏️ Duyuru Metni Ve Ayarları")
-                    ann_new_text = st.text_input("Duyuru Metni:", value=ts.get("text", ""))
+                    json_default = json.dumps(ts, ensure_ascii=False)
+                    json_input_val = st.text_area("advanced_json_payload", value=json_default, key="advanced_json_payload_key", label_visibility="collapsed")
                     
-                    st.markdown("#### 🎨 Genel Biçimlendirme")
-                    col_ann1, col_ann2, col_ann3 = st.columns(3)
-                    with col_ann1:
-                        ann_new_size = st.number_input("Yazı Boyutu (px):", min_value=8, max_value=120, value=ts.get("size", 20))
-                        default_align = ts.get("align", "center")
-                        align_ops = ["center", "left", "right"]
-                        ann_new_align = st.selectbox("Hizalama:", options=align_ops, index=align_ops.index(default_align))
+                    # Beautiful stealth style sheet to hide this fallback form representation entirely in the background
+                    st.markdown("""
+                        <style>
+                        /* Complete stealth mode for fallback forms */
+                        div[data-testid="stForm"] {
+                            padding: 0px !important;
+                            border: none !important;
+                            box-shadow: none !important;
+                            background: transparent !important;
+                            margin: 0px !important;
+                        }
+                        div[data-testid="stForm"] div[data-testid="stTextArea"]:has(textarea[aria-label="advanced_json_payload"]) {
+                            display: none !important;
+                        }
+                        div[data-testid="stForm"] button[data-testid="stFormSubmitButton"] {
+                            display: none !important;
+                        }
+                        </style>
+                    """, unsafe_allow_html=True)
                     
-                    with col_ann2:
-                        font_options = ["sans-serif", "Space Grotesk", "monospace", "cursive", "serif", "Georgia", "Arial", "Impact", "Comic Sans MS", "Cinzel", "Trebuchet MS"]
-                        current_font = ts.get("font", "sans-serif")
-                        if current_font not in font_options: current_font = "sans-serif"
-                        ann_new_font = st.selectbox("Yazı Tipi:", options=font_options, index=font_options.index(current_font))
-                        ann_new_text_color = st.color_picker("Varsayılan / Genel Yazı Rengi:", value=ts.get("text_color", "#FFFFFF"))
-                    
-                    with col_ann3:
-                        font_weight_options = ["normal", "bold", "bolder", "900"]
-                        current_weight = ts.get("font_weight", "bold")
-                        if current_weight not in font_weight_options: current_weight = "bold"
-                        ann_new_weight = st.selectbox("Yazı Kalınlığı (Weight):", options=font_weight_options, index=font_weight_options.index(current_weight))
-                        
-                        font_style_options = ["normal", "italic"]
-                        current_style = ts.get("font_style", "normal")
-                        if current_style not in font_style_options: current_style = "normal"
-                        ann_new_font_style = st.selectbox("Yazı Tarzı (Style):", options=font_style_options, index=font_style_options.index(current_style))
+                    # Submit fallback buttons triggered programmatically by JS in the iframe
+                    btn_preview = st.form_submit_button("Düzenlemeyi Önizle")
+                    btn_save = st.form_submit_button("Tepe Duyurusunu Kaydet")
 
-                    col_extra_st1, col_extra_st2 = st.columns(2)
-                    with col_extra_st1:
-                        dec_options = ["none", "underline", "line-through", "overline"]
-                        current_dec = ts.get("text_decoration", "none")
-                        if current_dec not in dec_options: current_dec = "none"
-                        ann_new_decoration = st.selectbox("Yazı Süslemesi (Decoration):", options=dec_options, index=dec_options.index(current_dec))
-                    with col_extra_st2:
-                        ann_new_opacity = st.slider("Yazı Genel Görünürlüğü (Opaklık - %):", min_value=10, max_value=100, value=ts.get("opacity", 100))
-
-                    st.markdown("#### ↕️ Konumlandırma & Kaydırma (Movable)")
-                    col_disp1, col_disp2, col_disp3 = st.columns(3)
-                    with col_disp1:
-                        ann_displacement_x = st.number_input("Yatay Kaydırma (Yön X px):", min_value=-1000, max_value=1000, value=int(ts.get("displacement_x", 0)), step=1, help="Metni sağa (+) veya sola (-) kaydırır.")
-                    with col_disp2:
-                        ann_displacement_y = st.number_input("Düşey Kaydırma (Yön Y px):", min_value=-500, max_value=500, value=int(ts.get("displacement_y", 0)), step=1, help="Metni aşağı (+) veya yukarı (-) kaydırır.")
-                    with col_disp3:
-                        ann_rotation = st.number_input("Döndürme Açısı (Derece):", min_value=-360, max_value=360, value=int(ts.get("rotation", 0)), step=1, help="Metni kendi etrafında döndürür.")
-
-                    st.markdown("#### ✨ Parlaklık & Gölge Efektleri")
-                    col_effect1, col_effect2 = st.columns(2)
-                    with col_effect1:
-                        st.write("**🌌 Parlaklık (Neon / Glow) Ayarları**")
-                        ann_glow_enabled = st.checkbox("Parlaklığı Aç / Kapa", value=ts.get("glow_enabled", False))
-                        ann_glow_intensity = st.slider("Parlaklık Gücü (Yoğunluk):", min_value=0, max_value=100, value=ts.get("glow_intensity", 50))
-                        
-                        glow_mode_options = ["auto", "fixed"]
-                        current_glow_mode = ts.get("glow_color_mode", "auto")
-                        if current_glow_mode not in glow_mode_options: current_glow_mode = "auto"
-                        ann_glow_color_mode = st.radio("Parlaklık Rengi Seçeneği:", options=glow_mode_options, format_func=lambda x: "Harf Rengiyle Aynı (Otomatik)" if x=="auto" else "Tüm Yazıya Özel Sabit Parlaklık Rengi", index=glow_mode_options.index(current_glow_mode))
-                        
-                        ann_glow_color_fixed = st.color_picker("Özel Sabit Parlaklık Rengi Seçin:", value=ts.get("glow_color_fixed", "#FFC000"))
-                    
-                    with col_effect2:
-                        st.write("**🖤 Gölge Ayarları (Derinlik)**")
-                        ann_sh_enabled = st.checkbox("Gölgelendirmeyi Aç / Kapa", value=ts.get("shadow_enabled", False))
-                        ann_sh_intensity = st.slider("Gölge Gücü:", min_value=0, max_value=100, value=ts.get("shadow_intensity", 50))
-                        ann_shadow_color = st.color_picker("Gölge Rengi:", value=ts.get("shadow_color", "#000000"))
-
-                    st.markdown("#### 🎞️ Duyuru Animasyonu")
-                    anim_options = ["none", "neon_pulse", "wiggle", "neon_flicker", "rainbow", "pulse", "blur_fade"]
-                    anim_labels = {
-                        "none": "Animasyon Yok",
-                        "neon_pulse": "Neon Nefes Alma (Pulsing)",
-                        "wiggle": "Dalgalanma (Wave/Wiggle)",
-                        "neon_flicker": "Retro Neon Titremesi (Flicker)",
-                        "rainbow": "Gökkuşağı Renk Akışı (Rainbow Flow)",
-                        "pulse": "Genişleyip Küçülme (Pulse)",
-                        "blur_fade": "Sıklaşan Bulanıklık (Blur/Focus Fade)"
-                    }
-                    current_anim = ts.get("animation_type", "none")
-                    if current_anim not in anim_options: current_anim = "none"
-                    ann_animation_type = st.selectbox("Yazı Animasyonu Seçin:", options=anim_options, format_func=lambda x: anim_labels[x], index=anim_options.index(current_anim))
-
-                    st.markdown("#### 🖼️ Arka Plan ve Çerçeve Tasarımı")
-                    col_bg1, col_bg2 = st.columns(2)
-                    with col_bg1:
-                        bg_options = ["none", "flat", "gradient", "image"]
-                        bg_labels = {"none": "Arka Plan Yok", "flat": "Düz Renk", "gradient": "Renk Geçişi (Gradient)", "image": "Özel Resim veya GIF Görseli"}
-                        current_bg = ts.get("bg_type", "none")
-                        if current_bg not in bg_options: current_bg = "none"
-                        ann_new_bg_type = st.selectbox("Arka Plan Tipi:", options=bg_options, format_func=lambda x: bg_labels[x], index=bg_options.index(current_bg))
-                        
-                        ann_new_bg_color = st.color_picker("Arka Plan Rengi / Başlangıç Rengi:", value=ts.get("bg_color", "#111122"))
-                        ann_new_bg_gradient_end = st.color_picker("Gradient Bitiş Rengi:", value=ts.get("bg_gradient_end", "#1a1a3a"))
-                        ann_bg_image_url = st.text_input("Arka Plan Görsel/GIF Web URL'si:", value=ts.get("bg_image_url", ""), placeholder="https://example.com/pattern.gif")
-                        ann_bg_opacity = st.slider("Arka Plan Görsel Görünürlüğü/Opaklığı (%):", min_value=10, max_value=100, value=ts.get("bg_opacity", 100))
-                    
-                    with col_bg2:
-                        ann_padding_vertical = st.number_input("İç Boşluk Düşey (Padding Y - px):", min_value=0, max_value=100, value=ts.get("padding_vertical", 10))
-                        ann_padding_horizontal = st.number_input("İç Boşluk Yatay (Padding X - px):", min_value=0, max_value=100, value=ts.get("padding_horizontal", 15))
-                        ann_border_radius = st.number_input("Çerçeve Köşe Ovalleşmesi (Border-Radius px):", min_value=0, max_value=100, value=ts.get("border_radius", 12))
-
-                    st.markdown("#### 📷 Görsel & GIF Ekleme (Duyuru İçi Medya)")
-                    col_media1, col_media2 = st.columns(2)
-                    with col_media1:
-                        ann_media_url = st.text_input("Görsel / GIF URL'si:", value=ts.get("media_url", ""), placeholder="Sosyal resim, emoji GIF'i veya logo URL'si")
-                        media_align_options = ["above", "below", "left", "right"]
-                        media_align_labels = {"above": "Yazının Üstünde", "below": "Yazının Altında", "left": "Yazının Solunda", "right": "Yazının Sağında"}
-                        current_media_align = ts.get("media_align", "below")
-                        if current_media_align not in media_align_options: current_media_align = "below"
-                        ann_media_align = st.selectbox("Eklenen Görselin Konumu:", options=media_align_options, format_func=lambda x: media_align_labels[x], index=media_align_options.index(current_media_align))
-                    with col_media2:
-                        ann_media_size = st.slider("Görsel Genişliği (px):", min_value=20, max_value=500, value=ts.get("media_size", 150))
-
-                    st.markdown("#### 🎨 Toplu Harf Boyama Seçenekleri")
-                    st.info("Form gönderildiğinde (Önizlendiğinde veya Kaydedildiğinde) otomatik uygulanır.")
-                    col_paint1, col_paint2 = st.columns(2)
-                    with col_paint1:
-                        apply_bulk_paint = st.checkbox("🔴 Tüm Harfleri Tek Renk Yap", value=False, help="Form gönderildiğinde tüm harf renklerini aşağıdaki renkle üzerine yazar.")
-                        bulk_paint_color = st.color_picker("Tüm Harfler İçin Renk:", value=ann_new_text_color)
-                    with col_paint2:
-                        paint_word_target = st.text_input("🔮 Kelimeye Özel Otomatik Boyama:", placeholder="Örn: Merhaba", help="Duyuru metni içindeki bu kelimeyi yakalayıp aşağıdaki renge boyar.")
-                        paint_word_color = st.color_picker("Kelime Rengi:", value="#FFD700")
-
-                    st.markdown("#### 🔠 Harf Harf Özel Renk Belirleme")
-                    st.write("Her harfin altındaki picker'a tıklayarak harfleri teker teker de renklendirebilirsiniz:")
-                    
-                    c_colors = list(ts.get("char_colors", []))
-                    if len(c_colors) < len(ann_new_text):
-                        c_colors += [ann_new_text_color] * (len(ann_new_text) - len(c_colors))
-                    else:
-                        c_colors = c_colors[:len(ann_new_text)]
-                    
-                    form_char_colors = []
-                    if ann_new_text:
-                        char_cols_count = len(ann_new_text)
-                        for chunk_start in range(0, char_cols_count, 8):
-                            chunk_end = min(chunk_start + 8, char_cols_count)
-                            cols_chunk = st.columns(max(1, chunk_end - chunk_start))
-                            for col_idx, char_pos in enumerate(range(chunk_start, chunk_end)):
-                                with cols_chunk[col_idx]:
-                                    char_label = ann_new_text[char_pos] or " "
-                                    if char_label.strip() == "":
-                                        char_label = f"Boşluk ({char_pos+1})"
-                                    else:
-                                        char_label = f"'{char_label}' ({char_pos+1})"
-                                    
-                                    char_col_val = c_colors[char_pos] if char_pos < len(c_colors) else ann_new_text_color
-                                    assigned_col = st.color_picker(char_label, value=char_col_val, key=f"f_char_col_pick_{char_pos}")
-                                    form_char_colors.append(assigned_col)
-                    else:
-                        form_char_colors = c_colors
-
-                    st.markdown("---")
-                    col_form_sub1, col_form_sub2 = st.columns(2)
-                    with col_form_sub1:
-                        btn_preview = st.form_submit_button("👀 Düzenlemeyi Önizle (Kaydetmez)", use_container_width=True)
-                    with col_form_sub2:
-                        btn_save = st.form_submit_button("💾 Değişiklikleri ve Tepe Duyurusunu Kaydet", type="primary", use_container_width=True)
-
-                # Process the submitted form
+                # Process the programmatically submitted JSON string
                 if btn_preview or btn_save:
-                    # Gather individual character colors manually from session_state widget bindings
-                    updated_char_colors = []
-                    for char_pos in range(len(ann_new_text)):
-                        char_color_val = st.session_state.get(f"f_char_col_pick_{char_pos}", ann_new_text_color)
-                        updated_char_colors.append(char_color_val)
-                    
-                    # Apply bulk overrides
-                    if apply_bulk_paint:
-                        updated_char_colors = [bulk_paint_color] * len(ann_new_text)
-                    
-                    # Apply word overrides
-                    if paint_word_target and paint_word_target in ann_new_text:
-                        target_len = len(paint_word_target)
-                        start_pos = 0
-                        while True:
-                            idx = ann_new_text.find(paint_word_target, start_pos)
-                            if idx == -1:
-                                break
-                            for i in range(idx, idx + target_len):
-                                if i < len(updated_char_colors):
-                                    updated_char_colors[i] = paint_word_color
-                            start_pos = idx + target_len
-
-                    # Package settings
-                    updated_payload = {
-                        "text": ann_new_text,
-                        "size": ann_new_size,
-                        "font": ann_new_font,
-                        "align": ann_new_align,
-                        "font_weight": ann_new_weight,
-                        "font_style": ann_new_font_style,
-                        "text_decoration": ann_new_decoration,
-                        "opacity": ann_new_opacity,
-                        "displacement_x": ann_displacement_x,
-                        "displacement_y": ann_displacement_y,
-                        "rotation": ann_rotation,
-                        "bg_type": ann_new_bg_type,
-                        "bg_color": ann_new_bg_color,
-                        "bg_gradient_end": ann_new_bg_gradient_end,
-                        "bg_image_url": ann_bg_image_url,
-                        "bg_opacity": ann_bg_opacity,
+                    try:
+                        updated_payload = json.loads(json_input_val)
+                        
+                        # Store as temp settings in memory
+                        st.session_state.temp_ann_settings = updated_payload
+                        
+                        if btn_save:
+                            # Write permanently to database
+                            db.collection("settings").document("global_announcement").set(updated_payload)
+                            st.success("✅ Tepe duyurusu başarıyla kaydedildi ve canlı yayına alındı!")
+                            time.sleep(1)
+                            st.rerun()
+                        else:
+                            st.success("👀 Önizleme başarıyla güncellendi! Yukarıdaki CapCut editör panelinden anlık sonucu görebilirsiniz.")
+                            time.sleep(1)
+                            st.rerun()
+                    except Exception as e:
+                        st.error(f"⚠️ Teknik bir hata oluştu: {e}")g_opacity,
                         "padding_vertical": ann_padding_vertical,
                         "padding_horizontal": ann_padding_horizontal,
                         "border_radius": ann_border_radius,
