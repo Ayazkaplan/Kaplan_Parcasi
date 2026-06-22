@@ -4000,7 +4000,7 @@ else:
             
             // Find hidden Streamlit textarea matching JSON label
             const textAreas = Array.from(parentDoc.querySelectorAll('textarea'));
-            const pmTextArea = textAreas.find(ta => ta.value && ta.value.startsWith('{"text":') || ta.ariaLabel === "advanced_json_payload");
+            const pmTextArea = textAreas.find(ta => ta.value && ta.value.startsWith('{{"text":') || ta.ariaLabel === "advanced_json_payload");
             if (pmTextArea) {{
                 pmTextArea.value = jsonStr;
                 pmTextArea.dispatchEvent(new Event('input', {{ bubbles: true }}));
