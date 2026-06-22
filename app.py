@@ -1193,7 +1193,7 @@ def render_tepe_editor_page(db, is_kurucu, get_global_announcement):
             if (mediaUrl.trim()) {{
                 if (mediaAlign === 'above') {{
                     contentCompilationHtml = mediaHtml + finalTextHtml;
-                } else if (mediaAlign === 'below') {{
+                }} else if (mediaAlign === 'below') {{
                     contentCompilationHtml = finalTextHtml + mediaHtml;
                 }} else if (mediaAlign === 'left') {{
                     contentCompilationHtml = `<div style="display:flex; align-items:center; justify-content:${{align === 'left' ? 'flex-start' : (align === 'right' ? 'flex-end' : 'center')}}; gap:10px;">${{mediaHtml}}${{finalTextHtml}}</div>`;
