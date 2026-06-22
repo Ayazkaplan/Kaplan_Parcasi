@@ -1095,9 +1095,9 @@ def render_tepe_editor_page(db, is_kurucu, get_global_announcement):
                 
                 // Space padding normalization
                 if (char === ' ') {{
-                    compiledTextHtml += '<span style="margin-right:0.35em;"></span>';
+                    compiledTextHtml += '<span style="display: inline-block; margin-right:0.35em;"></span>&#8203;';
                 }} else {{
-                    compiledTextHtml += `<span style="color:${{col}}; ${{glowCss}} ${{shadowCss}}">${{char}}</span>`;
+                    compiledTextHtml += `<span style="display: inline-block; color:${{col}}; ${{glowCss}} ${{shadowCss}}">${{char}}</span>&#8203;`;
                 }}
             }}
             
@@ -2389,7 +2389,7 @@ animation: blurFade 3s infinite ease-in-out;
         if animation_type in ["neon_pulse", "wiggle", "neon_flicker", "rainbow", "pulse", "blur_fade"]:
             span_class = f"ann-animate-{animation_type}"
             
-        html_item = f'<span class="{span_class}" style="display: inline-block; white-space: pre-wrap; color: {char_color}; {glow_val_style} {shadow_style} {italic_bold_style} {anim_delay_style}">{char}</span>'
+        html_item = f'<span class="{span_class}" style="display: inline-block; white-space: pre-wrap; color: {char_color}; {glow_val_style} {shadow_style} {italic_bold_style} {anim_delay_style}">{char}</span>&#8203;'
         rendered_chars.append(html_item)
         
     ann_content_html = "".join(rendered_chars)
@@ -2495,21 +2495,57 @@ def resize_profile_photo(image_bytes, max_size=150):
     return base64.b64encode(buffer.getvalue()).decode("utf-8")
 
 def web_ara(sorgu, max_sonuc=4):
+    # Try using the standard DDGS package
     try:
         from duckduckgo_search import DDGS
         with DDGS() as ddgs:
             sonuclar = list(ddgs.text(sorgu, max_results=max_sonuc, region="tr-tr"))
-        if not sonuclar:
-            return ""
-        parcalar = []
-        for s in sonuclar:
-            baslik = s.get("title", "")
-            icerik = s.get("body", "")
-            if baslik or icerik:
-                parcalar.append(f"• {baslik}: {icerik}")
-        return "\n".join(parcalar)
+        if sonuclar:
+            parcalar = []
+            for s in sonuclar:
+                baslik = s.get("title", "")
+                icerik = s.get("body", "")
+                if baslik or icerik:
+                    parcalar.append(f"• {baslik}: {icerik}")
+            return "\n".join(parcalar)
     except Exception:
-        return ""
+        pass
+
+    # Fallback to extremely robust html scrapper
+    try:
+        import requests
+        from bs4 import BeautifulSoup
+        import urllib.parse
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
+        res = requests.get(f"https://html.duckduckgo.com/html/?q={urllib.parse.quote(sorgu)}", headers=headers, timeout=10)
+        if res.status_code == 200:
+            soup = BeautifulSoup(res.text, "html.parser")
+            parcalar = []
+            results = soup.find_all("a", class_="result__snippet")
+            if not results:
+                # alternative selectors if duckduckgo html layout changes slightly
+                results = soup.find_all("td", class_="result-snippet")
+            
+            for index, a in enumerate(results[:max_sonuc]):
+                parent = a.find_parent("div", class_="result__body")
+                title_el = None
+                if parent:
+                    title_el = parent.find("a", class_="result__url")
+                if not title_el:
+                    # fallback alternative selector
+                    title_el = a.find_previous("a", class_="result__url")
+                
+                title = title_el.text.strip() if title_el else f"Sonuç #{index+1}"
+                content = a.text.strip()
+                if content:
+                    parcalar.append(f"• {title}: {content}")
+            if parcalar:
+                return "\n".join(parcalar)
+    except Exception:
+        pass
+    return ""
 
 def youtube_ara(sorgu, max_sonuc=12):
     try:
@@ -2651,8 +2687,9 @@ with open(HTML_PATH, "w", encoding="utf-8") as f:
       window.onload = function() {
           sendMessage("streamlit:componentReady", {apiVersion: 1});
           sendMessage("streamlit:setFrameHeight", {height: 0});
-          var val = localStorage.getItem("kaplan_passkey");
-          sendMessage("streamlit:setComponentValue", {value: val ? val : "NOT_FOUND"});
+          var val = localStorage.getItem("kaplan_passkey") || "NOT_FOUND";
+          var page = localStorage.getItem("kaplan_current_page") || "chat";
+          sendMessage("streamlit:setComponentValue", {value: val + "|||" + page});
       };
     </script></head>
     <body></body>
@@ -2829,7 +2866,7 @@ def logout_user():
 
 # --- SESSİZ ARKA PLAN GÖREVLİLERİ ---
 if st.session_state.get("trigger_clear_token", False):
-    components.html("<script>localStorage.removeItem('kaplan_passkey');</script>", height=0, width=0)
+    components.html("<script>localStorage.removeItem('kaplan_passkey'); document.cookie = 'kaplan_passkey=; path=/; max-age=0'; document.cookie = 'kaplan_current_page=; path=/; max-age=0';</script>", height=0, width=0)
     st.markdown("<h3 style='text-align:center; color:white; margin-top:20vh;'>Çıkış yapılıyor...</h3>", unsafe_allow_html=True)
     st.session_state.trigger_clear_token = False
     time.sleep(0.5)
@@ -2837,8 +2874,67 @@ if st.session_state.get("trigger_clear_token", False):
 
 if st.session_state.get("trigger_save_token"):
     uid = st.session_state.trigger_save_token
-    components.html(f"<script>localStorage.setItem('kaplan_passkey', '{uid}');</script>", height=0, width=0)
+    components.html(f"<script>localStorage.setItem('kaplan_passkey', '{uid}'); document.cookie = 'kaplan_passkey={uid}; path=/; max-age=31536000';</script>", height=0, width=0)
     st.session_state.trigger_save_token = None
+
+# --- ADIM 0: ÇEREZDEN OTURUM OKUMA (Anlık Mobil ve Tab Yenilenme Çözümü) ---
+if not st.session_state.user_logged_in and not st.session_state.get("trigger_clear_token", False):
+    try:
+        from streamlit.web.server.websocket_headers import _get_websocket_headers
+        headers = _get_websocket_headers()
+        if headers:
+            cookie_str = headers.get("Cookie", "")
+            if cookie_str:
+                import urllib.parse
+                cookies = {}
+                for item in cookie_str.split(";"):
+                    if "=" in item:
+                        k, v = item.strip().split("=", 1)
+                        if len(v) > 0:
+                            cookies[k] = urllib.parse.unquote(v)
+                
+                c_passkey = cookies.get("kaplan_passkey")
+                c_page = cookies.get("kaplan_current_page", "chat")
+                
+                if c_passkey and c_passkey != "NOT_FOUND":
+                    user_ref_temp = db.collection("users").document(c_passkey)
+                    user_snap = user_ref_temp.get()
+                    if user_snap.exists:
+                        user_data = user_snap.to_dict()
+                        user_durum = user_data.get("durum", "Aktif")
+                        ban_bitis = user_data.get("ban_bitis_zamani")
+                        if hasattr(ban_bitis, "to_datetime"):
+                            ban_bitis = ban_bitis.to_datetime()
+                        
+                        is_banned = False
+                        if user_durum == "Pasif":
+                            if ban_bitis:
+                                if ban_bitis.tzinfo is None: ban_bitis = ban_bitis.replace(tzinfo=timezone.utc)
+                                if datetime.now(timezone.utc) < ban_bitis: is_banned = True
+                            else:
+                                is_banned = True
+                        
+                        if not is_banned:
+                            user_ref_temp.update({"son_gorulme_zamani": firestore.SERVER_TIMESTAMP})
+                            st.session_state.user_data = {**user_data, "uid": c_passkey}
+                            st.session_state.user_logged_in = True
+                            st.session_state.tema = user_data.get("tema", list(TEMALAR.values())[0])
+                            st.session_state.tema_rengi = TEMA_RENKLERI.get(st.session_state.tema, "rgba(20,20,40,0.85)")
+                            st.session_state.current_page = c_page
+                            
+                            sohbet_list = user_data.get("sohbet_gecmisi", [])
+                            if isinstance(sohbet_list, list):
+                                active_messages = []
+                                last_separator_idx = -1
+                                for idx, msg in enumerate(sohbet_list):
+                                    if msg.get("role") == "separator": last_separator_idx = idx
+                                if last_separator_idx != -1: active_messages = sohbet_list[last_separator_idx + 1:]
+                                else: active_messages = [m for m in sohbet_list if m.get("role") in ["user", "assistant"]]
+                                st.session_state.messages = active_messages
+                            else:
+                                st.session_state.messages = []
+    except Exception:
+        pass
 
 # --- ADIM 1: TOKEN OKUMA ---
 if not st.session_state.user_logged_in and not st.session_state.get("trigger_clear_token", False):
@@ -2864,52 +2960,65 @@ if not st.session_state.user_logged_in and not st.session_state.get("trigger_cle
         """, unsafe_allow_html=True)
         st.stop()
 
-    elif token != "NOT_FOUND":
-        try:
-            user_ref_temp = db.collection("users").document(token)
-            user_snap = user_ref_temp.get()
-            if user_snap.exists:
-                user_data = user_snap.to_dict()
-                user_durum = user_data.get("durum", "Aktif")
-                ban_bitis = user_data.get("ban_bitis_zamani")
+    else:
+        token_val = "NOT_FOUND"
+        restored_page = "chat"
+        if token and "|||" in token:
+            parts = token.split("|||")
+            token_val = parts[0]
+            restored_page = parts[1] if len(parts) > 1 else "chat"
+        else:
+            token_val = token
 
-                if hasattr(ban_bitis, "to_datetime"):
-                    ban_bitis = ban_bitis.to_datetime()
+        if token_val != "NOT_FOUND":
+            try:
+                user_ref_temp = db.collection("users").document(token_val)
+                user_snap = user_ref_temp.get()
+                if user_snap.exists:
+                    user_data = user_snap.to_dict()
+                    user_durum = user_data.get("durum", "Aktif")
+                    ban_bitis = user_data.get("ban_bitis_zamani")
 
-                is_banned = False
-                if user_durum == "Pasif":
-                    if ban_bitis:
-                        if ban_bitis.tzinfo is None: ban_bitis = ban_bitis.replace(tzinfo=timezone.utc)
-                        if datetime.now(timezone.utc) < ban_bitis: is_banned = True
+                    if hasattr(ban_bitis, "to_datetime"):
+                        ban_bitis = ban_bitis.to_datetime()
+
+                    is_banned = False
+                    if user_durum == "Pasif":
+                        if ban_bitis:
+                            if ban_bitis.tzinfo is None: ban_bitis = ban_bitis.replace(tzinfo=timezone.utc)
+                            if datetime.now(timezone.utc) < ban_bitis: is_banned = True
+                        else:
+                            is_banned = True
+
+                    if not is_banned:
+                        user_ref_temp.update({"son_gorulme_zamani": firestore.SERVER_TIMESTAMP})
+                        st.session_state.user_data = {**user_data, "uid": token_val}
+                        st.session_state.user_logged_in = True
+                        st.session_state.tema = user_data.get("tema", list(TEMALAR.values())[0])
+                        st.session_state.tema_rengi = TEMA_RENKLERI.get(st.session_state.tema, "rgba(20,20,40,0.85)")
+                        
+                        if restored_page and restored_page != "NOT_FOUND":
+                            st.session_state.current_page = restored_page
+
+                        sohbet_list = user_data.get("sohbet_gecmisi", [])
+                        if isinstance(sohbet_list, list):
+                            active_messages = []
+                            last_separator_idx = -1
+                            for idx, msg in enumerate(sohbet_list):
+                                if msg.get("role") == "separator": last_separator_idx = idx
+                            if last_separator_idx != -1: active_messages = sohbet_list[last_separator_idx + 1:]
+                            else: active_messages = [m for m in sohbet_list if m.get("role") in ["user", "assistant"]]
+                            st.session_state.messages = active_messages
+                        else:
+                            st.session_state.messages = []
+                        st.rerun()
                     else:
-                        is_banned = True
-
-                if not is_banned:
-                    user_ref_temp.update({"son_gorulme_zamani": firestore.SERVER_TIMESTAMP})
-                    st.session_state.user_data = {**user_data, "uid": token}
-                    st.session_state.user_logged_in = True
-                    st.session_state.tema = user_data.get("tema", list(TEMALAR.values())[0])
-                    st.session_state.tema_rengi = TEMA_RENKLERI.get(st.session_state.tema, "rgba(20,20,40,0.85)")
-
-                    sohbet_list = user_data.get("sohbet_gecmisi", [])
-                    if isinstance(sohbet_list, list):
-                        active_messages = []
-                        last_separator_idx = -1
-                        for idx, msg in enumerate(sohbet_list):
-                            if msg.get("role") == "separator": last_separator_idx = idx
-                        if last_separator_idx != -1: active_messages = sohbet_list[last_separator_idx + 1:]
-                        else: active_messages = [m for m in sohbet_list if m.get("role") in ["user", "assistant"]]
-                        st.session_state.messages = active_messages
-                    else:
-                        st.session_state.messages = []
-                    st.rerun()
+                        st.session_state.ban_error_on_logout = "❌ Hesabınız pasifleştirildiği için giriş yapılamıyor!"
+                        trigger_invalid_session()
                 else:
-                    st.session_state.ban_error_on_logout = "❌ Hesabınız pasifleştirildiği için giriş yapılamıyor!"
                     trigger_invalid_session()
-            else:
+            except Exception:
                 trigger_invalid_session()
-        except Exception:
-            trigger_invalid_session()
 
 # --- GİRİŞ VE KAYIT EKRANI ---
 if not st.session_state.user_logged_in:
@@ -3137,6 +3246,10 @@ if not st.session_state.user_logged_in:
 else:
     uid = st.session_state.user_data['uid']
     user_ref = db.collection("users").document(uid)
+
+    # Sync current page with localStorage & document.cookie for immediate restoration
+    current_page_val = st.session_state.get("current_page", "chat")
+    components.html(f"<script>localStorage.setItem('kaplan_current_page', '{current_page_val}'); document.cookie = 'kaplan_current_page={current_page_val}; path=/; max-age=31536000';</script>", height=0, width=0)
 
     try:
         user_ref.update({"son_gorulme_zamani": firestore.SERVER_TIMESTAMP})
@@ -4498,7 +4611,7 @@ else:
         /* Two columns editor workspace style like CapCut */
         .editor-wrapper {{
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
             gap: 20px;
             margin-top: 10px;
         }}
@@ -5417,7 +5530,7 @@ else:
                     span_class = `ann-animate-${{animation_type}}`;
                 }}
                 
-                rendered_chars_html += `<span class="${{span_class}}" style="display: inline-block; white-space: pre-wrap; color: ${{char_color}}; ${{glow_val_style}} ${{shadow_style}} ${{italic_bold_style}} ${{anim_delay_style}}">${{char}}</span>`;
+                rendered_chars_html += `<span class="${{span_class}}" style="display: inline-block; white-space: pre-wrap; color: ${{char_color}}; ${{glow_val_style}} ${{shadow_style}} ${{italic_bold_style}} ${{anim_delay_style}}">${{char}}</span>&#8203;`;
             }}
 
             // 4. Media Render
@@ -6521,6 +6634,7 @@ Yapay zeka ve gerçek zamanlı iletişim teknolojilerini birleştirerek Türkiye
                     f"5. Eğer normal bir kullanıcı ise ona samimi ve asil bir duruşla 'Reis', 'Dostum' veya doğrudan ismiyle hitap et.\n\n"
                     "⚠️ EK KURALLAR:\n"
                     "- Geçmiş sohbetlerdeki eski veya hatalı isimleri tamamen unut.\n"
+                    "- Gelişmeler, haberler, güncel olaylar, spor müsabakaları ve futbol şampiyonlukları (örneğin 2024, 2025 veya 2026 Süper Lig şampiyonu kim gibi) hakkındaki soruları cevaplarken, kesinlikle ezbere tahmin veya uydurma bilgiler verme. Eğer 'LIVE CHROME INTERNET SEARCH RESULTS' kısmında aradığın spesifik, onaylanmış güncel cevap yoksa veya henüz bu şampiyona/sezon bitmemişse, bunu dürüstçe belirt. Kesinlikle uydurma şampiyon (Fenerbahçe vb.) söyleyerek yalan konuşma. Tamamen canlı internet arama sonuçlarındaki gerçekçi verilere sadık kal.\n"
                     "- Her koşulda kaplan gibi dik, asil, kararlı, zeki ve kurallara bağlı bir yapay zeka ol.\n"
                     "- Kesinlikle ve hiçbir koşulda, yıldızlar (asterisk - *) veya parantezler içinde fiziksel hareketler, jestler, mimikler veya rol yapma eylemleri (*eğilerek selam verir*, *saygıyla eğilir*, *başını eğer* vb.) yazma, bunları canlandırma. Doğrudan ve asil bir konuşma yürüt, fiziksel hareket betimlemelerinden tamamen kaçın.\n\n"
                     "📝 TÜRKÇE KARAKTER DÜZELTME TALİMATI:\n"
