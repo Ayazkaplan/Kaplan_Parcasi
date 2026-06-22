@@ -3095,6 +3095,9 @@ else:
 </head>
 <body>
     <div class="stage-container">
+        <!-- Hidden size storage input to prevent reference errors -->
+        <input type="hidden" id="inp-size" value="{disp_size_sb}" />
+
         <div class="stage-header">
             <span class="stage-title">🎯 TEPE DUYURU BANDI - CAPCUT PREMIUM EDİTÖR</span>
             <span class="status-badge">MOBİL / DESKTOP AKTİF</span>
@@ -3123,7 +3126,8 @@ else:
                     <button class="action-btn" id="btn-size-plus" title="Çift parmak pinch veya fare tekerleğiyle de ayarlanabilir">📏 Boyut (+2)</button>
                     <button class="action-btn" id="btn-rot-left">↺ Çevir (-15°)</button>
                     <button class="action-btn" id="btn-rot-right">↻ Çevir (+15°)</button>
-                    <button class="action-btn danger" id="btn-reset">🎯 Sıfırla (Merkez)</button>
+                    <button class="action-btn danger" id="btn-reset" title="Konumu merkeze sıfırlar">🎯 Konum Sıfırla</button>
+                    <button class="action-btn danger" id="btn-factory-reset" style="background:#c0392b; border-color:#962d22;" title="Tüm tasarım ayarlarını ve metni fabrika ayarlarına geri döndürür">🔄 Fabrika Sıfırla</button>
                 </div>
                 
                 <!-- Bottom submission triggers -->
@@ -3504,7 +3508,7 @@ else:
                     <span>'${{charStr}}'</span>
                     <input type="color" id="char-color-pick-${{i}}" value="${{charColorsArray[i]}}" oninput="updateSingleCharColor(${{i}}, this.value)" />
                 </div>`;
-            }
+            }}
             grid.innerHTML = html;
         }}
 
@@ -3840,6 +3844,66 @@ else:
             renderPreview();
         }});
         
+        document.getElementById('btn-factory-reset').addEventListener('click', () => {{
+            if (confirm("Tüm tasarım ayarlarını ve metni fabrika ayarlarına sıfırlamak istediğinize emin misiniz?")) {{
+                document.getElementById('inp-text').value = "";
+                document.getElementById('inp-font').value = "sans-serif";
+                document.getElementById('inp-align').value = "center";
+                document.getElementById('inp-font-weight').value = "normal";
+                document.getElementById('inp-font-style').value = "normal";
+                document.getElementById('inp-text-decoration').value = "none";
+                document.getElementById('inp-opacity').value = 100;
+                document.getElementById('v-opacity').innerText = "100%";
+                
+                document.getElementById('inp-glow-enabled').checked = false;
+                document.getElementById('inp-glow-intensity').value = 50;
+                document.getElementById('v-glow-intensity').innerText = "50";
+                
+                const autoRadio = document.querySelector('input[name="glow_color_mode"][value="auto"]');
+                if (autoRadio) autoRadio.checked = true;
+                
+                document.getElementById('inp-glow-color-fixed').value = "#FFC000";
+                
+                document.getElementById('inp-shadow-enabled').checked = false;
+                document.getElementById('inp-shadow-intensity').value = 50;
+                document.getElementById('v-shadow-intensity').innerText = "50";
+                document.getElementById('inp-shadow-color').value = "#000000";
+                
+                document.getElementById('inp-animation-type').value = "none";
+                document.getElementById('inp-bg-type').value = "none";
+                document.getElementById('inp-bg-color').value = "#111122";
+                document.getElementById('inp-bg-gradient-end').value = "#1a1a3a";
+                document.getElementById('inp-bg-image-url').value = "";
+                document.getElementById('inp-bg-opacity').value = 100;
+                document.getElementById('v-bg-opacity').innerText = "100%";
+                document.getElementById('inp-padding-vertical').value = 10;
+                document.getElementById('inp-padding-horizontal').value = 15;
+                document.getElementById('inp-border-radius').value = 12;
+                
+                document.getElementById('inp-media-url').value = "";
+                document.getElementById('inp-media-align').value = "below";
+                document.getElementById('inp-media-size').value = 150;
+                document.getElementById('v-media-size').innerText = "150px";
+                
+                document.getElementById('inp-text-color').value = "#FFFFFF";
+                
+                x = 0;
+                y = 0;
+                size = 20;
+                rot = 0;
+                charColorsArray = [];
+                
+                applyTransforms();
+                toggleBgFields();
+                toggleGlowFields();
+                toggleShadowFields();
+                syncCharColorsCount(0);
+                renderPreview();
+                
+                alert("Tüm değerler temizlendi! Canlıya aktarmak için alt kısımdaki 'CANLIYA KAYDET VE YAYINLA' butonuna basabilirsiniz.");
+            }}
+        }});
+        
         // POPULATE DROPDOWNS AND OPTIONS FROM MODEL
         document.getElementById('inp-font').value = "{ann_font_sb}";
         document.getElementById('inp-align').value = "{ann_align_sb}";
@@ -4031,83 +4095,9 @@ else:
                             time.sleep(1)
                             st.rerun()
                     except Exception as e:
-                        st.error(f"⚠️ Teknik bir hata oluştu: {e}")g_opacity,
-                        "padding_vertical": ann_padding_vertical,
-                        "padding_horizontal": ann_padding_horizontal,
-                        "border_radius": ann_border_radius,
-                        "glow_enabled": ann_glow_enabled,
-                        "glow_intensity": ann_glow_intensity,
-                        "glow_color_mode": ann_glow_color_mode,
-                        "glow_color_fixed": ann_glow_color_fixed,
-                        "shadow_enabled": ann_sh_enabled,
-                        "shadow_intensity": ann_sh_intensity,
-                        "shadow_color": ann_shadow_color,
-                        "animation_type": ann_animation_type,
-                        "media_url": ann_media_url,
-                        "media_size": ann_media_size,
-                        "media_align": ann_media_align,
-                        "char_colors": updated_char_colors,
-                        "text_color": ann_new_text_color
-                    }
-                    
-                    # Store to temporary memory
-                    st.session_state.temp_ann_settings = updated_payload
-                    
-                    if btn_save:
-                        # Write permanently to database
-                        db.collection("settings").document("global_announcement").set(updated_payload)
-                        st.success("✅ Tepe duyurusu başarıyla kaydedildi ve tüm kullanıcılarda güncellendi!")
-                        time.sleep(1)
-                        st.rerun()
-                    else:
-                        st.success("👀 Önizleme başarıyla güncellendi! Yukarıdaki önizleme kutusundan kontrol edebilirsiniz.")
-                        time.sleep(1)
-                        st.rerun()
+                        st.error(f"⚠️ Teknik bir hata oluştu: {e}")
 
-                # Danger Zone: Reset to Defaults
-                st.markdown("---")
-                st.write("**⚠️ Tehlikeli Bölge: Varsayılana Sıfırla**")
-                reset_confirm = st.checkbox("Tepe duyurusunu tamamen silmeyi ve sıfırlamayı onaylıyorum", key="reset_ann_confirm")
-                if st.button("🔄 Tümünü Varsayılana Sıfırla", type="secondary", use_container_width=True, disabled=not reset_confirm):
-                    default_payload = {
-                        "text": "",
-                        "size": 20,
-                        "font": "sans-serif",
-                        "align": "center",
-                        "font_weight": "normal",
-                        "font_style": "normal",
-                        "text_decoration": "none",
-                        "opacity": 100,
-                        "displacement_x": 0,
-                        "displacement_y": 0,
-                        "rotation": 0,
-                        "bg_type": "none",
-                        "bg_color": "#111122",
-                        "bg_gradient_end": "#1a1a3a",
-                        "bg_image_url": "",
-                        "bg_opacity": 100,
-                        "glow_enabled": False,
-                        "glow_intensity": 50,
-                        "glow_color_mode": "auto",
-                        "glow_color_fixed": "#FFC000",
-                        "shadow_enabled": False,
-                        "shadow_intensity": 50,
-                        "shadow_color": "#000000",
-                        "animation_type": "none",
-                        "media_url": "",
-                        "media_size": 150,
-                        "media_align": "bottom",
-                        "padding_vertical": 10,
-                        "padding_horizontal": 15,
-                        "border_radius": 12,
-                        "char_colors": [],
-                        "text_color": "#FFFFFF"
-                    }
-                    db.collection("settings").document("global_announcement").set(default_payload)
-                    st.session_state.temp_ann_settings = default_payload
-                    st.success("✅ Tepe duyurusu başarıyla boşaltıldı ve varsayılan ayarlara sıfırlandı!")
-                    time.sleep(1)
-                    st.rerun()
+
 
     elif st.session_state.current_page == "admin_role_management" and is_kurucu:
         st.title("🛡️ Yönetici Rol Yönetimi")
