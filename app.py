@@ -134,7 +134,7 @@ def render_tepe_editor_page(db, is_kurucu, get_global_announcement):
         
         .editor-wrapper {{
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
             gap: 20px;
             margin-top: 10px;
         }}
@@ -2046,28 +2046,25 @@ components.html("""
     }
 
     setTimeout(function() { injectIcons(); setupInputHandlers(); }, 500);
+
+    // Delegated click on body to handle click on profile photo regardless of timing or rerenders
+    if (!pd.avatarClickBound) {
+      pd.avatarClickBound = true;
+      pd.addEventListener('click', function(e) {
+        var avatar = e.target.closest('.profil-avatar-wrap');
+        if (avatar) {
+          var uploader = pd.querySelector('[data-testid="stFileUploader"] input[type="file"]');
+          if (uploader) {
+            uploader.click();
+          }
+        }
+      });
+    }
+
     var btnObs = new MutationObserver(function() {
       setTimeout(function() { injectIcons(); setupInputHandlers(); }, 100);
-      var avatar = pd.querySelector('.profil-avatar-wrap');
-      if (avatar && !avatar.dataset.clickBound) {
-        avatar.dataset.clickBound = '1';
-        avatar.addEventListener('click', function() {
-          var uploader = pd.querySelector('[data-testid="stFileUploader"] input[type="file"]');
-          if (uploader) uploader.click();
-        });
-      }
     });
     btnObs.observe(pd.body || pd.documentElement, { childList: true, subtree: true });
-    setTimeout(function() {
-      var avatar = pd.querySelector('.profil-avatar-wrap');
-      if (avatar && !avatar.dataset.clickBound) {
-        avatar.dataset.clickBound = '1';
-        avatar.addEventListener('click', function() {
-          var uploader = pd.querySelector('[data-testid="stFileUploader"] input[type="file"]');
-          if (uploader) uploader.click();
-        });
-      }
-    }, 1000);
   })();
 </script>
 """, height=0, width=0)
@@ -2427,8 +2424,8 @@ animation: blurFade 3s infinite ease-in-out;
         
     final_html = f"""{font_import}
 {css_definitions}
-<div style="{bg_css} text-align: {align}; font-family: '{font_family}', sans-serif; font-size: {size}px; line-height: 1.4; width: 100%; box-sizing: border-box; overflow: visible;">
-<div style="{displacement_style}">
+<div style="{bg_css} text-align: {align}; font-family: '{font_family}', sans-serif; font-size: {size}px; line-height: 1.4; width: 100%; max-width: 100%; box-sizing: border-box; overflow: hidden; word-wrap: break-word; overflow-wrap: break-word; word-break: break-word;">
+<div style="{displacement_style} max-width: 100%; box-sizing: border-box; word-wrap: break-word; overflow-wrap: break-word; word-break: break-word;">
 {body_html}
 </div>
 </div>"""
@@ -3564,15 +3561,80 @@ else:
             else:
                 avatar_src = "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
 
-            # Tıklanabilir avatar (CSS + JS avatar click handler global script'te)
+            # Tıklanabilir avatar (Native Overlay)
             st.markdown("""<style>
-            .profil-avatar-wrap { text-align:center; margin-bottom:8px; cursor:pointer; }
-            .profil-avatar-wrap img { width:70px; height:70px; border-radius:50%; object-fit:cover; border:2px solid #f39c12; transition: opacity 0.2s; }
-            .profil-avatar-wrap img:hover { opacity:0.7; }
-            .profil-avatar-wrap .avatar-hint { font-size:0.7em; color:#888; margin-top:4px; }
+            .profil-avatar-container {
+                position: relative;
+                width: 100%;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                margin-bottom: 12px;
+            }
+            .profil-avatar-wrap {
+                position: relative;
+                width: 70px;
+                height: 70px;
+                border-radius: 50%;
+                border: 2px solid #f39c12;
+                box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+                cursor: pointer;
+                overflow: hidden;
+                transition: transform 0.2s, box-shadow 0.2s;
+            }
+            .profil-avatar-wrap:hover {
+                transform: scale(1.05);
+                box-shadow: 0 6px 14px rgba(243, 156, 18, 0.4);
+            }
+            .profil-avatar-wrap img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                border: none !important;
+            }
+            .avatar-hint {
+                font-size: 0.7em;
+                color: #888;
+                margin-top: 6px;
+                pointer-events: none;
+                font-weight: 500;
+            }
+            /* Hidden Streamlit FileUploader styled as a transparent layer precisely over the avatar circle */
+            div[data-testid="stFileUploader"] {
+                position: absolute !important;
+                top: 0 !important;
+                left: 50% !important;
+                transform: translateX(-50%) !important;
+                width: 70px !important;
+                height: 70px !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                opacity: 0 !important;
+                cursor: pointer !important;
+                pointer-events: auto !important;
+                z-index: 100 !important;
+                overflow: hidden !important;
+            }
+            div[data-testid="stFileUploader"] * {
+                cursor: pointer !important;
+                width: 100% !important;
+                height: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                pointer-events: auto !important;
+                display: block !important;
+            }
             </style>""", unsafe_allow_html=True)
 
-            st.markdown(f'<div class="profil-avatar-wrap"><img src="{avatar_src}"/><div class="avatar-hint">Değiştirmek için tıkla</div></div>', unsafe_allow_html=True)
+            st.markdown(f'''
+            <div class="profil-avatar-container">
+                <div class="profil-avatar-wrap">
+                    <img src="{avatar_src}"/>
+                </div>
+                <div class="avatar-hint">Değiştirmek için tıkla</div>
+            </div>
+            ''', unsafe_allow_html=True)
 
             # Gizli file uploader (CSS ile görünmez)
             if "foto_upload_key" not in st.session_state:
@@ -3606,10 +3668,7 @@ else:
                         st.session_state.foto_upload_key += 1
                         st.rerun()
 
-            # Uploader'ı CSS ile gizle
-            st.markdown("""<style>
-            [data-testid="stFileUploader"] { position:absolute !important; width:1px !important; height:1px !important; overflow:hidden !important; opacity:0 !important; pointer-events:none !important; }
-            </style>""", unsafe_allow_html=True)
+
 
             if mevcut_foto:
                 if st.button("Fotoğrafı Kaldır", key="remove_profile_photo", use_container_width=True):
@@ -6227,7 +6286,7 @@ else:
             if ann_data.get("text", "") or ann_data.get("media_url", ""):
                 ann_rendered_html = render_custom_banner_html(ann_data)
                 # Outer wrapper designed with high safety standards
-                st.markdown(f'<div style="width: 100%; overflow: visible; margin-bottom: 25px;">{ann_rendered_html}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div style="width: 100%; max-width: 100%; overflow: hidden; word-wrap: break-word; overflow-wrap: break-word; word-break: break-word; margin-bottom: 25px;">{ann_rendered_html}</div>', unsafe_allow_html=True)
 
             col_title, col_bildirim = st.columns([6, 1])
             with col_title:
