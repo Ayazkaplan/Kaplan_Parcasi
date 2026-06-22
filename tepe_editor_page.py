@@ -8,7 +8,10 @@ def render_tepe_editor_page(db, is_kurucu, get_global_announcement):
     /* Reset Streamlit default layout margins and overflow for an immersive editor page */
     div[data-testid="stAppViewBlockContainer"] {
         max-width: 100% !important;
-        padding: 0px !important;
+        padding-left: 0px !important;
+        padding-right: 0px !important;
+        padding-top: 0px !important;
+        padding-bottom: 0px !important;
         margin: 0px !important;
     }
     header {visibility: hidden !important;}
@@ -16,7 +19,7 @@ def render_tepe_editor_page(db, is_kurucu, get_global_announcement):
     div[data-testid="stHeader"] {display: none !important;}
     button[title="View source code"] {display: none !important;}
     iframe {
-        width: 100vw !important;
+        width: 100% !important;
         border: none !important;
         border-radius: 0px !important;
         box-shadow: none !important;
@@ -91,8 +94,9 @@ def render_tepe_editor_page(db, is_kurucu, get_global_announcement):
             overflow-y: auto;
             user-select: none;
             -webkit-user-select: none;
-            padding: 10px;
-            max-width: 100vw;
+            padding: 6px;
+            width: 100%;
+            max-width: 100%;
             box-sizing: border-box;
         }}
         .stage-container {{
@@ -456,7 +460,13 @@ def render_tepe_editor_page(db, is_kurucu, get_global_announcement):
 
         .bottom-action-bar {{
             display: flex;
+            flex-direction: column;
             gap: 8px;
+        }}
+        @media (min-width: 480px) {{
+            .bottom-action-bar {{
+                flex-direction: row;
+            }}
         }}
         .bottom-btn {{
             flex: 1;
@@ -494,9 +504,9 @@ def render_tepe_editor_page(db, is_kurucu, get_global_announcement):
 
         /* IMMERSIVE HEADER DESTRUCT NAVIGATION BAR */
         .top-nav-bar {{
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
             margin-bottom: 12px;
             background: rgba(255, 255, 255, 0.03);
             padding: 8px;
@@ -504,6 +514,7 @@ def render_tepe_editor_page(db, is_kurucu, get_global_announcement):
             border: 1px dashed rgba(230, 126, 34, 0.25);
         }}
         .nav-btn {{
+            flex: 1 1 90px;
             background: #1c1c34;
             color: #bdc3c7;
             border: 1px solid rgba(255, 255, 255, 0.1);
@@ -1552,4 +1563,4 @@ def render_tepe_editor_page(db, is_kurucu, get_global_announcement):
                 time.sleep(1)
                 st.rerun()
         except Exception as e:
-            st.error(f"⚠️ Teknik bir hata oluştu: {e}") 
+            st.error(f"⚠️ Teknik bir hata oluştu: {e}")
