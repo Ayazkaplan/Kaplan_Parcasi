@@ -6,6 +6,7 @@ import json
 import uuid
 import firebase_admin
 from firebase_admin import credentials, auth, firestore
+from tepe_editor_page import render_tepe_editor_page
 import re
 from datetime import datetime, timezone, timedelta
 import time
@@ -1557,7 +1558,7 @@ else:
     kullanici_ismi = user_doc.get('isim')
 
     # YETKİ KONTROLLERİ
-    if st.session_state.current_page in ["admin_main", "admin_users", "admin_role_management"] and not is_kurucu:
+    if st.session_state.current_page in ["admin_main", "admin_users", "admin_role_management", "admin_tepe_duyuru"] and not is_kurucu:
         st.session_state.current_page = "chat"
         st.rerun()
 
@@ -2223,6 +2224,10 @@ else:
             st.session_state.current_page = "admin_announcement"
             st.rerun()
         st.write("")
+        if st.button("🎨 Tepe Duyuru Bandı (CapCut Editörü) Düzenle", key="goto_admin_tepe_duyuru", type="primary", use_container_width=True):
+            st.session_state.current_page = "admin_tepe_duyuru"
+            st.rerun()
+        st.write("")
         if st.button("🛡️ Yönetici Rol Yönetimine Git", key="goto_admin_role_management", type="primary", use_container_width=True):
             st.session_state.current_page = "admin_role_management"
             st.rerun()
@@ -2525,6 +2530,9 @@ else:
             except Exception as e:
                 st.error(f"Bildirimler alınamadı: {e}")
 
+    elif st.session_state.current_page == "admin_tepe_duyuru" and is_kurucu:
+        render_tepe_editor_page(db, is_kurucu, get_global_announcement)
+
     elif st.session_state.current_page == "admin_announcement" and (is_kurucu or is_admin_user):
         st.title("📣 Duyuru ve Bilgilendirme Sayfası")
 
@@ -2638,8 +2646,13 @@ else:
         if is_kurucu:
             with st.expander("📢 Tepe Duyurusu (Herkesin Göreceği Yazı) Düzenle", expanded=True):
                 st.markdown("### 👑 Kurucu Özel: Tepe Duyuru Bandı Editörü (CapCut Editör)")
-                st.info("Bu özel panel yalnızca Kurucu olarak sizin tarafınızdan görüntülenebilir ve düzenlenebilir. Tüm tepe duyurusu nitelikleri, kaydırma ve renk seçenekleriyle modern, tam genişlikte CapCut-benzeri interaktif editörde tek pencereli olarak birleştirilmiştir!")
+                st.info("Tepe duyurusunu tam ekran, CapCut benzeri interaktif bir editörde dilediğiniz gibi düzenleyin. Bu şık tam ekran sayfa sayesinde tüm butonlar ve önizleme ekranı ekran taşması yaşamadan tam sığacaktır!")
+                if st.button("🎨 CapCut Editörünü Tam Ekran Aç", key="open_capcut_full", type="primary", use_container_width=True):
+                    st.session_state.current_page = "admin_tepe_duyuru"
+                    st.rerun()
                 
+            # Skip the older inline embedded block to avoid redundancy and layout overflows
+            if False:
                 # Setup session memory for smooth preview without saving
                 if "temp_ann_settings" not in st.session_state:
                     st.session_state.temp_ann_settings = get_global_announcement()
