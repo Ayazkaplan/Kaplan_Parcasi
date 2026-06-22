@@ -2,6 +2,175 @@ import streamlit as st
 import json
 import time
 
+def render_custom_banner_html_for_preview(ann_data):
+    # This returns safe, fully styled HTML of the banner for live preview
+    ann_text = ann_data.get("text", "")
+    font_family = ann_data.get("font", "sans-serif")
+    align = ann_data.get("align", "center")
+    size = ann_data.get("size", 20)
+    font_weight = ann_data.get("font_weight", "bold")
+    font_style = ann_data.get("font_style", "normal")
+    text_decoration = ann_data.get("text_decoration", "none")
+    opacity = ann_data.get("opacity", 100) / 100.0
+    
+    displacement_x = ann_data.get("displacement_x", 0)
+    displacement_y = ann_data.get("displacement_y", 0)
+    rotation = ann_data.get("rotation", 0)
+    
+    glow_enabled = ann_data.get("glow_enabled", False)
+    glow_int = ann_data.get("glow_intensity", 50)
+    glow_color_mode = ann_data.get("glow_color_mode", "auto")
+    glow_color_fixed = ann_data.get("glow_color_fixed", "#FFC000")
+    
+    shadow_enabled = ann_data.get("shadow_enabled", False)
+    shadow_int = ann_data.get("shadow_intensity", 50)
+    shadow_color = ann_data.get("shadow_color", "#000000")
+    
+    bg_type = ann_data.get("bg_type", "none")
+    bg_color = ann_data.get("bg_color", "#111122")
+    bg_end = ann_data.get("bg_gradient_end", "#1a1a3a")
+    bg_image_url = ann_data.get("bg_image_url", "")
+    bg_opacity = ann_data.get("bg_opacity", 100) / 100.0
+    padding_v = ann_data.get("padding_vertical", 10)
+    padding_h = ann_data.get("padding_horizontal", 15)
+    border_radius = ann_data.get("border_radius", 12)
+    
+    media_url = ann_data.get("media_url", "")
+    media_size = ann_data.get("media_size", 150)
+    media_align = ann_data.get("media_align", "bottom")
+    
+    animation_type = ann_data.get("animation_type", "none")
+    
+    css_definitions = """<style>
+@keyframes neonPulse {
+0%, 100% { opacity: 0.95; filter: drop-shadow(0 0 calc(var(--gl-blur) * 0.3) var(--glow-color)) drop-shadow(0 0 var(--gl-blur) var(--glow-color)); }
+50% { opacity: 1; filter: drop-shadow(0 0 var(--gl-blur) var(--glow-color)) drop-shadow(0 0 calc(var(--gl-blur) * 1.8) var(--glow-color)); }
+}
+@keyframes wiggle {
+0%, 100% { transform: translateY(0); }
+50% { transform: translateY(-8px); }
+}
+@keyframes neonFlicker {
+0%, 18%, 22%, 25%, 53%, 57%, 100% { filter: drop-shadow(0 0 var(--gl-blur) var(--glow-color)); opacity: 1; }
+20%, 24%, 55% { filter: none; opacity: 0.4; }
+}
+@keyframes rainbowShift {
+0% { filter: hue-rotate(0deg); }
+100% { filter: hue-rotate(360deg); }
+}
+@keyframes softPulse {
+0%, 100% { transform: scale(0.98); }
+50% { transform: scale(1.04); }
+}
+@keyframes blurFade {
+0%, 100% { filter: blur(0px); }
+50% { filter: blur(3px); }
+}
+.ann-animate-wiggle {
+display: inline-block;
+animation: wiggle 1.2s ease-in-out infinite;
+}
+.ann-animate-neon_pulse {
+animation: neonPulse 2s infinite ease-in-out;
+}
+.ann-animate-neon_flicker {
+animation: neonFlicker 3s infinite;
+}
+.ann-animate-rainbow {
+animation: rainbowShift 6s infinite linear;
+}
+.ann-animate-pulse {
+display: inline-block;
+animation: softPulse 2.5s infinite ease-in-out;
+}
+.ann-animate-blur_fade {
+animation: blurFade 3s infinite ease-in-out;
+}
+</style>"""
+    
+    shadow_css = ""
+    if shadow_enabled:
+        off = shadow_int * 0.08
+        blur_s = shadow_int * 0.16
+        shadow_css = f"{off:.1f}px {off:.1f}px {blur_s:.1f}px {shadow_color}"
+        
+    bg_css = "background: transparent; border: none; padding: 0;"
+    if bg_type == "flat":
+        bg_css = f"background: {bg_color}; border: 1px solid rgba(255,255,255,0.1); border-radius: {border_radius}px; padding: {padding_v}px {padding_h}px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.25);"
+    elif bg_type == "gradient":
+        bg_css = f"background: linear-gradient(135deg, {bg_color}, {bg_end}); border: 1px solid rgba(255,255,255,0.15); border-radius: {border_radius}px; padding: {padding_v}px {padding_h}px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.25);"
+    elif bg_type == "image":
+        overlay_op = 1.0 - (bg_opacity)
+        bg_css = f"background: linear-gradient(rgba(17,17,34,{overlay_op:.2f}), rgba(17,17,34,{overlay_op:.2f})), url('{bg_image_url}'); background-size: cover; background-position: center; border: 1px solid rgba(255,255,255,0.15); border-radius: {border_radius}px; padding: {padding_v}px {padding_h}px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.25);"
+
+    char_colors = ann_data.get("char_colors", [])
+    text_color_global = ann_data.get("text_color", "#FFFFFF")
+    
+    rendered_chars = []
+    for char_idx, char in enumerate(ann_text):
+        char_color = text_color_global
+        if char_idx < len(char_colors) and char_colors[char_idx]:
+            char_color = char_colors[char_idx]
+            
+        local_glow_color = char_color
+        if glow_color_mode == "fixed":
+            local_glow_color = glow_color_fixed
+            
+        glow_css = ""
+        if glow_enabled:
+            blur_1 = glow_int * 0.2
+            blur_2 = glow_int * 0.4
+            glow_css = f"0 0 {blur_1:.1f}px {local_glow_color}, 0 0 {blur_2:.1f}px {local_glow_color}"
+            
+        combined_shadows = ", ".join(filter(None, [glow_css, shadow_css]))
+        shadow_style = f"text-shadow: {combined_shadows};" if combined_shadows else ""
+        glow_val_style = f"--glow-color: {local_glow_color}; --gl-blur: {glow_int * 0.4:.1f}px;" if glow_enabled else ""
+        
+        italic_bold_style = f"font-weight: {font_weight}; font-style: {font_style}; text-decoration: {text_decoration};"
+        anim_delay_style = f"animation-delay: {char_idx * 0.08:.2f}s;" if animation_type == "wiggle" else ""
+        
+        span_class = ""
+        if animation_type in ["neon_pulse", "wiggle", "neon_flicker", "rainbow", "pulse", "blur_fade"]:
+            span_class = f"ann-animate-{animation_type}"
+            
+        html_item = f'<span class="{span_class}" style="display: inline-block; white-space: pre-wrap; color: {char_color}; {glow_val_style} {shadow_style} {italic_bold_style} {anim_delay_style}">{char}</span>'
+        rendered_chars.append(html_item)
+        
+    ann_content_html = "".join(rendered_chars)
+    
+    media_html = ""
+    if media_url:
+        media_html = f'<img src="{media_url}" style="width: {media_size}px; height: auto; border-radius: 8px; margin: 8px; vertical-align: middle; max-width: 100%; box-shadow: 0 4px 12px rgba(0,0,0,0.4);" />'
+        
+    if media_html:
+        if media_align == "above":
+            body_html = f'<div style="margin-bottom: 8px;">{media_html}</div><div>{ann_content_html}</div>'
+        elif media_align == "below":
+            body_html = f'<div>{ann_content_html}</div><div style="margin-top: 8px;">{media_html}</div>'
+        elif media_align == "left":
+            body_html = f'<div style="display: flex; align-items: center; justify-content: {align}; flex-wrap: wrap; gap: 15px;"><div>{media_html}</div><div style="flex: 1; text-align: {align};">{ann_content_html}</div></div>'
+        elif media_align == "right":
+            body_html = f'<div style="display: flex; align-items: center; justify-content: {align}; flex-wrap: wrap; gap: 15px;"><div style="flex: 1; text-align: {align};">{ann_content_html}</div><div>{media_html}</div></div>'
+    else:
+        body_html = f'<div>{ann_content_html}</div>'
+        
+    displacement_style = f"transform: translate({displacement_x}px, {displacement_y}px) rotate({rotation}deg); transform-origin: center; opacity: {opacity};"
+    
+    font_import = ""
+    if font_family == "Space Grotesk":
+        font_import = '<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&display=swap" rel="stylesheet">'
+    elif font_family == "Cinzel":
+        font_import = '<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&display=swap" rel="stylesheet">'
+        
+    final_html = f"""{font_import}
+{css_definitions}
+<div class="user-perspective-banner" style="{bg_css} text-align: {align}; font-family: '{font_family}', sans-serif; font-size: {size}px; line-height: 1.4; width: 100%; box-sizing: border-box; overflow: visible;">
+<div style="{displacement_style}">
+{body_html}
+</div>
+</div>"""
+    return final_html
+
 def render_tepe_editor_page(db, is_kurucu, get_global_announcement):
     st.markdown("""
     <style>
@@ -34,6 +203,35 @@ def render_tepe_editor_page(db, is_kurucu, get_global_announcement):
         st.session_state.temp_ann_settings = get_global_announcement()
     
     ts = st.session_state.temp_ann_settings
+
+    # Render real-time user-perspective preview at the very top of the editing dashboard
+    st.markdown("### 👁️ BAŞKA BİR KULLANICININ GÖZÜNDEN ANLIK GÖRÜNÜM (MOBİL / PC LIVE PREVIEW)")
+    st.markdown(
+        "<p style='color: #bdc3c7; font-size: 0.95rem; margin-top: -8px; margin-bottom: 12px; font-family: sans-serif;'>"
+        "Siz <b>'👁️ ÖNİZLEME YAP'</b> veya <b>'💾 CANLIYA KAYDET'</b> butonuna bastığınızda, normal bir kullanıcının ekranında "
+        "bu yazı <b>'🤖 Aslan Parçası V17.9'</b> başlığının tam üstünde aşağıda gösterildiği gibi görünecektir:</p>",
+        unsafe_allow_html=True
+    )
+    
+    try:
+        preview_html = render_custom_banner_html_for_preview(ts)
+    except Exception as e:
+        preview_html = f"<div style='color:red;'>Önizleme yüklenirken hata oluştu: {e}</div>"
+        
+    st.markdown(f"""
+    <div style="background-color: #0b0b18; border: 2px dashed #e67e22; border-radius: 12px; padding: 20px; margin-bottom: 25px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); overflow: visible; width: 100%; box-sizing: border-box;">
+        <div style="font-size: 11px; color:#e67e22; font-weight:bold; text-transform:uppercase; letter-spacing:1px; margin-bottom:15px; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:5px; display:flex; align-items:center; gap:6px; font-family: sans-serif;">
+            <span>🦁 Başka Bir Kullanıcının Gözünden Canlı Görünüm (Simülasyon)</span>
+        </div>
+        <div style="width: 100%; overflow: visible; margin-bottom: 18px;">
+            {preview_html}
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; border-top: 1px dashed rgba(255,255,255,0.06); padding-top: 12px; font-family: 'Space Grotesk', sans-serif;">
+            <h1 style="color: #ffffff; font-size: 1.8rem; font-weight: 700; margin: 0; padding: 0;">🤖 Aslan Parçası V17.9</h1>
+            <span style="font-size: 10px; color: #2ecc71; background: rgba(46, 204, 113, 0.15); border: 1px solid #2ecc71; padding: 2px 8px; border-radius: 20px; font-weight: bold;">● BAĞLANTI AKTİF</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
     # Package and serialize initial values for the CapCut dashboard template
     disp_x_sb = ts.get("displacement_x", 0)
@@ -1115,7 +1313,7 @@ def render_tepe_editor_page(db, is_kurucu, get_global_announcement):
             const text = document.getElementById('inp-text').value;
             const font = document.getElementById('inp-font').value;
             const align = document.getElementById('inp-align').value;
-            const sizeInp = parseInt(document.getElementById('inp-size').value) || 20;
+            const sizeInp = (typeof size !== 'undefined') ? size : (parseInt(document.getElementById('inp-size').value) || 20);
             const font_weight = document.getElementById('inp-font-weight').value;
             const font_style = document.getElementById('inp-font-style').value;
             const text_decoration = document.getElementById('inp-text-decoration').value;
@@ -1156,7 +1354,7 @@ def render_tepe_editor_page(db, is_kurucu, get_global_announcement):
             }}
             
             const bannerWrapper = document.getElementById('banner-wrapper');
-            bannerWrapper.style.cssText = bg_css + ` text-align: ${{align}}; font-family: '${{font}}', sans-serif; transition: all 0.15s ease; width: 100%;`;
+            bannerWrapper.style.cssText = bg_css + ` text-align: ${{align}}; font-family: '${{font}}', sans-serif; font-size: ${{sizeInp}}px; transition: all 0.15s ease; width: 100%;`;
 
             // 2. Shadows
             let shadow_css = "";
@@ -1523,47 +1721,70 @@ def render_tepe_editor_page(db, is_kurucu, get_global_announcement):
             return JSON.stringify(payload);
         }}
 
+        function updateParentValue(jsonText) {{
+            const doc = window.parent.document;
+            let textareas = doc.querySelectorAll('textarea[aria-label="advanced_json_payload"]');
+            if (textareas.length === 0) {{
+                textareas = doc.querySelectorAll('[data-testid="stTextArea"] textarea');
+            }}
+            if (textareas.length === 0) {{
+                textareas = doc.querySelectorAll('form textarea');
+            }}
+            if (textareas.length === 0) {{
+                textareas = doc.querySelectorAll('textarea');
+            }}
+            
+            textareas.forEach(t => {{
+                const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value")?.set;
+                if (setter) {{
+                    setter.call(t, jsonText);
+                }} else {{
+                    t.value = jsonText;
+                }}
+                t.dispatchEvent(new Event('input', {{ bubbles: true }}));
+                t.dispatchEvent(new Event('change', {{ bubbles: true }}));
+            }});
+        }}
+
+        function getParentButton(labelSubstr) {{
+            const doc = window.parent.document;
+            const buttons = Array.from(doc.querySelectorAll('button'));
+            let btn = buttons.find(b => b.innerText && b.innerText.includes(labelSubstr));
+            if (btn) return btn;
+            btn = buttons.find(b => b.textContent && b.textContent.includes(labelSubstr));
+            if (btn) return btn;
+            return doc.querySelector('button[type="submit"]');
+        }}
+
         function pushAndSubmit(targetAction) {{
             const jsonText = buildFullPayloadJSON();
+            updateParentValue(jsonText);
             
-            // Populate fallback hidden forms value
-            const textareas = window.parent.document.querySelectorAll('textarea[aria-label="advanced_json_payload"]');
-            textareas.forEach(t => {{
-                t.value = jsonText;
-                t.dispatchEvent(new Event('input', {{ bubbles: true }}));
-            }});
-            
-            // Programmatically click forms submit element
             setTimeout(() => {{
-                let btn = null;
-                if (targetAction === 'preview') {{
-                    btn = Array.from(window.parent.document.querySelectorAll('button')).find(b => b.innerText.includes('Düzenlemeyi Önizle'));
-                }} else {{
-                    btn = Array.from(window.parent.document.querySelectorAll('button')).find(b => b.innerText.includes('Tepe Duyurusunu Kaydet'));
-                }}
+                const label = (targetAction === 'preview') ? 'Düzenlemeyi Önizle' : 'Tepe Duyurusunu Kaydet';
+                const btn = getParentButton(label);
                 if (btn) {{
                     btn.click();
+                }} else {{
+                    console.error("Target button not found on parent document: " + label);
                 }}
-            }}, 150);
+            }}, 300);
         }}
 
         function pushAction(actionName) {{
             const jsonText = buildFullPayloadJSON();
             const payload = JSON.parse(jsonText);
             payload.action = actionName;
-            
-            const textareas = window.parent.document.querySelectorAll('textarea[aria-label="advanced_json_payload"]');
-            textareas.forEach(t => {{
-                t.value = JSON.stringify(payload);
-                t.dispatchEvent(new Event('input', {{ bubbles: true }}));
-            }});
+            updateParentValue(JSON.stringify(payload));
             
             setTimeout(() => {{
-                const btn = Array.from(window.parent.document.querySelectorAll('button')).find(b => b.innerText.includes('Tepe Duyurusunu Kaydet'));
+                const btn = getParentButton('Tepe Duyurusunu Kaydet');
                 if (btn) {{
                     btn.click();
+                }} else {{
+                    console.error("Save button not found on parent document.");
                 }}
-            }}, 150);
+            }}, 300);
         }}
 
         document.getElementById('btn-preview').addEventListener('click', () => pushAndSubmit('preview'));
