@@ -314,60 +314,60 @@ def render_tepe_editor_page(db, is_kurucu, get_global_announcement):
             border-color: #e67e22;
             box-shadow: 0 0 8px rgba(230,126,34,0.3);
         }}
-        .flex-row {
+        .flex-row {{
             display: flex;
             gap: 8px;
             width: 100%;
             box-sizing: border-box;
-        }
-        .flex-item {
+        }}
+        .flex-item {{
             flex: 1;
             min-width: 0;
             box-sizing: border-box;
-        }
-        @media (max-width: 550px) {
-            .flex-row:not(.no-stack) {
+        }}
+        @media (max-width: 550px) {{
+            .flex-row:not(.no-stack) {{
                 flex-direction: column !important;
                 gap: 8px;
-            }
-            .flex-row:not(.no-stack) .flex-item {
+            }}
+            .flex-row:not(.no-stack) .flex-item {{
                 width: 100% !important;
-            }
-            body {
+            }}
+            body {{
                 padding: 4px;
-            }
-            .stage-container {
+            }}
+            .stage-container {{
                 padding: 6px;
                 border-radius: 8px;
-            }
-            .editor-panel-right {
+            }}
+            .editor-panel-right {{
                 padding: 8px;
-            }
-            .form-group {
+            }}
+            .form-group {{
                 margin-bottom: 8px;
-            }
-            .tab-btn {
+            }}
+            .tab-btn {{
                 padding: 6px 10px;
                 font-size: 10px;
-            }
-            .top-nav-bar {
+            }}
+            .top-nav-bar {{
                 padding: 4px;
                 margin-bottom: 8px;
                 gap: 4px;
-            }
-            .nav-btn {
+            }}
+            .nav-btn {{
                 padding: 8px 4px;
                 font-size: 10px;
-            }
-            .toolbar {
+            }}
+            .toolbar {{
                 grid-template-columns: 1fr;
-            }
-            div[style*="gap:15px"] {
+            }}
+            div[style*="gap:15px"] {{
                 flex-direction: column !important;
                 gap: 8px !important;
                 align-items: flex-start !important;
-            }
-        }
+            }}
+        }}
         
         /* TOGGLE INPUTS */
         .toggle-container {{
