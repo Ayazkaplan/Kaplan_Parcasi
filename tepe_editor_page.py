@@ -314,13 +314,60 @@ def render_tepe_editor_page(db, is_kurucu, get_global_announcement):
             border-color: #e67e22;
             box-shadow: 0 0 8px rgba(230,126,34,0.3);
         }}
-        .flex-row {{
+        .flex-row {
             display: flex;
             gap: 8px;
-        }}
-        .flex-item {{
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .flex-item {
             flex: 1;
-        }}
+            min-width: 0;
+            box-sizing: border-box;
+        }
+        @media (max-width: 550px) {
+            .flex-row:not(.no-stack) {
+                flex-direction: column !important;
+                gap: 8px;
+            }
+            .flex-row:not(.no-stack) .flex-item {
+                width: 100% !important;
+            }
+            body {
+                padding: 4px;
+            }
+            .stage-container {
+                padding: 6px;
+                border-radius: 8px;
+            }
+            .editor-panel-right {
+                padding: 8px;
+            }
+            .form-group {
+                margin-bottom: 8px;
+            }
+            .tab-btn {
+                padding: 6px 10px;
+                font-size: 10px;
+            }
+            .top-nav-bar {
+                padding: 4px;
+                margin-bottom: 8px;
+                gap: 4px;
+            }
+            .nav-btn {
+                padding: 8px 4px;
+                font-size: 10px;
+            }
+            .toolbar {
+                grid-template-columns: 1fr;
+            }
+            div[style*="gap:15px"] {
+                flex-direction: column !important;
+                gap: 8px !important;
+                align-items: flex-start !important;
+            }
+        }
         
         /* TOGGLE INPUTS */
         .toggle-container {{
@@ -669,7 +716,7 @@ def render_tepe_editor_page(db, is_kurucu, get_global_announcement):
 
                     <div class="form-group">
                         <label>Yazı Görünürlüğü (Saydamlık - %)</label>
-                        <div class="flex-row" style="align-items: center;">
+                        <div class="flex-row no-stack" style="align-items: center;">
                             <input type="range" id="inp-opacity" min="10" max="100" value="{ann_opacity_sb}" class="form-control" style="flex:3;" oninput="document.getElementById('v-opacity').innerText=this.value+'%'; renderPreview()" />
                             <span id="v-opacity" style="flex:1; text-align:right; font-size:11px; color:#e67e22; font-weight:bold;">{ann_opacity_sb}%</span>
                         </div>
@@ -725,7 +772,7 @@ def render_tepe_editor_page(db, is_kurucu, get_global_announcement):
                         </div>
                         <div class="form-group">
                             <label>Görsel Şeffaflığı / Opaklığı</label>
-                            <div class="flex-row" style="align-items: center;">
+                            <div class="flex-row no-stack" style="align-items: center;">
                                 <input type="range" id="inp-bg-opacity" min="10" max="100" value="{ann_bg_opacity_sb}" class="form-control" style="flex:3;" oninput="document.getElementById('v-bg-opacity').innerText=this.value+'%'; renderPreview()" />
                                 <span id="v-bg-opacity" style="flex:1; text-align:right; font-size:11px; color:#e67e22; font-weight:bold;">{ann_bg_opacity_sb}%</span>
                             </div>
@@ -762,7 +809,7 @@ def render_tepe_editor_page(db, is_kurucu, get_global_announcement):
                     <div id="glow-fields">
                         <div class="form-group">
                             <label>Işıltı Yoğunluğu (Neon Intensity)</label>
-                            <div class="flex-row" style="align-items: center;">
+                            <div class="flex-row no-stack" style="align-items: center;">
                                 <input type="range" id="inp-glow-intensity" min="10" max="100" value="{ann_glow_intensity_sb}" class="form-control" style="flex:3;" oninput="document.getElementById('v-glow-intensity').innerText=this.value; renderPreview()" />
                                 <span id="v-glow-intensity" style="flex:1; text-align:right; font-size:11px; color:#e67e22; font-weight:bold;">{ann_glow_intensity_sb}</span>
                             </div>
@@ -799,7 +846,7 @@ def render_tepe_editor_page(db, is_kurucu, get_global_announcement):
                     <div id="shadow-fields">
                         <div class="form-group">
                             <label>Gölge Yoğunluğu (Shadow Intensity)</label>
-                            <div class="flex-row" style="align-items: center;">
+                            <div class="flex-row no-stack" style="align-items: center;">
                                 <input type="range" id="inp-shadow-intensity" min="10" max="100" value="{ann_shadow_intensity_sb}" class="form-control" style="flex:3;" oninput="document.getElementById('v-shadow-intensity').innerText=this.value; renderPreview()" />
                                 <span id="v-shadow-intensity" style="flex:1; text-align:right; font-size:11px; color:#e67e22; font-weight:bold;">{ann_shadow_intensity_sb}</span>
                             </div>
@@ -846,7 +893,7 @@ def render_tepe_editor_page(db, is_kurucu, get_global_announcement):
                         </div>
                         <div class="form-group flex-item">
                             <label>Görsel Boyutu</label>
-                            <div class="flex-row" style="align-items: center;">
+                            <div class="flex-row no-stack" style="align-items: center;">
                                 <input type="range" id="inp-media-size" min="20" max="300" value="{ann_media_size_sb}" class="form-control" style="flex:3;" oninput="document.getElementById('v-media-size').innerText=this.value+'px'; renderPreview()" />
                                 <span id="v-media-size" style="flex:1.2; text-align:right; font-size:11px; color:#e67e22; font-weight:bold;">{ann_media_size_sb}px</span>
                             </div>
@@ -1498,7 +1545,7 @@ def render_tepe_editor_page(db, is_kurucu, get_global_announcement):
 </body>
 </html>"""
  
-    st.components.v1.html(sandbox_code, height=1400, scrolling=True)
+    st.components.v1.html(sandbox_code, height=1750, scrolling=True)
     st.markdown("---")
     
     # Dynamic stream sync form structure - completely processed via the CapCut JS pipeline
@@ -1563,4 +1610,4 @@ def render_tepe_editor_page(db, is_kurucu, get_global_announcement):
                 time.sleep(1)
                 st.rerun()
         except Exception as e:
-            st.error(f"⚠️ Teknik bir hata oluştu: {e}")
+            st.error(f"⚠️ Teknik bir hata oluştu: {e}") 
