@@ -1090,31 +1090,29 @@ def render_tepe_editor_page(db, is_kurucu, get_global_announcement):
                 const char = textVal[i];
                 const col = charColorsArray[i] || '#FFFFFF';
                 
-                // compute custom text shadow for glow if enabled
-                let glowCss = '';
+                // compute custom text shadow layers for ultra-smooth rendering performance
+                let textShadowLayers = [];
                 if (glowEnabled) {{
                     const actualGlowColor = (glowMode === 'auto') ? col : glowFixedColor;
                     const r = parseInt(glowIntensity);
-                    glowCss = `text-shadow: 0 0 ${{r/5}}px ${{actualGlowColor}}, 0 0 ${{r/2}}px ${{actualGlowColor}}, 0 0 ${{r}}px ${{actualGlowColor}};`;
+                    textShadowLayers.push(`0 0 ${{r/5}}px ${{actualGlowColor}}`, `0 0 ${{r/2}}px ${{actualGlowColor}}`, `0 0 ${{r}}px ${{actualGlowColor}}`);
                 }}
                 
-                // depth shadows
-                let shadowCss = '';
                 if (shadowEnabled) {{
                     const sh = parseInt(shadowIntensity);
-                    const steps = Math.ceil(sh / 15);
-                    const layers = [];
+                    const steps = Math.ceil(sh / 12);
                     for(let s=1; s<=steps; s++) {{
-                        layers.push(`${{s}}px ${{s}}px ${{s*1.5}}px ${{shadowColor}}`);
+                        textShadowLayers.push(`${{s}}px ${{s}}px ${{s*1.2}}px ${{shadowColor}}`);
                     }}
-                    shadowCss = `filter: drop-shadow(${{layers.join(', ')}});`;
                 }}
+                
+                let combinedTextShadow = textShadowLayers.length > 0 ? `text-shadow: ${{textShadowLayers.join(', ')}};` : '';
                 
                 // Space padding normalization
                 if (char === ' ') {{
                     compiledTextHtml += '<span style="display: inline-block; margin-right:0.35em;"></span>&#8203;';
                 }} else {{
-                    compiledTextHtml += `<span style="display: inline-block; color:${{col}}; ${{glowCss}} ${{shadowCss}}">${{char}}</span>&#8203;`;
+                    compiledTextHtml += `<span style="display: inline-block; color:${{col}}; ${{combinedTextShadow}}">${{char}}</span>&#8203;`;
                 }}
             }}
             
@@ -1294,13 +1292,17 @@ def render_tepe_editor_page(db, is_kurucu, get_global_announcement):
         
         canvasArea.addEventListener('touchstart', (e) => {{
             if (!dragUnlocked) return;
-            e.preventDefault();
             
             if (e.touches.length === 1) {{
-                isDragging = true;
-                startTouchX = e.touches[0].clientX - x;
-                startTouchY = e.touches[0].clientY - y;
+                // Only begin dragging if the touch is directly on the text or drag element itself
+                if (dragItem.contains(e.target)) {{
+                    isDragging = true;
+                    startTouchX = e.touches[0].clientX - x;
+                    startTouchY = e.touches[0].clientY - y;
+                    e.preventDefault();
+                }}
             }} else if (e.touches.length === 2) {{
+                e.preventDefault();
                 isDragging = false;
                 isPinching = true;
                 const touch1 = e.touches[0];
@@ -1668,6 +1670,150 @@ def render_tepe_editor_page(db, is_kurucu, get_global_announcement):
                 st.rerun()
         except Exception as e:
             st.error(f"Teknik hata oluştu: {e}")
+
+    # === ŞABLON VE TASLAK KÜTÜPHANESİ ===
+    st.markdown("---")
+    st.markdown("""
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:15px;">
+            <div style="background:#2980b9;width:8px;height:24px;border-radius:4px;"></div>
+            <h2 style="margin:0;font-size:1.4rem;color:#fff;">📂 Tepe Duyuru Şablon & Taslak Kütüphanesi</h2>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    st.write("Mevcut tasarımları kaydetme ekranı ve şablon kütüphanesi sayesinde, önceden hazırladığınız duyuru bandı tasarımlarını kaybetmeden dilediğiniz gibi saklayabilir ve tek tıkla canlandırabilirsiniz. Mevcut metin varken yeni sıfır tasarım alanını açıp farklı çalışmalar yapabilirsiniz!")
+
+    taslaklar_col = db.collection("tepe_duyuru_taslaklari")
+    
+    # 1. Action buttons: Reset and Save
+    col_reset, col_save_sec = st.columns([1, 1])
+    with col_reset:
+        st.write("✨ **Yeni / Sıfır Tasarım Başlat**")
+        if st.button("➕ Yeni Sıfır Tasarım Ekranı Aç (Sıfırla)", use_container_width=True, type="secondary", help="Editördeki tüm yazıları ve stilleri temizleyerek yepyeni boş bir duyuru tasarlamaya başlamanızı sağlar (aktif yayındaki duyurunuzu etkilemez)."):
+            st.session_state.temp_ann_settings = {
+                "text": "YENİ DUYURU BANDI",
+                "size": 20,
+                "font": "sans-serif",
+                "bg_type": "none",
+                "bg_color": "#111122",
+                "bg_gradient_end": "#1a1a3a",
+                "bg_image_url": "",
+                "bg_opacity": 100,
+                "glow_enabled": False,
+                "glow_intensity": 50,
+                "glow_color_mode": "auto",
+                "glow_color_fixed": "#FFC000",
+                "shadow_enabled": False,
+                "shadow_intensity": 50,
+                "shadow_color": "#000000",
+                "opacity": 100,
+                "font_weight": "bold",
+                "font_style": "normal",
+                "text_decoration": "none",
+                "displacement_x": 0,
+                "displacement_y": 0,
+                "rotation": 0,
+                "animation_type": "none",
+                "media_url": "",
+                "media_size": 150,
+                "media_align": "bottom",
+                "padding_vertical": 10,
+                "padding_horizontal": 15,
+                "border_radius": 12,
+                "char_colors": [],
+                "align": "center",
+                "text_color": "#FFFFFF"
+            }
+            st.success("✅ Editör alanları sıfırlandı! Yeni tasarımınızı yapmaya başlayabilirsiniz.")
+            time.sleep(1)
+            st.rerun()
+            
+    with col_save_sec:
+        st.write("💾 **Mecvut Tasarımı Taslak Olarak Sakla**")
+        taslak_name_input = st.text_input("Taslak Başlığı / İsmi:", placeholder="Örn: Hafta Sonu Maçı Duyurusu", key="new_taslak_title", label_visibility="collapsed")
+        if st.button("💾 Mevcut Tasarımı Taslak Olarak Ekle", use_container_width=True, type="primary"):
+            if not taslak_name_input.strip():
+                st.warning("⚠️ Lütfen taslağınıza bir isim belirleyin!")
+            else:
+                try:
+                    taslak_payload = dict(st.session_state.temp_ann_settings)
+                    taslak_payload["taslak_adi"] = taslak_name_input.strip()
+                    taslak_payload["created_at"] = datetime.now(timezone.utc).isoformat() if 'datetime' in globals() else time.strftime('%Y-%m-%dT%H:%M:%SZ')
+                    taslaklar_col.add(taslak_payload)
+                    st.success(f"✅ '{taslak_name_input}' ismiyle yeni taslak kütüphaneye başarıyla kaydedildi!")
+                    time.sleep(1)
+                    st.rerun()
+                except Exception as ex:
+                    st.error(f"Taslak kaydedilirken teknik bir sorun oluştu: {ex}")
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # 2. Fetch and render Saved Templates
+    try:
+        taslak_docs = taslaklar_col.get()
+        taslak_list = []
+        for doc in taslak_docs:
+            d = doc.to_dict()
+            d["id"] = doc.id
+            taslak_list.append(d)
+        
+        # Sort manual by date
+        taslak_list = sorted(taslak_list, key=lambda x: x.get("created_at", ""), reverse=True)
+    except Exception as e:
+        taslak_list = []
+        st.error(f"Taslak kütüphanesi yüklenirken hata: {e}")
+
+    st.markdown("### 🗄️ Kayıtlı Taslaklarınız")
+    if not taslak_list:
+        st.info("Kayıtlı herhangi bir duyuru tasarımı ve şablon bulunamadı. Yapmış olduğunuz benzersiz tasarımları yukarıdaki kısımdan 'Mevcut Tasarımı Taslak Olarak Ekle' butonuyla kaydedebilirsiniz!")
+    else:
+        for t in taslak_list:
+            t_id = t["id"]
+            t_name = t.get("taslak_adi", "İeraktif Duyuru Taslağı")
+            t_text = t.get("text", "")
+            t_date = t.get("created_at", "")[:19].replace("T", " ") if t.get("created_at") else "Tarih Yok"
+            
+            with st.expander(f"📁 {t_name} (Önizleme: {t_text[:30]}...)", expanded=False):
+                st.markdown(f"""
+                <div style="background: rgba(0, 0, 0, 0.2); border-left: 4px solid #3498db; padding: 10px; border-radius: 4px; margin-bottom: 12px;">
+                    <p style="margin:0;font-size:0.85rem;color:#7f8c8d;">🗓️ Kayıt Tarihi: {t_date}</p>
+                    <p style="margin:5px 0 0;font-size:0.95rem;color:#ecf0f1;"><b>Duyuru Metni:</b> {t_text}</p>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Three controller buttons
+                col_load, col_publish, col_delete = st.columns([1, 1.2, 1])
+                
+                with col_load:
+                    if st.button("✏️ Düzenle (Editöre Yükle)", key=f"t_load_{t_id}", use_container_width=True, help="Bu şablon stilini ve yazısını yukarıdaki canlı editör paneline yükler. Üzerinde değişiklikler yapabilirsiniz."):
+                        loaded_cfg = dict(t)
+                        loaded_cfg.pop("id", None)
+                        loaded_cfg.pop("taslak_adi", None)
+                        loaded_cfg.pop("created_at", None)
+                        st.session_state.temp_ann_settings = loaded_cfg
+                        st.success("✅ Taslak editöre yüklendi! Sayfa yenileniyor...")
+                        time.sleep(1)
+                        st.rerun()
+                        
+                with col_publish:
+                    if st.button("🚀 Canlı Yayına Al & Dağıt", key=f"t_pub_{t_id}", use_container_width=True, help="Bu tasarıyı doğrudan sitenin en üstündeki aktif duyuru bandına yansıtır ve tüm kullanıcılar için canlıya alır."):
+                        loaded_cfg = dict(t)
+                        loaded_cfg.pop("id", None)
+                        loaded_cfg.pop("taslak_adi", None)
+                        loaded_cfg.pop("created_at", None)
+                        
+                        # Save directly database as active announcement
+                        db.collection("settings").document("global_announcement").set(loaded_cfg)
+                        st.session_state.temp_ann_settings = loaded_cfg
+                        st.success("🎉 Şablon başarıyla sitenin en üstüne canlı yayına alındı!")
+                        time.sleep(1)
+                        st.rerun()
+                        
+                with col_delete:
+                    if st.button("🗑️ Şablonu Kalıcı Olarak Sil", key=f"t_del_{t_id}", use_container_width=True, type="secondary"):
+                        taslaklar_col.document(t_id).delete()
+                        st.success("🗑️ Taslak kütüphaneden başarıyla silindi.")
+                        time.sleep(1)
+                        st.rerun()
 import re
 from datetime import datetime, timezone, timedelta
 import time
@@ -1679,7 +1825,7 @@ from PIL import Image
 
 # --- SAYFA AYARLARI ---
 st.set_page_config(
-    page_title="Kaplan Parçası V17.9",
+    page_title="Kaplan Parçası V18.1",
     page_icon="🐯",
     layout="centered"
 )
@@ -2316,48 +2462,53 @@ def render_custom_banner_html(ann_data):
     # CSS Keyframes and styling wrapper (without leading line indent to keep Markdown compiler clean)
     css_definitions = """<style>
 @keyframes neonPulse {
-0%, 100% { opacity: 0.95; filter: drop-shadow(0 0 calc(var(--gl-blur) * 0.3) var(--glow-color)) drop-shadow(0 0 var(--gl-blur) var(--glow-color)); }
-50% { opacity: 1; filter: drop-shadow(0 0 var(--gl-blur) var(--glow-color)) drop-shadow(0 0 calc(var(--gl-blur) * 1.8) var(--glow-color)); }
+  0%, 100% { opacity: 0.45; filter: brightness(0.85); }
+  50% { opacity: 1; filter: brightness(1.2); }
 }
 @keyframes wiggle {
-0%, 100% { transform: translateY(0); }
-50% { transform: translateY(-8px); }
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  25% { transform: translateY(-4px) rotate(-1.5deg); }
+  75% { transform: translateY(4px) rotate(1.5deg); }
 }
 @keyframes neonFlicker {
-0%, 18%, 22%, 25%, 53%, 57%, 100% { filter: drop-shadow(0 0 var(--gl-blur) var(--glow-color)); opacity: 1; }
-20%, 24%, 55% { filter: none; opacity: 0.4; }
+  0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% { opacity: 1; }
+  20%, 24%, 55% { opacity: 0.25; }
 }
 @keyframes rainbowShift {
-0% { filter: hue-rotate(0deg); }
-100% { filter: hue-rotate(360deg); }
+  0% { filter: hue-rotate(0deg); }
+  100% { filter: hue-rotate(360deg); }
 }
 @keyframes softPulse {
-0%, 100% { transform: scale(0.98); }
-50% { transform: scale(1.04); }
+  0%, 100% { transform: scale(0.98); }
+  50% { transform: scale(1.04); }
 }
 @keyframes blurFade {
-0%, 100% { filter: blur(0px); }
-50% { filter: blur(3px); }
+  0%, 100% { filter: blur(0px); }
+  50% { filter: blur(3px); }
 }
 .ann-animate-wiggle {
-display: inline-block;
-animation: wiggle 1.2s ease-in-out infinite;
+  display: inline-block;
+  animation: wiggle 1.5s ease-in-out infinite;
 }
 .ann-animate-neon_pulse {
-animation: neonPulse 2s infinite ease-in-out;
+  display: inline-block;
+  animation: neonPulse 2s infinite ease-in-out;
 }
 .ann-animate-neon_flicker {
-animation: neonFlicker 3s infinite;
+  display: inline-block;
+  animation: neonFlicker 3s infinite;
 }
 .ann-animate-rainbow {
-animation: rainbowShift 6s infinite linear;
+  display: inline-block;
+  animation: rainbowShift 6s infinite linear;
 }
 .ann-animate-pulse {
-display: inline-block;
-animation: softPulse 2.5s infinite ease-in-out;
+  display: inline-block;
+  animation: softPulse 2.5s infinite ease-in-out;
 }
 .ann-animate-blur_fade {
-animation: blurFade 3s infinite ease-in-out;
+  display: inline-block;
+  animation: blurFade 3s infinite ease-in-out;
 }
 </style>"""
     
@@ -3082,7 +3233,7 @@ if not st.session_state.user_logged_in:
             st.rerun()
         st.stop()
 
-    st.title("🐯 Kaplan Parçası V17.9")
+    st.title("🐯 Kaplan Parçası V18.1")
 
     if "ban_error_on_logout" in st.session_state:
         st.error(st.session_state.ban_error_on_logout)
@@ -3281,6 +3432,7 @@ else:
         logout_user()
 
     user_doc = user_snap.to_dict()
+    email = user_doc.get("email", "")
 
     # Anlık Ban Kontrolü
     user_durum = user_doc.get("durum", "Aktif")
@@ -6424,7 +6576,7 @@ else:
 
             col_title, col_bildirim = st.columns([6, 1])
             with col_title:
-                st.title("🤖 Kaplan Parçası V17.9")
+                st.title("🤖 Kaplan Parçası V18.1")
             with col_bildirim:
                 # Info button on top
                 with st.popover("ℹ️", help="Uygulama Bilgisi"):
@@ -6432,7 +6584,7 @@ else:
                     st.markdown("""
 **Müstakbel Şirket**, dijital iletişim ve yapay zeka alanında öncü çözümler geliştiren, geleceğin teknolojilerini bugünün ihtiyaçlarıyla buluşturan köklü bir teknoloji kuruluşudur.
 
-**Kaplan Parçası V17.9**, Müstakbel Şirket bünyesinde geliştirilen amiral gemisi yapay zeka platformudur. Gerçek zamanlı sohbet, yapay zeka destekli asistan, YouTube entegrasyonu ve topluluk yönetimi tek çatı altında sunulmaktadır.
+**Kaplan Parçası V18.1**, Müstakbel Şirket bünyesinde geliştirilen amiral gemisi yapay zeka platformudur. Gerçek zamanlı sohbet, yapay zeka destekli asistan, YouTube entegrasyonu ve topluluk yönetimi tek çatı altında sunulmaktadır.
                     """)
                     st.divider()
                     st.markdown("## 🎯 Misyonumuz")
