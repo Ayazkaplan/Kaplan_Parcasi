@@ -100,7 +100,9 @@ def render_tepe_editor_page(db, is_kurucu, get_global_announcement):
             </div>
         </div>
         """
-        st.markdown(mockup_html, unsafe_allow_html=True)
+        clean_mockup_lines = [line.strip() for line in mockup_html.splitlines() if line.strip()]
+        clean_mockup_html = "".join(clean_mockup_lines)
+        st.markdown(clean_mockup_html, unsafe_allow_html=True)
         
         # Quick paint utilities
         st.write("")
@@ -2889,7 +2891,7 @@ def render_custom_banner_html(ann_data):
     
     # Strip any leading and trailing lines or spaces to guarantee no Markdown block preformatted trigger
     stripped_lines = [line.strip() for line in final_html.splitlines() if line.strip()]
-    return "\n".join(stripped_lines)
+    return "".join(stripped_lines)
 
 
 def get_styled_user_name(u_name, u_color=None, u_glow=False, u_tag=None, u_rozet=None, email=None, is_admin=False):
