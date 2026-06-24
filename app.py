@@ -7915,17 +7915,24 @@ Yapay zeka ve gerçek zamanlı iletişim teknolojilerini birleştirerek Türkiye
                                             st.markdown(istek_styled, unsafe_allow_html=True)
                                         with col_ba:
                                             if st.button("✅ Kabul", key=f"kabul_{istek_uid}", use_container_width=True):
-                                                # Her iki tarafı arkadaş yap
-                                                user_ref.update({
-                                                    "arkadaslar": firestore.ArrayUnion([istek_uid]),
-                                                    "gelen_arkadaslik_istekleri": firestore.ArrayRemove([istek_uid])
-                                                })
-                                                db.collection("users").document(istek_uid).update({
-                                                    "arkadaslar": firestore.ArrayUnion([uid]),
-                                                    "gonderilen_arkadaslik_istekleri": firestore.ArrayRemove([uid])
-                                                })
-                                                st.success(f"'{istek_isim}' artık arkadaşınız!")
-                                                st.rerun()
+                                                current_friends = user_doc_fresh.get("arkadaslar", [])
+                                                requester_friends = istek_d.get("arkadaslar", [])
+                                                if len(current_friends) >= 300:
+                                                    st.error("Maksimum arkadaş limitine (300) ulaştınız!")
+                                                elif len(requester_friends) >= 300:
+                                                    st.error("Bu kullanıcının arkadaş limiti dolu! (Maksimum 300)")
+                                                else:
+                                                    # Her iki tarafı arkadaş yap
+                                                    user_ref.update({
+                                                        "arkadaslar": firestore.ArrayUnion([istek_uid]),
+                                                        "gelen_arkadaslik_istekleri": firestore.ArrayRemove([istek_uid])
+                                                    })
+                                                    db.collection("users").document(istek_uid).update({
+                                                        "arkadaslar": firestore.ArrayUnion([uid]),
+                                                        "gonderilen_arkadaslik_istekleri": firestore.ArrayRemove([uid])
+                                                    })
+                                                    st.success(f"'{istek_isim}' artık arkadaşınız!")
+                                                    st.rerun()
                                             if st.button("❌ Reddet", key=f"red_{istek_uid}", use_container_width=True):
                                                 user_ref.update({"gelen_arkadaslik_istekleri": firestore.ArrayRemove([istek_uid])})
                                                 db.collection("users").document(istek_uid).update({
@@ -8143,24 +8150,47 @@ Yapay zeka ve gerçek zamanlı iletişim teknolojilerini birleştirerek Türkiye
                     thinking_html = ""
                     if search_query or thinking_process:
                         results_rendered = search_results.replace("\n", "<br/>") if search_results else "İnternet arama sonuçları temiz."
-                        thinking_html = f'''
-                        <details style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 10px; margin: 4px 0 10px 0; cursor: pointer; max-width: 100%; box-sizing: border-box; text-align: left;" open>
-                          <summary style="font-weight: 600; color: #f39c12; font-size: 0.85rem; display: flex; align-items: center; gap: 6px; outline: none; list-style: none;">
-                            🔍 🧠 <span><b>Araştırma & Düşünme Süreci (Research & Thinking Agent)</b></span>
-                          </summary>
-                          <div style="font-size: 0.8rem; color: #ccc; margin-top: 8px; padding-left: 10px; border-left: 2px solid #f39c12; display: flex; flex-direction: column; gap: 6px; text-align: left;">
-                            <div><strong>⚡ Hedef Sorgu:</strong> <code>{search_query if search_query else "Genel Sohbet Analizi"}</code></div>
-                            <div><strong>🌐 Bulunan Canlı Kaynaklar:</strong><br/>{results_rendered}</div>
-                            <div><strong>🧠 Düşünme & Doğrulama Süreci:</strong> {thinking_process}</div>
-                          </div>
-                        </details>
-                        '''
+                        thinking_html = (
+                            f'<details style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 10px; margin: 4px 0 10px 0; cursor: pointer; max-width: 100%; box-sizing: border-box; text-align: left;" open>'
+                            f'<summary style="font-weight: 600; color: #f39c12; font-size: 0.85rem; display: flex; align-items: center; gap: 6px; outline: none; list-style: none;">'
+                            f'🔍 🧠 <span><b>Araştırma & Düşünme Süreci (Research & Thinking Agent)</b></span>'
+                            f'</summary>'
+                            f'<div style="font-size: 0.8rem; color: #ccc; margin-top: 8px; padding-left: 10px; border-left: 2px solid #f39c12; display: flex; flex-direction: column; gap: 6px; text-align: left;">'
+                            f'<div><strong>⚡ Hedef Sorgu:</strong> <code>{search_query if search_query else "Genel Sohbet Analizi"}</code></div>'
+                            f'<div><strong>🌐 Bulunan Canlı Kaynaklar:</strong><br/>{results_rendered}</div>'
+                            f'<div><strong>🧠 Düşünme & Doğrulama Süreci:</strong> {thinking_process}</div>'
+                            f'</div>'
+                            f'</details>'
+                        )
 
-                    with st.container():
-                        st.markdown(
+                    if idx == last_assistant_idx and ("animated_message_indices" not in st.session_state or idx not in st.session_state.animated_message_indices):
+                        if "animated_message_indices" not in st.session_state:
+                            st.session_state.animated_message_indices = set()
+                        
+                        st.session_state.animated_message_indices.add(idx)
+                        import time
+                        placeholder = st.empty()
+                        words = m["content"].split()
+                        # Dynamic step size to make the writing effect look great and not too slow
+                        step = max(1, len(words) // 25)
+                        for i in range(1, len(words) + 1, step):
+                            sub_text = " ".join(words[:i])
+                            rendered_sub = detect_and_render_media(sub_text)
+                            placeholder.markdown(
+                                f'''<div class="assistant-box"><img src="{AVATAR_URL}" class="avatar"><div class="assistant-bubble"><div class="header-box">Kaplan Parçası</div>{thinking_html}<div style="color:white !important;">{rendered_sub}</div></div></div>''',
+                                unsafe_allow_html=True
+                            )
+                            time.sleep(0.04)
+                        placeholder.markdown(
                             f'''<div class="assistant-box"><img src="{AVATAR_URL}" class="avatar"><div class="assistant-bubble"><div class="header-box">Kaplan Parçası</div>{thinking_html}<div style="color:white !important;">{content_rendered}</div></div></div>''',
                             unsafe_allow_html=True
                         )
+                    else:
+                        with st.container():
+                            st.markdown(
+                                f'''<div class="assistant-box"><img src="{AVATAR_URL}" class="avatar"><div class="assistant-bubble"><div class="header-box">Kaplan Parçası</div>{thinking_html}<div style="color:white !important;">{content_rendered}</div></div></div>''',
+                                unsafe_allow_html=True
+                            )
 
                     if idx == last_assistant_idx:
                         st.markdown('<div class="assistant-ops-marker"></div>', unsafe_allow_html=True)
@@ -8175,6 +8205,8 @@ Yapay zeka ve gerçek zamanlı iletişim teknolojilerini birleştirerek Türkiye
                                 new_chat[idx]["thinking_process"] = cevap_dict["thinking_process"]
                                 st.session_state.messages = new_chat
                                 user_ref.update({"sohbet_gecmisi": new_chat})
+                                if "animated_message_indices" in st.session_state:
+                                    st.session_state.animated_message_indices.discard(idx)
                                 st.success("Yeni yanıt oluşturuldu!")
                                 st.rerun()
                 else:
@@ -8373,14 +8405,19 @@ Yapay zeka ve gerçek zamanlı iletişim teknolojilerini birleştirerek Türkiye
                             st.markdown("⏳ İstek Gönderildi", unsafe_allow_html=True)
                         else:
                             if st.button("➕ Arkadaş Ekle", key=f"ark_ekle_{k_id}_{idx}", use_container_width=True):
-                                # Gönderen tarafta kaydet
-                                user_ref.update({"gonderilen_arkadaslik_istekleri": firestore.ArrayUnion([k_id])})
-                                # Alıcı tarafta bildirim oluştur
-                                db.collection("users").document(k_id).update({
-                                    "gelen_arkadaslik_istekleri": firestore.ArrayUnion([uid])
-                                })
-                                st.success(f"'{k_isim}' kişisine arkadaşlık isteği gönderildi!")
-                                st.rerun()
+                                if len(my_arkadaslar) >= 300:
+                                    st.error("Maksimum arkadaş limitine (300) ulaştınız!")
+                                elif k_friends_count >= 300:
+                                    st.error("Bu kullanıcının arkadaş limiti dolu! (Maksimum 300)")
+                                else:
+                                    # Gönderen tarafta kaydet
+                                    user_ref.update({"gonderilen_arkadaslik_istekleri": firestore.ArrayUnion([k_id])})
+                                    # Alıcı tarafta bildirim oluştur
+                                    db.collection("users").document(k_id).update({
+                                        "gelen_arkadaslik_istekleri": firestore.ArrayUnion([uid])
+                                    })
+                                    st.success(f"'{k_isim}' kişisine arkadaşlık isteği gönderildi!")
+                                    st.rerun()
 
                         # Takip butonu
                         if k_id in my_takip_ettiklerim:
@@ -8875,31 +8912,24 @@ Yapay zeka ve gerçek zamanlı iletişim teknolojilerini birleştirerek Türkiye
                             bubble_width_css = "width: 260px;" if is_voice else "width: fit-content;"
                             voice_padding_css = "padding: 6px 10px;" if is_voice else "padding: 8px 12px;"
 
-                            msg_bubble = f'''
-                            <div style="display:flex; flex-direction:{flex_dir}; align-items:flex-start; gap:8px; margin:4px 0; width:100%;">
-                                <img src="{s_foto_src}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;border:1px solid #f39c12;margin-top:2px;flex-shrink:0;"/>
-                                <div style="display:flex; flex-direction:column; align-items:{align_items_inner}; max-width:75%;">
-                                    <div style="font-size:0.75rem; color:#ccc; margin-bottom:2px; text-align:{align};">{s_styled}</div>
-                                    <div style="background:{bg_color}; {voice_padding_css} border-radius:10px; font-size:0.9rem; white-space:pre-wrap; word-break:break-word; {bubble_width_css} max-width:100%; box-sizing:border-box; box-shadow: 0 1px 2px rgba(0,0,0,0.15);">
-                                        {dm_html}
-                                        <div style="font-size:0.65em; color:#888; margin-top:3px; text-align:{align};">{dm_zaman}</div>
-                                    </div>
-                                </div>
-                            </div>
-                            '''
+                            msg_bubble = (
+                                f'<div style="display:flex; flex-direction:{flex_dir}; align-items:flex-start; gap:8px; margin:4px 0; width:100%;">'
+                                f'<img src="{s_foto_src}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;border:1px solid #f39c12;margin-top:2px;flex-shrink:0;"/>'
+                                f'<div style="display:flex; flex-direction:column; align-items:{align_items_inner}; max-width:75%;">'
+                                f'<div style="font-size:0.75rem; color:#ccc; margin-bottom:2px; text-align:{align};">{s_styled}</div>'
+                                f'<div style="background:{bg_color}; {voice_padding_css} border-radius:10px; font-size:0.9rem; white-space:pre-wrap; word-break:break-word; {bubble_width_css} max-width:100%; box-sizing:border-box; box-shadow: 0 1px 2px rgba(0,0,0,0.15);">'
+                                f'{dm_html}'
+                                f'<div style="font-size:0.65em; color:#888; margin-top:3px; text-align:{align};">{dm_zaman}</div>'
+                                f'</div></div></div>'
+                            )
                             all_dm_html.append(msg_bubble)
 
-                        joined_html = f'''
-                        <style>
-                          .dm-chat-box-container p {{
-                            margin: 0 !important;
-                            padding: 0 !important;
-                          }}
-                        </style>
-                        <div class="dm-chat-box-container" style="display:flex; flex-direction:column; gap:2px; width:100%;">
-                            {"".join(all_dm_html)}
-                        </div>
-                        '''
+                        joined_html = (
+                            f'<style>.dm-chat-box-container p {{margin: 0 !important; padding: 0 !important;}}</style>'
+                            f'<div class="dm-chat-box-container" style="display:flex; flex-direction:column; gap:2px; width:100%;">'
+                            f'{"".join(all_dm_html)}'
+                            f'</div>'
+                        )
                         st.markdown(joined_html, unsafe_allow_html=True)
 
                 # Mesaj gönderme
