@@ -1303,16 +1303,17 @@ def render_tepe_editor_page(db, is_kurucu, get_global_announcement):
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }}
-        .form-control {{
-            width: 100%;
-            background: #090914;
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 6px;
-            padding: 7px 10px;
-            color: white;
-            font-size: 12px;
-            outline: none;
-            transition: all 0.2s ease;
+        .form-control, input, select, textarea {{
+            width: 100% !important;
+            background: #090914 !important;
+            background-color: #090914 !important;
+            border: 1px solid rgba(255,255,255,0.15) !important;
+            border-radius: 6px !important;
+            padding: 7px 10px !important;
+            color: #ffffff !important;
+            font-size: 12px !important;
+            outline: none !important;
+            transition: all 0.2s ease !important;
         }}
         .form-control:focus {{
             border-color: #e67e22;
@@ -2157,6 +2158,7 @@ def render_tepe_editor_page(db, is_kurucu, get_global_announcement):
             const textVal = document.getElementById('inp-text').value;
             const font = document.getElementById('inp-font').value;
             const align = document.getElementById('inp-align').value;
+            const size = parseInt(document.getElementById('inp-size').value) || 20;
             const weight = document.getElementById('inp-font-weight').value;
             const style = document.getElementById('inp-font-style').value;
             const decoration = document.getElementById('inp-text-decoration').value;
@@ -4812,6 +4814,45 @@ else:
     # --- CSS ENJEKSİYONU ---
     st.markdown(f"""
     <style>
+    /* Hide the running spinner completely */
+    [data-testid="stStatusWidget"] {{
+        display: none !important;
+        visibility: hidden !important;
+    }}
+    /* Disable the flashing/blur/gray overlay during reruns */
+    .stApp {{
+        opacity: 1 !important;
+        filter: none !important;
+        transition: none !important;
+    }}
+    div[data-testid="stAppViewBlockContainer"] {{
+        opacity: 1 !important;
+        filter: none !important;
+        transition: none !important;
+    }}
+    /* Turn the info column into a modern floating sidebar panel on the right side of the screen */
+    div:has(> div.sidebar-info-badge-trigger) {{
+        position: fixed !important;
+        right: 30px !important;
+        top: 100px !important;
+        z-index: 99999 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        gap: 12px !important;
+        background: transparent !important;
+    }}
+    @media (max-width: 768px) {{
+        div:has(> div.sidebar-info-badge-trigger) {{
+            position: fixed !important;
+            right: 15px !important;
+            top: 75px !important;
+            z-index: 99999 !important;
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 10px !important;
+        }}
+    }}
     *, *::before, *::after {{ box-sizing: border-box !important; }}
     html, body {{ overflow-x: hidden !important; }}
     .stApp, [data-testid="stAppViewContainer"], [data-testid="stAppViewBlockContainer"] {{
@@ -5920,7 +5961,24 @@ else:
 
         secilen_email = None
         if hedef_tipi == "E-posta ile Seç (Manuel Yaz)":
-            secilen_email = st.text_input("Duyuru Gönderilecek E-posta Adresi:", placeholder="ornek@domain.com", key="quick_target_email_input").strip().lower()
+            try:
+                all_users = db.collection("users").get()
+                emails_list = sorted(list(set([u.to_dict().get("email", "").strip().lower() for u in all_users if u.to_dict().get("email")])))
+                emails_list = [em for em in emails_list if em]
+            except Exception:
+                emails_list = []
+            
+            st.markdown("📬 **Duyuru Gönderilecek E-posta Seçimi:**")
+            col_sel1, col_sel2 = st.columns([1, 1])
+            with col_sel1:
+                selected_from_list = st.selectbox("Kayıtlı Kullanıcılardan Seç:", ["-- Manuel Yaz --"] + emails_list, key="ann_email_selectbox")
+            with col_sel2:
+                manual_email = st.text_input("Veya Manuel E-posta Yazın:", placeholder="ornek@domain.com", key="ann_email_manual_input").strip().lower()
+            
+            if manual_email:
+                secilen_email = manual_email
+            elif selected_from_list and selected_from_list != "-- Manuel Yaz --":
+                secilen_email = selected_from_list
 
         duyuru_metni = st.text_area("Duyuru Metni:", placeholder="Mesajınızı buraya girin...", key="quick_announcement_text")
 
@@ -6275,16 +6333,17 @@ else:
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }}
-        .form-control {{
-            width: 100%;
-            background: #090914;
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 6px;
-            padding: 7px 10px;
-            color: white;
-            font-size: 12px;
-            outline: none;
-            transition: all 0.2s ease;
+        .form-control, input, select, textarea {{
+            width: 100% !important;
+            background: #090914 !important;
+            background-color: #090914 !important;
+            border: 1px solid rgba(255,255,255,0.15) !important;
+            border-radius: 6px !important;
+            padding: 7px 10px !important;
+            color: #ffffff !important;
+            font-size: 12px !important;
+            outline: none !important;
+            transition: all 0.2s ease !important;
         }}
         .form-control:focus {{
             border-color: #e67e22;
@@ -6997,7 +7056,7 @@ else:
             
             const bannerWrapper = document.getElementById('banner-wrapper');
             bannerWrapper.className = "";
-            bannerWrapper.style.cssText = bg_css + ` text-align: ${{align}}; font-family: '${{font}}', sans-serif; transition: all 0.15s ease; width: 100%;`;
+            bannerWrapper.style.cssText = bg_css + ` text-align: ${{align}}; font-family: '${{font}}', sans-serif; font-size: ${{sizeInp}}px; transition: all 0.15s ease; width: 100%;`;
 
             // 2. Shadows
             let shadow_css = "";
@@ -7858,15 +7917,37 @@ else:
                     st.rerun()
 
             # --- SOHBET ARAYÜZÜ ---
-            # Bildirim butonu (sağ üst köşe)
+            # Active 5-minute seen auto-deletion for yetkili_mesajlari
+            import time
+            now_epoch = int(time.time())
+            yetkili_msj_raw = user_doc.get("yetkili_mesajlari", [])
+            if not isinstance(yetkili_msj_raw, list):
+                yetkili_msj_raw = []
+                
+            cleaned_yetkili = []
+            db_cleanup_needed = False
+            for ym in yetkili_msj_raw:
+                goruldu_z = ym.get("goruldu_zamani")
+                if goruldu_z is not None:
+                    # If 5 minutes (300 seconds) have passed since seen, auto-delete it
+                    if now_epoch - int(goruldu_z) >= 300:
+                        db_cleanup_needed = True
+                        continue
+                cleaned_yetkili.append(ym)
+                
+            if db_cleanup_needed:
+                user_ref.update({"yetkili_mesajlari": cleaned_yetkili})
+                yetkili_msj = cleaned_yetkili
+            else:
+                yetkili_msj = cleaned_yetkili
+                
             gelen_istekler = user_doc.get("gelen_arkadaslik_istekleri", [])
-            yetkili_msj = user_doc.get("yetkili_mesajlari", [])
-            okunmamis_yetkili = [m for m in yetkili_msj if not m.get("okundu", False)] if isinstance(yetkili_msj, list) else []
+            okunmamis_yetkili = [m for m in yetkili_msj if not m.get("okundu", False)]
             bildirim_sayisi = len(gelen_istekler) + len(okunmamis_yetkili)
             bildirim_badge = f" ({bildirim_sayisi})" if bildirim_sayisi > 0 else ""
 
-            st.markdown("""<style>
-            div.notification-wrapper button {
+            st.markdown(f"""<style>
+            div.notification-wrapper button {{
                 border-radius: 50% !important;
                 width: 44px !important;
                 height: 44px !important;
@@ -7877,16 +7958,16 @@ else:
                 display: inline-flex !important;
                 align-items: center !important;
                 justify-content: center !important;
-                background-color: #1a1a3a !important;
+                background-color: {st.session_state.tema_rengi} !important;
                 border: 2px solid #f39c12 !important;
                 box-shadow: 0 4px 12px rgba(243, 156, 18, 0.4) !important;
                 transition: transform 0.2s ease, box-shadow 0.2s ease !important;
-            }
-            div.notification-wrapper button:hover {
+            }}
+            div.notification-wrapper button:hover {{
                 transform: scale(1.1) !important;
                 box-shadow: 0 6px 16px rgba(243, 156, 18, 0.6) !important;
-            }
-            div[data-testid="stPopover"] button {
+            }}
+            div[data-testid="stPopover"] button {{
                 border-radius: 50% !important;
                 width: 44px !important;
                 height: 44px !important;
@@ -7897,10 +7978,10 @@ else:
                 display: inline-flex !important;
                 align-items: center !important;
                 justify-content: center !important;
-                background-color: #1a1a3a !important;
+                background-color: {st.session_state.tema_rengi} !important;
                 border: 2px solid #f39c12 !important;
                 box-shadow: 0 4px 8px rgba(0,0,0,0.3) !important;
-            }
+            }}
             </style>""", unsafe_allow_html=True)
 
             # RENDER GLOBAL ANNOUNCEMENT ABOVE MAIN TITLE
@@ -7914,6 +7995,7 @@ else:
             with col_title:
                 st.title("🤖 Kaplan Parçası V18.1")
             with col_bildirim:
+                st.markdown('<div class="sidebar-info-badge-trigger"></div>', unsafe_allow_html=True)
                 # Info button on top
                 with st.popover("ℹ️", help="Uygulama Bilgisi"):
                     st.markdown("## 🏢 Hakkımızda")
@@ -8061,18 +8143,37 @@ Yapay zeka ve gerçek zamanlı iletişim teknolojilerini birleştirerek Türkiye
                                 ym_icerik = ym.get("icerik", "")
                                 ym_zaman = ym.get("zaman", "")
                                 ym_okundu = ym.get("okundu", False)
-                                badge = "" if ym_okundu else "🆕 "
+                                ym_goruldu_z = ym.get("goruldu_zamani")
+                                
+                                countdown_text = ""
+                                if ym_goruldu_z is not None:
+                                    kalan_sn = 300 - (now_epoch - int(ym_goruldu_z))
+                                    if kalan_sn > 0:
+                                        kalan_dk = kalan_sn // 60
+                                        kalan_sn_offset = kalan_sn % 60
+                                        countdown_text = f' <span style="font-size:0.8em;color:#e67e22;font-weight:600;margin-left:8px;">⏳ {kalan_dk} dk {kalan_sn_offset} sn sonra silinecek</span>'
+                                    else:
+                                        countdown_text = ' <span style="font-size:0.8em;color:red;font-weight:600;margin-left:8px;">⏳ Siliniyor...</span>'
+                                else:
+                                    countdown_text = ' <span style="font-size:0.8em;color:#f39c12;font-weight:600;margin-left:8px;">⏳ Görüldüğünde 5 dk sayacı başlayacak</span>'
+                                    
+                                badge = "🆕 " if not ym_okundu else ""
                                 st.markdown(f"""<div style="background:rgba(243,156,18,0.1);border-left:3px solid #f39c12;padding:8px 12px;border-radius:6px;margin-bottom:6px;">
-                                    <div style="font-size:0.95rem;display:flex;align-items:center;gap:5px;"><strong>{badge}</strong>{ym_styled_gonderen} <span style="font-size:0.75em;color:#888;">({ym_zaman})</span></div>
+                                    <div style="font-size:0.95rem;display:flex;align-items:center;flex-wrap:wrap;gap:5px;"><strong>{badge}</strong>{ym_styled_gonderen} <span style="font-size:0.75em;color:#888;">({ym_zaman})</span>{countdown_text}</div>
                                     <div style="margin-top:6px;color:#fff;">{ym_icerik}</div>
                                 </div>""", unsafe_allow_html=True)
-                            # Okundu olarak işaretle
-                            if okunmamis_yetkili:
-                                guncellenmis = []
-                                for ym in yetkili_msj:
-                                    ym_copy = dict(ym)
+                            
+                            # Okundu ve görüldü olarak işaretle (sayaç başlat)
+                            guncellenmis = []
+                            db_changed = False
+                            for ym in yetkili_msj:
+                                ym_copy = dict(ym)
+                                if not ym_copy.get("okundu", False) or ym_copy.get("goruldu_zamani") is None:
                                     ym_copy["okundu"] = True
-                                    guncellenmis.append(ym_copy)
+                                    ym_copy["goruldu_zamani"] = now_epoch
+                                    db_changed = True
+                                guncellenmis.append(ym_copy)
+                            if db_changed:
                                 user_ref.update({"yetkili_mesajlari": guncellenmis})
                         else:
                             st.caption("Yetkili mesajı yok.")
@@ -8125,10 +8226,11 @@ Yapay zeka ve gerçek zamanlı iletişim teknolojilerini birleştirerek Türkiye
                 if last_user_query:
                     q_lower = last_user_query.lower()
                     search_keywords = [
-                        "ara", "bul", "kimdir", "nedir", "kaç", "ne zaman", "hava durumu", 
-                        "son durum", "son dakika", "haber", "şampiyon", "skor", "maç", 
-                        "gelişme", "fiyat", "dolar", "euro", "altın", "borsa", "kim", 
-                        "nerede", "nasıl", "neden", "araştır", "google", "chrome"
+                        "ara", "bul", "kimdir", "nedir", "kaç", "ne zaman", "hava durumu", "hava",
+                        "son durum", "son dakika", "haber", "şampiyon", "skor", "maç", "galatasaray", "fenerbahçe", "beşiktaş",
+                        "gelişme", "fiyat", "dolar", "euro", "altın", "borsa", "kim", "gündem",
+                        "nerede", "nasıl", "neden", "araştır", "google", "chrome", "internet", "vizyon", "sinema", "vizyonda",
+                        "saat kaç", "bugün", "tarih", "güncel", "en son", "saat", "zaman"
                     ]
                     if len(q_lower) >= 3 and any(kw in q_lower for kw in search_keywords):
                         should_search = True
@@ -8174,7 +8276,10 @@ Yapay zeka ve gerçek zamanlı iletişim teknolojilerini birleştirerek Türkiye
                 sistem_mesaji = (
                     "Senin adın Kaplan Parçası. Kurucun ve yaratıcın Ayaz Kaplan'dır. "
                     "Resmi yöneticin Mehmet Sür'dür. Müstakbel Şirket bünyesinde görev yapıyorsun. "
-                    "Bu iki bilgiyi kesinlikle ve her zaman bil: Kurucu = Ayaz Kaplan, Resmi Yönetici = Mehmet Sür.\n"
+                    "Bu iki bilgiyi kesinlikle ve her zaman bil: Kurucu = Ayaz Kaplan, Resmi Yönetici = Mehmet Sür.\n\n"
+                    f"⏰ ŞU ANKİ GÜNCEL TÜRKİYE ZAMANI:\n"
+                    f"- Güncel Saat: {tr_saat_ai}\n"
+                    f"- Güncel Tarih: {tr_tarih_ai}\n\n"
                     "Sohbet ettiğin kullanıcının anlık veritabanı yetki ve rütbe bilgileri aşağıda belirtilmiştir.\n\n"
                     f"👤 KONUŞTUĞUN KİŞİNİN BİLGİLERİ:\n"
                     f"- Kullanıcı Adı: {current_name}\n"
@@ -8784,18 +8889,31 @@ Yapay zeka ve gerçek zamanlı iletişim teknolojilerini birleştirerek Türkiye
                 <script>
                 (function() {
                   try {
-                    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                    const osc = ctx.createOscillator();
-                    const gain = ctx.createGain();
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(600, ctx.currentTime);
-                    osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.1);
-                    gain.gain.setValueAtTime(0.08, ctx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.12);
-                    osc.connect(gain);
-                    gain.connect(ctx.destination);
-                    osc.start();
-                    osc.stop(ctx.currentTime + 0.12);
+                    const playSend = () => {
+                      try {
+                        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                        if (ctx.state === 'suspended') {
+                          ctx.resume();
+                        }
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(600, ctx.currentTime);
+                        osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.1);
+                        gain.gain.setValueAtTime(0.08, ctx.currentTime);
+                        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.12);
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start();
+                        osc.stop(ctx.currentTime + 0.12);
+                      } catch (err) {}
+                    };
+                    const ctxCheck = new (window.AudioContext || window.webkitAudioContext)();
+                    if (ctxCheck.state === 'suspended') {
+                      document.addEventListener('click', () => { playSend(); }, { once: true });
+                    } else {
+                      playSend();
+                    }
                   } catch(e) {}
                 })();
                 </script>
@@ -8913,32 +9031,45 @@ Yapay zeka ve gerçek zamanlı iletişim teknolojilerini birleştirerek Türkiye
                     <script>
                     (function() {
                       try {
-                        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                        const osc1 = ctx.createOscillator();
-                        const gain1 = ctx.createGain();
-                        osc1.type = 'sine';
-                        osc1.frequency.setValueAtTime(800, ctx.currentTime);
-                        gain1.gain.setValueAtTime(0.08, ctx.currentTime);
-                        gain1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08);
-                        osc1.connect(gain1);
-                        gain1.connect(ctx.destination);
-                        osc1.start();
-                        osc1.stop(ctx.currentTime + 0.08);
-
-                        setTimeout(() => {
+                        const playReceive = () => {
                           try {
-                            const osc2 = ctx.createOscillator();
-                            const gain2 = ctx.createGain();
-                            osc2.type = 'sine';
-                            osc2.frequency.setValueAtTime(1000, ctx.currentTime);
-                            gain2.gain.setValueAtTime(0.08, ctx.currentTime);
-                            gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
-                            osc2.connect(gain2);
-                            gain2.connect(ctx.destination);
-                            osc2.start();
-                            osc2.stop(ctx.currentTime + 0.1);
-                          } catch (e) {}
-                        }, 80);
+                            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                            if (ctx.state === 'suspended') {
+                              ctx.resume();
+                            }
+                            const osc1 = ctx.createOscillator();
+                            const gain1 = ctx.createGain();
+                            osc1.type = 'sine';
+                            osc1.frequency.setValueAtTime(800, ctx.currentTime);
+                            gain1.gain.setValueAtTime(0.08, ctx.currentTime);
+                            gain1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08);
+                            osc1.connect(gain1);
+                            gain1.connect(ctx.destination);
+                            osc1.start();
+                            osc1.stop(ctx.currentTime + 0.08);
+
+                            setTimeout(() => {
+                              try {
+                                const osc2 = ctx.createOscillator();
+                                const gain2 = ctx.createGain();
+                                osc2.type = 'sine';
+                                osc2.frequency.setValueAtTime(1000, ctx.currentTime);
+                                gain2.gain.setValueAtTime(0.08, ctx.currentTime);
+                                gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+                                osc2.connect(gain2);
+                                gain2.connect(ctx.destination);
+                                osc2.start();
+                                osc2.stop(ctx.currentTime + 0.1);
+                              } catch (e) {}
+                            }, 80);
+                          } catch(err) {}
+                        };
+                        const ctxCheck = new (window.AudioContext || window.webkitAudioContext)();
+                        if (ctxCheck.state === 'suspended') {
+                          document.addEventListener('click', () => { playReceive(); }, { once: true });
+                        } else {
+                          playReceive();
+                        }
                       } catch(e) {}
                     })();
                     </script>
