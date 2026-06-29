@@ -3,4 +3,7 @@ firebase-key.json
 __pycache__/
 *.py[cod]
 .env
-.web/ 
+.web/
+.venv/
+venv/
+ 
