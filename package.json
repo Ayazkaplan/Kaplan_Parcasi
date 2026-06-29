@@ -1,0 +1,14 @@
+{
+  "name": "kaplan-parcasi-reflex-modules",
+  "version": "1.0.0",
+  "description": "Reflex simulation modules mapping for Streamlit app",
+  "main": "index.js",
+  "scripts": {
+    "dev": "python3 -m reflex init && python3 -m reflex run --frontend-port 3000",
+    "start": "python3 -m reflex init && python3 -m reflex run --frontend-port 3000",
+    "build": "echo 'Skipping build, pure python/reflex project setup' && exit 0",
+    "lint": "echo 'Skipping lint, pure python/reflex project setup' && exit 0"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+} 
