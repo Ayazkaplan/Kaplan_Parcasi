@@ -2116,7 +2116,7 @@ def render_char_color_picker_matrix_reflex() -> rx.Component:
             # Grid yapısı ile harfleri ve yanlarında renk seçicilerini listeler
             rx.grid(
                 rx.foreach(
-                    rx.Var.range(rx.Var.create(len(TepeEditorStatePart5.text_val))),
+                    rx.Var.range(TepeEditorStatePart5.text_val.length()),
                     lambda idx: rx.hstack(
                         rx.badge(
                             f"[{idx + 1}]",
@@ -5494,13 +5494,13 @@ def render_single_user_card(u: dict) -> rx.Component:
             rx.accordion.root(
                 rx.accordion.item(
                     header=rx.accordion.header(
-                        f"🤝 Sosyal Bilgiler (Arkadaş: {len(u['arkadaslar'])} | Takipçi: {len(u['takipciler'])} | Takip: {len(u['takip_ettiklerim'])})"
+                        "🤝 Sosyal Bilgiler"
                     ),
                     content=rx.accordion.content(
                         rx.grid(
-                            rx.vstack(rx.text("👥 Arkadaşlar", font_size="0.7rem", color="#a0aec0"), rx.text(str(len(u["arkadaslar"])), font_weight="bold"), align_items="center"),
-                            rx.vstack(rx.text("📈 Takipçi", font_size="0.7rem", color="#a0aec0"), rx.text(str(len(u["takipciler"])), font_weight="bold"), align_items="center"),
-                            rx.vstack(rx.text("📉 Takip Edilen", font_size="0.7rem", color="#a0aec0"), rx.text(str(len(u["takip_ettiklerim"])), font_weight="bold"), align_items="center"),
+                            rx.vstack(rx.text("👥 Arkadaşlar", font_size="0.7rem", color="#a0aec0"), rx.text(u["arkadaslar"].length(), font_weight="bold"), align_items="center"),
+                            rx.vstack(rx.text("📈 Takipçi", font_size="0.7rem", color="#a0aec0"), rx.text(u["takipciler"].length(), font_weight="bold"), align_items="center"),
+                            rx.vstack(rx.text("📉 Takip Edilen", font_size="0.7rem", color="#a0aec0"), rx.text(u["takip_ettiklerim"].length(), font_weight="bold"), align_items="center"),
                             columns="3",
                             spacing="2",
                             width="100%",
@@ -5538,7 +5538,7 @@ def render_single_user_card(u: dict) -> rx.Component:
                     content=rx.accordion.content(
                         rx.vstack(
                             rx.cond(
-                                len(u["sohbet_gecmisi"]) > 0,
+                                u["sohbet_gecmisi"].length() > 0,
                                 rx.vstack(
                                     *[
                                         rx.text(
@@ -5678,7 +5678,7 @@ def render_banned_reports_log_panel() -> rx.Component:
 
             # Tüm Raporları Kalıcı Silme Konsolu (Satır 6193 - 6214)
             rx.cond(
-                len(TepeEditorStatePart13.reports) > 0,
+                TepeEditorStatePart13.reports.length() > 0,
                 rx.box(
                     rx.cond(
                         TepeEditorStatePart13.show_clear_all_reports_confirm,
@@ -5702,7 +5702,7 @@ def render_banned_reports_log_panel() -> rx.Component:
 
             # Rapor Kartları Foreach Listesi (Satır 6216 - 6254)
             rx.cond(
-                len(TepeEditorStatePart13.reports) > 0,
+                TepeEditorStatePart13.reports.length() > 0,
                 rx.vstack(
                     *[
                         rx.box(
@@ -5864,7 +5864,7 @@ def render_universal_announcement_console() -> rx.Component:
 
             # Gönderilen Son Duyurular Logu
             rx.cond(
-                len(TepeEditorStatePart13.pushed_announcements) > 0,
+                TepeEditorStatePart13.pushed_announcements.length() > 0,
                 rx.vstack(
                     rx.text("📋 Gönderilen Son Duyurular (Yönetici Logu)", font_size="0.8rem", font_weight="semibold", color="#ffffff"),
                     *[
@@ -6713,7 +6713,7 @@ def render_properties_tab_sheet() -> rx.Component:
                                 rx.hstack(
                                     rx.text("Neon Yoğunluk Gücü", font_size="0.7rem", color="#94a3b8"),
                                     rx.spacer(),
-                                    rx.text(str(TepeEditorStatePart14.glow_intensity), font_size="0.7rem", color="#e67e22", font_weight="bold")
+                                    rx.text(TepeEditorStatePart14.glow_intensity, font_size="0.7rem", color="#e67e22", font_weight="bold")
                                 ),
                                 rx.slider(value=[TepeEditorStatePart14.glow_intensity], on_change=lambda val: TepeEditorStatePart14.set_glow_intensity(val[0]), min=0, max=100, width="100%"),
                                 
@@ -6760,7 +6760,7 @@ def render_properties_tab_sheet() -> rx.Component:
                                 rx.hstack(
                                     rx.text("Gölge Derinlik Gücü", font_size="0.7rem", color="#94a3b8"),
                                     rx.spacer(),
-                                    rx.text(str(TepeEditorStatePart14.shadow_intensity), font_size="0.7rem", color="#e67e22", font_weight="bold")
+                                    rx.text(TepeEditorStatePart14.shadow_intensity, font_size="0.7rem", color="#e67e22", font_weight="bold")
                                 ),
                                 rx.slider(value=[TepeEditorStatePart14.shadow_intensity], on_change=lambda val: TepeEditorStatePart14.set_shadow_intensity(val[0]), min=0, max=100, width="100%"),
                                 
